@@ -6,36 +6,43 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, X, Printer, Save } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Scale, Save, Printer, Plus, Edit, Trash2 } from 'lucide-react';
 import { db, Pesee, Client, Product } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
 
-interface PeseeTab {
-  id: string;
-  label: string;
-  data: Partial<Pesee>;
-  isDirty: boolean;
-}
-
 export default function PeseeSpace() {
-  const [tabs, setTabs] = useState<PeseeTab[]>([
-    { id: '1', label: 'Pesée 1', data: {}, isDirty: false }
-  ]);
-  const [activeTab, setActiveTab] = useState('1');
+  const [pesees, setPesees] = useState<Pesee[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [activeTab, setActiveTab] = useState('nouvelle');
+  const [formData, setFormData] = useState({
+    numeroBon: '',
+    moyenPaiement: 'Direct' as 'Direct' | 'En compte',
+    plaque: '',
+    nomEntreprise: '',
+    chantier: '',
+    produitId: 0,
+    poidsEntree: 0,
+    poidsSortie: 0,
+    clientId: 0
+  });
   const { toast } = useToast();
 
   useEffect(() => {
     loadData();
+    generateBonNumber();
   }, []);
 
   const loadData = async () => {
     try {
-      const [clientsData, productsData] = await Promise.all([
+      const [peseesData, clientsData, productsData] = await Promise.all([
+        db.pesees.orderBy('dateHeure').reverse().limit(50).toArray(),
         db.clients.toArray(),
         db.products.toArray()
       ]);
+      
+      setPesees(peseesData);
       setClients(clientsData);
       setProducts(productsData);
     } catch (error) {
@@ -43,298 +50,315 @@ export default function PeseeSpace() {
     }
   };
 
-  const addTab = () => {
-    const newTabId = (tabs.length + 1).toString();
-    const newTab: PeseeTab = {
-      id: newTabId,
-      label: `Pesée ${newTabId}`,
-      data: {
-        dateHeure: new Date(),
-        moyenPaiement: 'Direct'
-      },
-      isDirty: false
-    };
-    setTabs([...tabs, newTab]);
-    setActiveTab(newTabId);
+  const generateBonNumber = () => {
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const time = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
+    
+    setFormData(prev => ({
+      ...prev,
+      numeroBon: `${year}${month}${day}-${time}`
+    }));
   };
 
-  const closeTab = (tabId: string) => {
-    if (tabs.length === 1) return;
-    
-    const newTabs = tabs.filter(tab => tab.id !== tabId);
-    setTabs(newTabs);
-    
-    if (activeTab === tabId) {
-      setActiveTab(newTabs[0].id);
+  const handleSave = async () => {
+    try {
+      if (!formData.numeroBon || !formData.plaque || !formData.nomEntreprise || !formData.produitId) {
+        toast({
+          title: "Erreur",
+          description: "Veuillez remplir tous les champs obligatoires.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const selectedProduct = products.find(p => p.id === formData.produitId);
+      if (!selectedProduct) {
+        toast({
+          title: "Erreur",
+          description: "Veuillez sélectionner un produit.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const net = Math.abs(formData.poidsEntree - formData.poidsSortie);
+      const prixHT = net * selectedProduct.prixHT;
+      const prixTTC = net * selectedProduct.prixTTC;
+
+      const peseeData: Pesee = {
+        ...formData,
+        dateHeure: new Date(),
+        net,
+        prixHT,
+        prixTTC,
+        synchronized: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      await db.pesees.add(peseeData);
+      
+      toast({
+        title: "Pesée enregistrée",
+        description: `Bon n°${formData.numeroBon} créé avec succès.`
+      });
+
+      // Reset form
+      generateBonNumber();
+      setFormData(prev => ({
+        numeroBon: prev.numeroBon,
+        moyenPaiement: 'Direct',
+        plaque: '',
+        nomEntreprise: '',
+        chantier: '',
+        produitId: 0,
+        poidsEntree: 0,
+        poidsSortie: 0,
+        clientId: 0
+      }));
+
+      loadData();
+    } catch (error) {
+      console.error('Error saving pesee:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer la pesée.",
+        variant: "destructive"
+      });
     }
   };
 
-  const updateTabData = (tabId: string, newData: Partial<Pesee>) => {
-    setTabs(tabs.map(tab => 
-      tab.id === tabId 
-        ? { ...tab, data: { ...tab.data, ...newData }, isDirty: true }
-        : tab
-    ));
-  };
-
-  const getCurrentTab = () => tabs.find(tab => tab.id === activeTab);
-
-  const generateBonNumber = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const timestamp = now.getTime().toString().slice(-4);
-    return `BON-${year}-${timestamp}`;
-  };
-
-  const calculatePrices = (net: number, productId: number) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return { prixHT: 0, prixTTC: 0 };
-    
-    const prixHT = net * product.prixHT;
-    const prixTTC = net * product.prixTTC;
-    
-    return { prixHT, prixTTC };
-  };
-
-  const handleValidation = (printBon: boolean = false, printFacture: boolean = false) => {
-    const currentTab = getCurrentTab();
-    if (!currentTab) return;
-
-    // Validation logic here
-    const numeroBon = generateBonNumber();
-    
+  const handlePrint = () => {
+    // Simulation d'impression
     toast({
-      title: "Pesée enregistrée",
-      description: `Bon n°${numeroBon} créé avec succès`
+      title: "Impression",
+      description: "Bon de pesée envoyé à l'imprimante."
     });
+  };
 
-    // Reset tab
-    updateTabData(activeTab, {
-      dateHeure: new Date(),
-      moyenPaiement: 'Direct'
-    });
+  const onClientSelect = (clientId: string) => {
+    const client = clients.find(c => c.id === parseInt(clientId));
+    if (client) {
+      setFormData(prev => ({
+        ...prev,
+        clientId: client.id!,
+        nomEntreprise: client.raisonSociale,
+        plaque: client.plaques?.[0] || '',
+        chantier: client.chantiers?.[0] || ''
+      }));
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Pesée</h1>
-        <Button onClick={addTab} disabled={tabs.length >= 4}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nouvel Onglet
-        </Button>
-      </div>
+      <h1 className="text-3xl font-bold flex items-center">
+        <Scale className="h-8 w-8 mr-3" />
+        Station de Pesée
+      </h1>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          {tabs.map(tab => (
-            <TabsTrigger key={tab.id} value={tab.id} className="relative">
-              {tab.label}
-              {tab.isDirty && <div className="w-2 h-2 bg-orange-500 rounded-full absolute -top-1 -right-1" />}
-              {tabs.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    closeTab(tab.id);
-                  }}
-                  className="ml-2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </TabsTrigger>
-          ))}
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="nouvelle">Nouvelle Pesée</TabsTrigger>
+          <TabsTrigger value="recentes">Pesées Récentes</TabsTrigger>
         </TabsList>
 
-        {tabs.map(tab => (
-          <TabsContent key={tab.id} value={tab.id}>
-            <PeseeForm
-              data={tab.data}
-              clients={clients}
-              products={products}
-              onDataChange={(newData) => updateTabData(tab.id, newData)}
-              onValidation={handleValidation}
-            />
-          </TabsContent>
-        ))}
+        <TabsContent value="nouvelle">
+          <Card>
+            <CardHeader>
+              <CardTitle>Nouvelle Pesée</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="numeroBon">Numéro de bon</Label>
+                  <Input
+                    id="numeroBon"
+                    value={formData.numeroBon}
+                    onChange={(e) => setFormData({...formData, numeroBon: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="moyenPaiement">Moyen de paiement</Label>
+                  <Select value={formData.moyenPaiement} onValueChange={(value: 'Direct' | 'En compte') => setFormData({...formData, moyenPaiement: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Direct">Direct</SelectItem>
+                      <SelectItem value="En compte">En compte</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="client">Client</Label>
+                  <Select onValueChange={onClientSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id!.toString()}>
+                          {client.raisonSociale}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="plaque">Plaque *</Label>
+                  <Input
+                    id="plaque"
+                    value={formData.plaque}
+                    onChange={(e) => setFormData({...formData, plaque: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="nomEntreprise">Nom entreprise *</Label>
+                  <Input
+                    id="nomEntreprise"
+                    value={formData.nomEntreprise}
+                    onChange={(e) => setFormData({...formData, nomEntreprise: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="chantier">Chantier</Label>
+                  <Input
+                    id="chantier"
+                    value={formData.chantier}
+                    onChange={(e) => setFormData({...formData, chantier: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="produit">Produit *</Label>
+                  <Select value={formData.produitId.toString()} onValueChange={(value) => setFormData({...formData, produitId: parseInt(value)})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un produit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((product) => (
+                        <SelectItem key={product.id} value={product.id!.toString()}>
+                          {product.nom} - {product.prixTTC.toFixed(2)}€/T
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="poidsEntree">Poids entrée (T)</Label>
+                  <Input
+                    id="poidsEntree"
+                    type="number"
+                    step="0.01"
+                    value={formData.poidsEntree}
+                    onChange={(e) => setFormData({...formData, poidsEntree: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="poidsSortie">Poids sortie (T)</Label>
+                  <Input
+                    id="poidsSortie"
+                    type="number"
+                    step="0.01"
+                    value={formData.poidsSortie}
+                    onChange={(e) => setFormData({...formData, poidsSortie: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+              </div>
+
+              {/* Calcul automatique */}
+              <Card className="bg-green-50">
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-green-600">
+                        {Math.abs(formData.poidsEntree - formData.poidsSortie).toFixed(2)}
+                      </div>
+                      <div className="text-sm text-gray-600">Net (T)</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-semibold">
+                        {products.find(p => p.id === formData.produitId)?.prixHT.toFixed(2) || '0.00'}€
+                      </div>
+                      <div className="text-sm text-gray-600">Prix HT/T</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-semibold text-green-600">
+                        {((Math.abs(formData.poidsEntree - formData.poidsSortie)) * (products.find(p => p.id === formData.produitId)?.prixHT || 0)).toFixed(2)}€
+                      </div>
+                      <div className="text-sm text-gray-600">Total HT</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-bold text-green-600">
+                        {((Math.abs(formData.poidsEntree - formData.poidsSortie)) * (products.find(p => p.id === formData.produitId)?.prixTTC || 0)).toFixed(2)}€
+                      </div>
+                      <div className="text-sm text-gray-600">Total TTC</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={handlePrint}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimer
+                </Button>
+                <Button onClick={handleSave}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Enregistrer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="recentes">
+          <div className="space-y-4">
+            {pesees.map((pesee) => (
+              <Card key={pesee.id}>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <div className="font-semibold">{pesee.numeroBon}</div>
+                      <div className="text-sm text-gray-600">
+                        {pesee.dateHeure.toLocaleDateString()} à {pesee.dateHeure.toLocaleTimeString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-medium">{pesee.nomEntreprise}</div>
+                      <div className="text-sm text-gray-600">Plaque: {pesee.plaque}</div>
+                    </div>
+                    <div>
+                      <Badge variant="outline" className="mb-2">
+                        {pesee.net} T
+                      </Badge>
+                      <div className="text-sm text-gray-600">
+                        {pesee.moyenPaiement}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-green-600">
+                        {pesee.prixTTC.toFixed(2)}€ TTC
+                      </div>
+                      <Badge variant={pesee.synchronized ? "default" : "secondary"}>
+                        {pesee.synchronized ? "Synchronisé" : "En attente"}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-interface PeseeFormProps {
-  data: Partial<Pesee>;
-  clients: Client[];
-  products: Product[];
-  onDataChange: (data: Partial<Pesee>) => void;
-  onValidation: (printBon?: boolean, printFacture?: boolean) => void;
-}
-
-function PeseeForm({ data, clients, products, onDataChange, onValidation }: PeseeFormProps) {
-  const [poidsEntree, setPoidsEntree] = useState(data.poidsEntree || 0);
-  const [poidsSortie, setPoidsSortie] = useState(data.poidsSortie || 0);
-
-  const net = poidsEntree > poidsSortie ? poidsEntree - poidsSortie : poidsSortie - poidsEntree;
-  
-  useEffect(() => {
-    onDataChange({ 
-      ...data, 
-      poidsEntree, 
-      poidsSortie, 
-      net 
-    });
-  }, [poidsEntree, poidsSortie, net]);
-
-  const selectedProduct = products.find(p => p.id === data.produitId);
-  const prixHT = selectedProduct ? net * selectedProduct.prixHT : 0;
-  const prixTTC = selectedProduct ? net * selectedProduct.prixTTC : 0;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Nouvelle Pesée</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Moyen de paiement</Label>
-            <Select 
-              value={data.moyenPaiement || 'Direct'} 
-              onValueChange={(value: 'Direct' | 'En compte') => onDataChange({ moyenPaiement: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Direct">Direct</SelectItem>
-                <SelectItem value="En compte">En compte</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Date et heure</Label>
-            <Input 
-              type="datetime-local" 
-              value={data.dateHeure ? new Date(data.dateHeure).toISOString().slice(0, 16) : ''}
-              onChange={(e) => onDataChange({ dateHeure: new Date(e.target.value) })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Plaque</Label>
-            <Input 
-              value={data.plaque || ''}
-              onChange={(e) => onDataChange({ plaque: e.target.value })}
-              placeholder="AB-123-CD"
-            />
-          </div>
-          <div>
-            <Label>Nom de l'entreprise</Label>
-            <Input 
-              value={data.nomEntreprise || ''}
-              onChange={(e) => onDataChange({ nomEntreprise: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Chantier</Label>
-            <Input 
-              value={data.chantier || ''}
-              onChange={(e) => onDataChange({ chantier: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label>Produit</Label>
-            <Select 
-              value={data.produitId?.toString() || ''} 
-              onValueChange={(value) => onDataChange({ produitId: parseInt(value) })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un produit" />
-              </SelectTrigger>
-              <SelectContent>
-                {products.map(product => (
-                  <SelectItem key={product.id} value={product.id!.toString()}>
-                    {product.nom} - {product.prixHT}€/T HT
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <Label>Poids entrée (T)</Label>
-            <Input 
-              type="number" 
-              step="0.01"
-              value={poidsEntree}
-              onChange={(e) => setPoidsEntree(parseFloat(e.target.value) || 0)}
-            />
-          </div>
-          <div>
-            <Label>Poids sortie (T)</Label>
-            <Input 
-              type="number" 
-              step="0.01"
-              value={poidsSortie}
-              onChange={(e) => setPoidsSortie(parseFloat(e.target.value) || 0)}
-            />
-          </div>
-          <div>
-            <Label>Net (T)</Label>
-            <Input 
-              type="number" 
-              value={net.toFixed(2)}
-              disabled
-              className="bg-gray-50"
-            />
-          </div>
-        </div>
-
-        {data.moyenPaiement === 'Direct' && (
-          <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
-            <div>
-              <Label>Prix HT</Label>
-              <Input 
-                value={`${prixHT.toFixed(2)} €`}
-                disabled
-                className="bg-white"
-              />
-            </div>
-            <div>
-              <Label>Prix TTC</Label>
-              <Input 
-                value={`${prixTTC.toFixed(2)} €`}
-                disabled
-                className="bg-white"
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="flex space-x-2">
-          <Button onClick={() => onValidation(true, false)}>
-            <Printer className="h-4 w-4 mr-2" />
-            Confirmer & Imprimer Bon
-          </Button>
-          <Button variant="outline" onClick={() => onValidation(false, false)}>
-            <Save className="h-4 w-4 mr-2" />
-            Confirmer
-          </Button>
-          {data.moyenPaiement === 'Direct' && (
-            <Button onClick={() => onValidation(true, true)}>
-              <Printer className="h-4 w-4 mr-2" />
-              Confirmer & Imprimer Tout
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
