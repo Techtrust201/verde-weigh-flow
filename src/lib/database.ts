@@ -3,9 +3,10 @@ import Dexie, { Table } from 'dexie';
 
 export interface Client {
   id?: number;
+  typeClient: 'particulier' | 'professionnel' | 'micro-entreprise';
   raisonSociale: string;
   dateCreation?: string;
-  siret: string;
+  siret?: string;
   codeNAF?: string;
   activite?: string;
   adresse?: string;
@@ -16,6 +17,10 @@ export interface Client {
   email?: string;
   plaques: string[];
   chantiers: string[];
+  // Champs spécifiques aux particuliers
+  prenom?: string;
+  nom?: string;
+  dateNaissance?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,11 +79,17 @@ export class BarberisDB extends Dexie {
 
   constructor() {
     super('BarberisDB');
-    this.version(1).stores({
-      clients: '++id, raisonSociale, siret, *plaques, *chantiers, createdAt',
+    this.version(2).stores({
+      clients: '++id, typeClient, raisonSociale, siret, *plaques, *chantiers, createdAt',
       products: '++id, nom, codeProduct, isFavorite, createdAt',
       pesees: '++id, numeroBon, plaque, nomEntreprise, produitId, clientId, dateHeure, synchronized, createdAt',
       userSettings: '++id, nomEntreprise, createdAt'
+    }).upgrade(tx => {
+      return tx.clients.toCollection().modify(client => {
+        if (!client.typeClient) {
+          client.typeClient = client.siret && client.siret !== '00000000000000' ? 'professionnel' : 'particulier';
+        }
+      });
     });
   }
 }
@@ -94,6 +105,7 @@ export async function initializeSampleData() {
   if (clientsCount === 0) {
     await db.clients.bulkAdd([
       {
+        typeClient: 'professionnel',
         raisonSociale: 'Entreprise Martin TP',
         siret: '12345678901234',
         codeNAF: '4312A',
@@ -110,11 +122,30 @@ export async function initializeSampleData() {
         updatedAt: new Date()
       },
       {
+        typeClient: 'particulier',
         raisonSociale: 'Particulier',
+        prenom: 'Jean',
+        nom: 'Dupont',
         siret: '00000000000000',
-        telephones: [],
-        plaques: [],
+        telephones: ['06 12 34 56 78'],
+        plaques: ['CD-789-EF'],
         chantiers: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        typeClient: 'micro-entreprise',
+        raisonSociale: 'Martin Jardinage',
+        siret: '12345678901235',
+        activite: 'Services de jardinage',
+        adresse: '45 Avenue des Fleurs',
+        codePostal: '69001',
+        ville: 'Lyon',
+        representantLegal: 'Marie Martin',
+        telephones: ['04 78 98 76 54'],
+        email: 'marie@martin-jardinage.fr',
+        plaques: ['GH-012-IJ'],
+        chantiers: ['Particuliers'],
         createdAt: new Date(),
         updatedAt: new Date()
       }
