@@ -47,6 +47,7 @@ export interface Pesee {
   prixHT: number;
   prixTTC: number;
   clientId?: number;
+  synchronized?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -76,7 +77,7 @@ export class BarberisDB extends Dexie {
     this.version(1).stores({
       clients: '++id, raisonSociale, siret, *plaques, *chantiers, createdAt',
       products: '++id, nom, codeProduct, isFavorite, createdAt',
-      pesees: '++id, numeroBon, plaque, nomEntreprise, produitId, clientId, dateHeure, createdAt',
+      pesees: '++id, numeroBon, plaque, nomEntreprise, produitId, clientId, dateHeure, synchronized, createdAt',
       userSettings: '++id, nomEntreprise, createdAt'
     });
   }
