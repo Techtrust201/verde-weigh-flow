@@ -85,7 +85,7 @@ export class BarberisDB extends Dexie {
       pesees: '++id, numeroBon, plaque, nomEntreprise, produitId, clientId, dateHeure, synchronized, createdAt',
       userSettings: '++id, nomEntreprise, createdAt'
     }).upgrade(tx => {
-      return tx.clients.toCollection().modify(client => {
+      return tx.table('clients').toCollection().modify(client => {
         if (!client.typeClient) {
           client.typeClient = client.siret && client.siret !== '00000000000000' ? 'professionnel' : 'particulier';
         }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Scale, Save, Printer, Plus, Edit, Trash2, X, UserPlus } from 'lucide-react';
 import { db, Pesee, Client, Product } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
+import ClientForm from '@/components/forms/ClientForm';
 
 interface PeseeTab {
   id: string;
@@ -36,8 +36,12 @@ export default function PeseeSpace() {
   const [activeTabId, setActiveTabId] = useState<string>('');
   const [showRecentTab, setShowRecentTab] = useState(false);
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
+  const [isAddChantierDialogOpen, setIsAddChantierDialogOpen] = useState(false);
   const [plaqueMatches, setPlaqueMatches] = useState<Client[]>([]);
   const [showPlaqueMatches, setShowPlaqueMatches] = useState(false);
+  const [chantierMatches, setChantierMatches] = useState<string[]>([]);
+  const [showChantierMatches, setShowChantierMatches] = useState(false);
+  const [newChantier, setNewChantier] = useState('');
   
   // Formulaire pour nouveau client
   const [newClientForm, setNewClientForm] = useState<Partial<Client>>({
@@ -176,6 +180,60 @@ export default function PeseeSpace() {
     setShowPlaqueMatches(false);
   };
 
+  const handleChantierChange = (chantier: string) => {
+    updateCurrentTab({ chantier });
+    
+    if (chantier.length > 1) {
+      const allChantiers = clients.flatMap(client => client.chantiers || []);
+      const uniqueChantiers = [...new Set(allChantiers)];
+      const matches = uniqueChantiers.filter(c => 
+        c.toLowerCase().includes(chantier.toLowerCase())
+      );
+      setChantierMatches(matches);
+      setShowChantierMatches(matches.length > 0);
+    } else {
+      setShowChantierMatches(false);
+    }
+  };
+
+  const selectChantierMatch = (chantier: string) => {
+    updateCurrentTab({ chantier });
+    setShowChantierMatches(false);
+  };
+
+  const handleAddChantier = async () => {
+    const currentData = getCurrentTabData();
+    if (!currentData?.clientId || !newChantier.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un client et saisir un nom de chantier.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const client = clients.find(c => c.id === currentData.clientId);
+      if (client) {
+        const updatedChantiers = [...(client.chantiers || []), newChantier.trim()];
+        await db.clients.update(client.id!, { chantiers: updatedChantiers });
+        
+        updateCurrentTab({ chantier: newChantier.trim() });
+        setNewChantier('');
+        setIsAddChantierDialogOpen(false);
+        
+        toast({
+          title: "Chantier ajouté",
+          description: "Le nouveau chantier a été ajouté au client."
+        });
+        
+        loadData();
+      }
+    } catch (error) {
+      console.error('Error adding chantier:', error);
+    }
+  };
+
   const handleSave = async () => {
     const currentData = getCurrentTabData();
     
@@ -269,7 +327,45 @@ export default function PeseeSpace() {
   const generatePrintContent = (formData: any) => {
     const selectedProduct = products.find(p => p.id === formData.produitId);
     const net = Math.abs(formData.poidsEntree - formData.poidsSortie);
+    const prixHT = net * (selectedProduct?.prixHT || 0);
     const prixTTC = net * (selectedProduct?.prixTTC || 0);
+    
+    const bonContent = `
+      <div class="bon">
+        <div class="header">
+          <h2>BON DE PESÉE</h2>
+          <p>N° ${formData.numeroBon}</p>
+        </div>
+        <div class="row">
+          <span class="label">Date:</span>
+          <span>${new Date().toLocaleDateString()}</span>
+        </div>
+        <div class="row">
+          <span class="label">Entreprise:</span>
+          <span>${formData.nomEntreprise}</span>
+        </div>
+        <div class="row">
+          <span class="label">Plaque:</span>
+          <span>${formData.plaque}</span>
+        </div>
+        <div class="row">
+          <span class="label">Chantier:</span>
+          <span>${formData.chantier}</span>
+        </div>
+        <div class="row">
+          <span class="label">Produit:</span>
+          <span>${selectedProduct?.nom || 'Non défini'}</span>
+        </div>
+        <div class="row">
+          <span class="label">Poids Net:</span>
+          <span>${net.toFixed(2)} T</span>
+        </div>
+        <div class="total">
+          <strong>Total HT: ${prixHT.toFixed(2)}€</strong><br>
+          <strong>Total TTC: ${prixTTC.toFixed(2)}€</strong>
+        </div>
+      </div>
+    `;
     
     return `
       <!DOCTYPE html>
@@ -277,49 +373,21 @@ export default function PeseeSpace() {
       <head>
         <title>Bon de pesée</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 30px; }
-          .bon { border: 2px solid #000; padding: 20px; margin-bottom: 20px; }
-          .row { display: flex; justify-content: space-between; margin: 10px 0; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          .bon { border: 2px solid #000; padding: 20px; margin-bottom: 20px; width: calc(50% - 40px); float: left; box-sizing: border-box; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .row { display: flex; justify-content: space-between; margin: 8px 0; }
           .label { font-weight: bold; }
-          .total { background: #f0f0f0; padding: 10px; margin-top: 20px; text-align: right; }
-          @media print { @page { size: A5; } }
+          .total { background: #f0f0f0; padding: 10px; margin-top: 15px; text-align: center; }
+          @media print { 
+            @page { size: A5 landscape; margin: 10mm; } 
+            body { margin: 0; }
+          }
         </style>
       </head>
       <body>
-        <div class="bon">
-          <div class="header">
-            <h2>BON DE PESÉE</h2>
-            <p>N° ${formData.numeroBon}</p>
-          </div>
-          <div class="row">
-            <span class="label">Date:</span>
-            <span>${new Date().toLocaleDateString()}</span>
-          </div>
-          <div class="row">
-            <span class="label">Entreprise:</span>
-            <span>${formData.nomEntreprise}</span>
-          </div>
-          <div class="row">
-            <span class="label">Plaque:</span>
-            <span>${formData.plaque}</span>
-          </div>
-          <div class="row">
-            <span class="label">Chantier:</span>
-            <span>${formData.chantier}</span>
-          </div>
-          <div class="row">
-            <span class="label">Produit:</span>
-            <span>${selectedProduct?.nom || 'Non défini'}</span>
-          </div>
-          <div class="row">
-            <span class="label">Poids Net:</span>
-            <span>${net.toFixed(2)} T</span>
-          </div>
-          <div class="total">
-            <strong>Total TTC: ${prixTTC.toFixed(2)}€</strong>
-          </div>
-        </div>
+        ${bonContent}
+        ${formData.moyenPaiement === 'Direct' ? bonContent : ''}
       </body>
       </html>
     `;
@@ -395,6 +463,16 @@ export default function PeseeSpace() {
         description: "Impossible d'ajouter le client.",
         variant: "destructive"
       });
+    }
+  };
+
+  const validateNewClient = () => {
+    if (newClientForm.typeClient === 'particulier') {
+      return newClientForm.prenom && newClientForm.nom;
+    } else {
+      if (!newClientForm.raisonSociale) return false;
+      if (newClientForm.typeClient === 'professionnel' && !newClientForm.siret) return false;
+      return true;
     }
   };
 
@@ -536,13 +614,65 @@ export default function PeseeSpace() {
                       onChange={(e) => updateCurrentTab({ nomEntreprise: e.target.value })}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="chantier">Chantier</Label>
-                    <Input
-                      id="chantier"
-                      value={tab.formData.chantier}
-                      onChange={(e) => updateCurrentTab({ chantier: e.target.value })}
-                    />
+                  <div className="relative">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <Label htmlFor="chantier">Chantier</Label>
+                        <Input
+                          id="chantier"
+                          value={tab.formData.chantier}
+                          onChange={(e) => handleChantierChange(e.target.value)}
+                        />
+                      </div>
+                      <Dialog open={isAddChantierDialogOpen} onOpenChange={setIsAddChantierDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="mt-6"
+                            disabled={!tab.formData.clientId}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Ajouter un nouveau chantier</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div>
+                              <Label>Nom du chantier</Label>
+                              <Input
+                                value={newChantier}
+                                onChange={(e) => setNewChantier(e.target.value)}
+                                placeholder="Nom du nouveau chantier"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="outline" onClick={() => setIsAddChantierDialogOpen(false)}>
+                              Annuler
+                            </Button>
+                            <Button onClick={handleAddChantier}>
+                              Ajouter
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    {showChantierMatches && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                        {chantierMatches.map((chantier) => (
+                          <button
+                            key={chantier}
+                            className="block w-full text-left text-sm text-gray-600 hover:bg-gray-100 p-2 rounded"
+                            onClick={() => selectChantierMatch(chantier)}
+                          >
+                            {chantier}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -554,74 +684,22 @@ export default function PeseeSpace() {
                         Ajouter nouveau client
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Nouveau Client</DialogTitle>
                       </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Type de client</Label>
-                          <Select 
-                            value={newClientForm.typeClient} 
-                            onValueChange={(value: any) => setNewClientForm({...newClientForm, typeClient: value})}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="particulier">Particulier</SelectItem>
-                              <SelectItem value="professionnel">Professionnel</SelectItem>
-                              <SelectItem value="micro-entreprise">Micro-entreprise</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {newClientForm.typeClient === 'particulier' ? (
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label>Prénom *</Label>
-                              <Input
-                                value={newClientForm.prenom || ''}
-                                onChange={(e) => setNewClientForm({...newClientForm, prenom: e.target.value})}
-                              />
-                            </div>
-                            <div>
-                              <Label>Nom *</Label>
-                              <Input
-                                value={newClientForm.nom || ''}
-                                onChange={(e) => setNewClientForm({...newClientForm, nom: e.target.value})}
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <Label>Raison Sociale *</Label>
-                            <Input
-                              value={newClientForm.raisonSociale || ''}
-                              onChange={(e) => setNewClientForm({...newClientForm, raisonSociale: e.target.value})}
-                            />
-                          </div>
-                        )}
-
-                        <div>
-                          <Label>Plaque d'immatriculation</Label>
-                          <Input
-                            value={tab.formData.plaque}
-                            onChange={(e) => {
-                              updateCurrentTab({ plaque: e.target.value });
-                              setNewClientForm({
-                                ...newClientForm, 
-                                plaques: [e.target.value]
-                              });
-                            }}
-                          />
-                        </div>
-                      </div>
+                      <ClientForm 
+                        formData={newClientForm} 
+                        onFormDataChange={setNewClientForm} 
+                      />
                       <div className="flex justify-end space-x-2">
                         <Button variant="outline" onClick={() => setIsAddClientDialogOpen(false)}>
                           Annuler
                         </Button>
-                        <Button onClick={handleAddNewClient}>
+                        <Button 
+                          onClick={handleAddNewClient}
+                          disabled={!validateNewClient()}
+                        >
                           Créer et sélectionner
                         </Button>
                       </div>

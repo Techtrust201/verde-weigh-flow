@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +58,7 @@ export default function ClientsSpace() {
         client.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.ville?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.plaques.some(plaque => plaque.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        client.chantiers.some(chantier => chantier.toLowerCase().includes(searchTerm.toLowerCase())) ||
         client.telephones.some(tel => tel.includes(searchTerm));
       
       const matchesType = typeFilter === 'all' || client.typeClient === typeFilter;
@@ -267,6 +267,30 @@ export default function ClientsSpace() {
     });
   };
 
+  const addChantier = () => {
+    setFormData({
+      ...formData,
+      chantiers: [...(formData.chantiers || []), '']
+    });
+  };
+
+  const updateChantier = (index: number, value: string) => {
+    const newChantiers = [...(formData.chantiers || [])];
+    newChantiers[index] = value;
+    setFormData({
+      ...formData,
+      chantiers: newChantiers
+    });
+  };
+
+  const removeChantier = (index: number) => {
+    const newChantiers = formData.chantiers?.filter((_, i) => i !== index) || [];
+    setFormData({
+      ...formData,
+      chantiers: newChantiers
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -330,6 +354,18 @@ export default function ClientsSpace() {
                     id="raisonSociale"
                     value={formData.raisonSociale || ''}
                     onChange={(e) => setFormData({...formData, raisonSociale: e.target.value})}
+                  />
+                </div>
+              )}
+
+              {formData.typeClient !== 'particulier' && (
+                <div>
+                  <Label htmlFor="dateCreation">Date de création de la société</Label>
+                  <Input
+                    id="dateCreation"
+                    type="date"
+                    value={formData.dateCreation || ''}
+                    onChange={(e) => setFormData({...formData, dateCreation: e.target.value})}
                   />
                 </div>
               )}
@@ -469,6 +505,33 @@ export default function ClientsSpace() {
                   </div>
                 ))}
               </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <Label>Chantiers</Label>
+                  <Button type="button" variant="outline" size="sm" onClick={addChantier}>
+                    <Plus className="h-3 w-3 mr-1" />
+                    Ajouter
+                  </Button>
+                </div>
+                {formData.chantiers?.map((chantier, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <Input
+                      value={chantier}
+                      onChange={(e) => updateChantier(index, e.target.value)}
+                      placeholder="Nom du chantier"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => removeChantier(index)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="flex justify-end space-x-2 mt-6">
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -487,7 +550,7 @@ export default function ClientsSpace() {
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Rechercher par nom, SIRET, email, téléphone, plaque..."
+            placeholder="Rechercher par nom, SIRET, email, téléphone, plaque, chantier..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -574,6 +637,14 @@ export default function ClientsSpace() {
                 <div className="flex flex-wrap gap-1 mt-2">
                   {client.plaques.map((plaque, index) => (
                     <Badge key={index} variant="outline" className="text-xs">{plaque}</Badge>
+                  ))}
+                </div>
+              )}
+              {client.chantiers && client.chantiers.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  <span className="text-xs font-medium text-gray-600">Chantiers:</span>
+                  {client.chantiers.map((chantier, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">{chantier}</Badge>
                   ))}
                 </div>
               )}
