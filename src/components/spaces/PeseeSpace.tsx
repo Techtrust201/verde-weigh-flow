@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Scale, Save, Printer, Plus, Edit, Trash2, X, UserPlus } from 'lucide-react';
+import { Scale, Save, Printer, Plus, Edit, Trash2, X, UserPlus, Building, User, Briefcase, Check } from 'lucide-react';
 import { db, Pesee, Client, Product } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
 import ClientForm from '@/components/forms/ClientForm';
@@ -28,6 +28,11 @@ interface PeseeTab {
   };
 }
 
+interface PlaqueMatch {
+  client: Client;
+  plaque: string;
+}
+
 export default function PeseeSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -37,13 +42,13 @@ export default function PeseeSpace() {
   const [showRecentTab, setShowRecentTab] = useState(false);
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   const [isAddChantierDialogOpen, setIsAddChantierDialogOpen] = useState(false);
-  const [plaqueMatches, setPlaqueMatches] = useState<Client[]>([]);
+  const [plaqueMatches, setPlaqueMatches] = useState<PlaqueMatch[]>([]);
   const [showPlaqueMatches, setShowPlaqueMatches] = useState(false);
   const [chantierMatches, setChantierMatches] = useState<string[]>([]);
   const [showChantierMatches, setShowChantierMatches] = useState(false);
   const [newChantier, setNewChantier] = useState('');
   
-  // Formulaire pour nouveau client
+  // Formulaire pour nouveau client - avec réutilisation des champs
   const [newClientForm, setNewClientForm] = useState<Partial<Client>>({
     typeClient: 'particulier',
     raisonSociale: '',
@@ -96,7 +101,6 @@ export default function PeseeSpace() {
         return;
       }
     }
-    // Créer un premier onglet par défaut
     createNewTab();
   };
 
@@ -156,13 +160,19 @@ export default function PeseeSpace() {
     return tabs.find(tab => tab.id === activeTabId)?.formData || tabs[0]?.formData;
   };
 
+  // Amélioration de la gestion des plaques avec interface plus user-friendly
   const handlePlaqueChange = (plaque: string) => {
     updateCurrentTab({ plaque });
     
-    if (plaque.length > 2) {
-      const matches = clients.filter(client => 
-        client.plaques.some(p => p.toLowerCase().includes(plaque.toLowerCase()))
-      );
+    if (plaque.length > 1) {
+      const matches: PlaqueMatch[] = [];
+      clients.forEach(client => {
+        client.plaques.forEach(clientPlaque => {
+          if (clientPlaque.toLowerCase().includes(plaque.toLowerCase())) {
+            matches.push({ client, plaque: clientPlaque });
+          }
+        });
+      });
       setPlaqueMatches(matches);
       setShowPlaqueMatches(matches.length > 0);
     } else {
@@ -170,12 +180,12 @@ export default function PeseeSpace() {
     }
   };
 
-  const selectPlaqueMatch = (client: Client, selectedPlaque: string) => {
+  const selectPlaqueMatch = (match: PlaqueMatch) => {
     updateCurrentTab({
-      plaque: selectedPlaque,
-      nomEntreprise: client.raisonSociale,
-      clientId: client.id!,
-      chantier: client.chantiers?.[0] || ''
+      plaque: match.plaque,
+      nomEntreprise: match.client.raisonSociale,
+      clientId: match.client.id!,
+      chantier: match.client.chantiers?.[0] || ''
     });
     setShowPlaqueMatches(false);
   };
@@ -184,9 +194,20 @@ export default function PeseeSpace() {
     updateCurrentTab({ chantier });
     
     if (chantier.length > 1) {
-      const allChantiers = clients.flatMap(client => client.chantiers || []);
-      const uniqueChantiers = [...new Set(allChantiers)];
-      const matches = uniqueChantiers.filter(c => 
+      const currentData = getCurrentTabData();
+      let chantiersToSearch: string[] = [];
+      
+      if (currentData?.clientId) {
+        // Si un client est sélectionné, chercher dans ses chantiers
+        const client = clients.find(c => c.id === currentData.clientId);
+        chantiersToSearch = client?.chantiers || [];
+      } else {
+        // Sinon chercher dans tous les chantiers
+        const allChantiers = clients.flatMap(client => client.chantiers || []);
+        chantiersToSearch = [...new Set(allChantiers)];
+      }
+      
+      const matches = chantiersToSearch.filter(c => 
         c.toLowerCase().includes(chantier.toLowerCase())
       );
       setChantierMatches(matches);
@@ -234,6 +255,24 @@ export default function PeseeSpace() {
     }
   };
 
+  // Fonction pour pré-remplir le formulaire nouveau client avec les données actuelles
+  const prepareNewClientForm = () => {
+    const currentData = getCurrentTabData();
+    if (currentData) {
+      setNewClientForm({
+        typeClient: 'particulier',
+        raisonSociale: currentData.nomEntreprise || '',
+        prenom: '',
+        nom: '',
+        siret: '',
+        telephones: [],
+        plaques: currentData.plaque ? [currentData.plaque] : [],
+        chantiers: currentData.chantier ? [currentData.chantier] : []
+      });
+    }
+    setIsAddClientDialogOpen(true);
+  };
+
   const handleSave = async () => {
     const currentData = getCurrentTabData();
     
@@ -279,7 +318,6 @@ export default function PeseeSpace() {
         description: `Bon n°${currentData.numeroBon} créé avec succès.`
       });
 
-      // Reset current tab
       updateCurrentTab({
         numeroBon: generateBonNumber(),
         moyenPaiement: 'Direct',
@@ -307,10 +345,8 @@ export default function PeseeSpace() {
     const currentData = getCurrentTabData();
     if (!currentData) return;
 
-    // Créer le contenu d'impression
     const printContent = generatePrintContent(currentData);
     
-    // Ouvrir une nouvelle fenêtre pour l'impression
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(printContent);
@@ -429,12 +465,10 @@ export default function PeseeSpace() {
 
       const newClientId = await db.clients.add(clientData);
       
-      // Auto-remplir les champs de pesée avec le nouveau client
-      const currentData = getCurrentTabData();
       updateCurrentTab({
         nomEntreprise: clientData.raisonSociale,
         clientId: newClientId as number,
-        plaque: clientData.plaques?.[0] || currentData?.plaque || '',
+        plaque: clientData.plaques?.[0] || '',
         chantier: clientData.chantiers?.[0] || ''
       });
 
@@ -474,6 +508,36 @@ export default function PeseeSpace() {
       if (newClientForm.typeClient === 'professionnel' && !newClientForm.siret) return false;
       return true;
     }
+  };
+
+  const getClientTypeIcon = (type: string) => {
+    switch (type) {
+      case 'particulier':
+        return <User className="h-4 w-4" />;
+      case 'professionnel':
+        return <Building className="h-4 w-4" />;
+      case 'micro-entreprise':
+        return <Briefcase className="h-4 w-4" />;
+      default:
+        return <User className="h-4 w-4" />;
+    }
+  };
+
+  const getClientTypeBadge = (type: string) => {
+    const variants = {
+      'particulier': 'secondary',
+      'professionnel': 'default',
+      'micro-entreprise': 'outline'
+    } as const;
+    
+    return (
+      <Badge variant={variants[type as keyof typeof variants] || 'secondary'} className="flex items-center gap-1">
+        {getClientTypeIcon(type)}
+        {type === 'particulier' ? 'Particulier' : 
+         type === 'professionnel' ? 'Professionnel' : 
+         'Micro-entreprise'}
+      </Badge>
+    );
   };
 
   const currentData = getCurrentTabData();
@@ -571,7 +635,10 @@ export default function PeseeSpace() {
                       <SelectContent>
                         {clients.map((client) => (
                           <SelectItem key={client.id} value={client.id!.toString()}>
-                            {client.raisonSociale}
+                            <div className="flex items-center gap-2">
+                              {getClientTypeIcon(client.typeClient)}
+                              {client.raisonSociale}
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -586,21 +653,34 @@ export default function PeseeSpace() {
                       id="plaque"
                       value={tab.formData.plaque}
                       onChange={(e) => handlePlaqueChange(e.target.value)}
+                      placeholder="Saisir une plaque..."
                     />
                     {showPlaqueMatches && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                        {plaqueMatches.map((client) => (
-                          <div key={client.id} className="p-2 border-b">
-                            <div className="font-medium">{client.raisonSociale}</div>
-                            {client.plaques.map((plaque) => (
-                              <button
-                                key={plaque}
-                                className="block w-full text-left text-sm text-gray-600 hover:bg-gray-100 p-1 rounded"
-                                onClick={() => selectPlaqueMatch(client, plaque)}
-                              >
-                                {plaque}
-                              </button>
-                            ))}
+                        {plaqueMatches.map((match, index) => (
+                          <div 
+                            key={index} 
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            onClick={() => selectPlaqueMatch(match)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{match.client.raisonSociale}</div>
+                                <div className="text-xs text-gray-500 flex items-center gap-2">
+                                  {getClientTypeBadge(match.client.typeClient)}
+                                  <span className="font-mono bg-gray-100 px-2 py-1 rounded">
+                                    {match.plaque}
+                                  </span>
+                                </div>
+                                {match.client.chantiers && match.client.chantiers.length > 0 && (
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    Chantiers: {match.client.chantiers.slice(0, 2).join(', ')}
+                                    {match.client.chantiers.length > 2 && '...'}
+                                  </div>
+                                )}
+                              </div>
+                              <Check className="h-4 w-4 text-green-500" />
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -612,6 +692,7 @@ export default function PeseeSpace() {
                       id="nomEntreprise"
                       value={tab.formData.nomEntreprise}
                       onChange={(e) => updateCurrentTab({ nomEntreprise: e.target.value })}
+                      placeholder="Nom de l'entreprise..."
                     />
                   </div>
                   <div className="relative">
@@ -622,6 +703,7 @@ export default function PeseeSpace() {
                           id="chantier"
                           value={tab.formData.chantier}
                           onChange={(e) => handleChantierChange(e.target.value)}
+                          placeholder="Nom du chantier..."
                         />
                       </div>
                       <Dialog open={isAddChantierDialogOpen} onOpenChange={setIsAddChantierDialogOpen}>
@@ -631,6 +713,7 @@ export default function PeseeSpace() {
                             size="sm"
                             className="mt-6"
                             disabled={!tab.formData.clientId}
+                            title="Ajouter un nouveau chantier"
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
@@ -662,13 +745,16 @@ export default function PeseeSpace() {
                     </div>
                     {showChantierMatches && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                        {chantierMatches.map((chantier) => (
+                        {chantierMatches.map((chantier, index) => (
                           <button
-                            key={chantier}
-                            className="block w-full text-left text-sm text-gray-600 hover:bg-gray-100 p-2 rounded"
+                            key={index}
+                            className="block w-full text-left text-sm text-gray-600 hover:bg-gray-100 p-3 rounded border-b last:border-b-0"
                             onClick={() => selectChantierMatch(chantier)}
                           >
-                            {chantier}
+                            <div className="flex items-center justify-between">
+                              <span>{chantier}</span>
+                              <Check className="h-4 w-4 text-green-500" />
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -679,7 +765,7 @@ export default function PeseeSpace() {
                 <div className="flex justify-center">
                   <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline">
+                      <Button variant="outline" onClick={prepareNewClientForm}>
                         <UserPlus className="h-4 w-4 mr-2" />
                         Ajouter nouveau client
                       </Button>
@@ -748,7 +834,6 @@ export default function PeseeSpace() {
                   </div>
                 </div>
 
-                {/* Calcul automatique */}
                 <Card className="bg-green-50">
                   <CardContent className="pt-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
