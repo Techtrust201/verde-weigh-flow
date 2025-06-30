@@ -60,10 +60,10 @@ export default function ClientsSpace() {
         plaques: formData.plaques || [],
         chantiers: formData.chantiers || [],
         updatedAt: new Date()
-      } as Client;
+      };
 
-      if (editingClient) {
-        await db.clients.update(editingClient.id!, clientData);
+      if (editingClient && editingClient.id) {
+        await db.clients.update(editingClient.id, clientData);
         toast({
           title: "Client modifié",
           description: "Les informations du client ont été mises à jour."
@@ -72,7 +72,7 @@ export default function ClientsSpace() {
         await db.clients.add({
           ...clientData,
           createdAt: new Date()
-        });
+        } as Client);
         toast({
           title: "Client ajouté",
           description: "Le nouveau client a été créé avec succès."
