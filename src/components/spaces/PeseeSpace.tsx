@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -164,9 +163,9 @@ export default function PeseeSpace() {
     }
   };
 
-  const validateNewClient = () => {
+  const validateNewClient = (): boolean => {
     if (newClientForm.typeClient === 'particulier') {
-      return newClientForm.prenom && newClientForm.nom;
+      return Boolean(newClientForm.prenom && newClientForm.nom);
     } else {
       if (!newClientForm.raisonSociale) return false;
       if (newClientForm.typeClient === 'professionnel' && !newClientForm.siret) return false;
