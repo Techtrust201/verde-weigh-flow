@@ -14,6 +14,7 @@ export interface PeseeTab {
     poidsEntree: number;
     poidsSortie: number;
     clientId: number;
+    typeClient?: 'particulier' | 'professionnel' | 'micro-entreprise';
   };
 }
 
@@ -44,7 +45,8 @@ export const usePeseeTabs = () => {
         produitId: 0,
         poidsEntree: 0,
         poidsSortie: 0,
-        clientId: 0
+        clientId: 0,
+        typeClient: 'particulier'
       }
     };
     

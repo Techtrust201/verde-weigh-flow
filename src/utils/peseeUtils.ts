@@ -2,16 +2,19 @@
 import { Product } from '@/lib/database';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 
-export const generatePrintContent = (formData: PeseeTab['formData'], products: Product[]) => {
+export const generatePrintContent = (formData: PeseeTab['formData'], products: Product[], isInvoice = false) => {
   const selectedProduct = products.find(p => p.id === formData.produitId);
   const net = Math.abs(formData.poidsEntree - formData.poidsSortie);
   const prixHT = net * (selectedProduct?.prixHT || 0);
   const prixTTC = net * (selectedProduct?.prixTTC || 0);
   
+  const clientLabel = formData.typeClient === 'particulier' ? 'Client' : 'Entreprise';
+  const documentTitle = isInvoice ? 'FACTURE' : 'BON DE PESÉE';
+  
   const bonContent = `
     <div class="bon">
       <div class="header">
-        <h2>BON DE PESÉE</h2>
+        <h2>${documentTitle}</h2>
         <p>N° ${formData.numeroBon}</p>
       </div>
       <div class="row">
@@ -19,17 +22,19 @@ export const generatePrintContent = (formData: PeseeTab['formData'], products: P
         <span>${new Date().toLocaleDateString()}</span>
       </div>
       <div class="row">
-        <span class="label">Entreprise:</span>
+        <span class="label">${clientLabel}:</span>
         <span>${formData.nomEntreprise}</span>
       </div>
       <div class="row">
         <span class="label">Plaque:</span>
         <span>${formData.plaque}</span>
       </div>
+      ${formData.chantier ? `
       <div class="row">
         <span class="label">Chantier:</span>
         <span>${formData.chantier}</span>
       </div>
+      ` : ''}
       <div class="row">
         <span class="label">Produit:</span>
         <span>${selectedProduct?.nom || 'Non défini'}</span>
@@ -37,6 +42,10 @@ export const generatePrintContent = (formData: PeseeTab['formData'], products: P
       <div class="row">
         <span class="label">Poids Net:</span>
         <span>${net.toFixed(2)} T</span>
+      </div>
+      <div class="row">
+        <span class="label">Paiement:</span>
+        <span>${formData.moyenPaiement}</span>
       </div>
       <div class="total">
         <strong>Total HT: ${prixHT.toFixed(2)}€</strong><br>
@@ -49,7 +58,7 @@ export const generatePrintContent = (formData: PeseeTab['formData'], products: P
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Bon de pesée</title>
+      <title>${isInvoice ? 'Facture' : 'Bon de pesée'}</title>
       <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         .bon { border: 2px solid #000; padding: 20px; margin-bottom: 20px; width: calc(50% - 40px); float: left; box-sizing: border-box; }
@@ -65,14 +74,14 @@ export const generatePrintContent = (formData: PeseeTab['formData'], products: P
     </head>
     <body>
       ${bonContent}
-      ${formData.moyenPaiement === 'Direct' ? bonContent : ''}
+      ${(formData.moyenPaiement === 'Direct' && !isInvoice) ? bonContent : ''}
     </body>
     </html>
   `;
 };
 
-export const handlePrint = (formData: PeseeTab['formData'], products: Product[]) => {
-  const printContent = generatePrintContent(formData, products);
+export const handlePrint = (formData: PeseeTab['formData'], products: Product[], isInvoice = false) => {
+  const printContent = generatePrintContent(formData, products, isInvoice);
   
   const printWindow = window.open('', '_blank');
   if (printWindow) {
@@ -80,4 +89,14 @@ export const handlePrint = (formData: PeseeTab['formData'], products: Product[])
     printWindow.document.close();
     printWindow.print();
   }
+};
+
+export const handlePrintBothBonAndInvoice = (formData: PeseeTab['formData'], products: Product[]) => {
+  // Imprimer le bon
+  handlePrint(formData, products, false);
+  
+  // Attendre un peu puis imprimer la facture
+  setTimeout(() => {
+    handlePrint(formData, products, true);
+  }, 1000);
 };

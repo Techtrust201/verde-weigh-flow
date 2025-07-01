@@ -4,12 +4,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserPlus, Plus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { Client } from '@/lib/database';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 import ClientForm from '@/components/forms/ClientForm';
 import { PlaqueAutocomplete } from './PlaqueAutocomplete';
 import { ChantierAutocomplete } from './ChantierAutocomplete';
+import { ClientSelector } from './ClientSelector';
 
 interface PeseeFormSectionProps {
   currentData: PeseeTab['formData'] | undefined;
@@ -46,13 +47,12 @@ export const PeseeFormSection = ({
   setNewChantier,
   handleAddChantier
 }: PeseeFormSectionProps) => {
-  const getClientTypeIcon = (type: string) => {
-    const icons = {
-      'particulier': '👤',
-      'professionnel': '🏢',
-      'micro-entreprise': '💼'
-    };
-    return icons[type as keyof typeof icons] || '👤';
+  
+  const getEntrepriseLabel = () => {
+    if (currentData?.typeClient === 'particulier') {
+      return 'Nom *';
+    }
+    return 'Nom entreprise *';
   };
 
   return (
@@ -81,35 +81,34 @@ export const PeseeFormSection = ({
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label htmlFor="client">Client existant</Label>
-          <Select onValueChange={(clientId) => {
-            const client = clients.find(c => c.id === parseInt(clientId));
-            if (client) {
-              updateCurrentTab({
-                clientId: client.id!,
-                nomEntreprise: client.raisonSociale,
-                plaque: client.plaques?.[0] || '',
-                chantier: client.chantiers?.[0] || ''
-              });
-            }
-          }}>
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un client" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id!.toString()}>
-                  <div className="flex items-center gap-2">
-                    <span>{getClientTypeIcon(client.typeClient)}</span>
-                    {client.raisonSociale}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Si pas de client sélectionné, afficher le sélecteur de type */}
+        {!currentData?.clientId && (
+          <div>
+            <Label htmlFor="typeClient">Type de client</Label>
+            <Select 
+              value={currentData?.typeClient || 'particulier'} 
+              onValueChange={(value: 'particulier' | 'professionnel' | 'micro-entreprise') => 
+                updateCurrentTab({ typeClient: value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="particulier">👤 Particulier</SelectItem>
+                <SelectItem value="professionnel">🏢 Professionnel</SelectItem>
+                <SelectItem value="micro-entreprise">💼 Micro-entreprise</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
+
+      <ClientSelector
+        clients={clients}
+        currentData={currentData}
+        updateCurrentTab={updateCurrentTab}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PlaqueAutocomplete
@@ -120,6 +119,7 @@ export const PeseeFormSection = ({
               plaque: match.plaque,
               nomEntreprise: match.client.raisonSociale,
               clientId: match.client.id!,
+              typeClient: match.client.typeClient,
               chantier: match.client.chantiers?.[0] || ''
             });
           }}
@@ -127,12 +127,12 @@ export const PeseeFormSection = ({
         />
         
         <div>
-          <Label htmlFor="nomEntreprise">Nom entreprise *</Label>
+          <Label htmlFor="nomEntreprise">{getEntrepriseLabel()}</Label>
           <Input
             id="nomEntreprise"
             value={currentData?.nomEntreprise || ''}
             onChange={(e) => updateCurrentTab({ nomEntreprise: e.target.value })}
-            placeholder="Nom de l'entreprise..."
+            placeholder={currentData?.typeClient === 'particulier' ? 'Nom du particulier...' : 'Nom de l\'entreprise...'}
           />
         </div>
         

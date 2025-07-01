@@ -10,7 +10,8 @@ import { usePeseeTabs } from '@/hooks/usePeseeTabs';
 import { PeseeFormSection } from '@/components/pesee/PeseeFormSection';
 import { ProductWeightSection } from '@/components/pesee/ProductWeightSection';
 import { RecentPeseesTab } from '@/components/pesee/RecentPeseesTab';
-import { handlePrint } from '@/utils/peseeUtils';
+import { SaveConfirmDialog } from '@/components/pesee/SaveConfirmDialog';
+import { handlePrint, handlePrintBothBonAndInvoice } from '@/utils/peseeUtils';
 
 export default function PeseeSpace() {
   const { pesees, clients, products, loadData } = usePeseeData();
@@ -28,6 +29,7 @@ export default function PeseeSpace() {
   const [showRecentTab, setShowRecentTab] = useState(false);
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   const [isAddChantierDialogOpen, setIsAddChantierDialogOpen] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [newChantier, setNewChantier] = useState('');
   const [newClientForm, setNewClientForm] = useState<Partial<Client>>({
     typeClient: 'particulier',
@@ -46,9 +48,9 @@ export default function PeseeSpace() {
     const currentData = getCurrentTabData();
     if (currentData) {
       setNewClientForm({
-        typeClient: 'particulier',
+        typeClient: currentData.typeClient || 'particulier',
         raisonSociale: currentData.nomEntreprise || '',
-        prenom: '',
+        prenom: currentData.typeClient === 'particulier' ? currentData.nomEntreprise || '' : '',
         nom: '',
         siret: '',
         telephones: [],
@@ -98,7 +100,7 @@ export default function PeseeSpace() {
         if (!newClientForm.prenom || !newClientForm.nom) {
           toast({
             title: "Erreur",
-            description: "Le prénom et le nom sont obligatoires.",
+            description: "Le prénom and le nom sont obligatoires.",
             variant: "destructive"
           });
           return;
@@ -131,6 +133,7 @@ export default function PeseeSpace() {
       updateCurrentTab({
         nomEntreprise: clientData.raisonSociale,
         clientId: newClientId as number,
+        typeClient: clientData.typeClient,
         plaque: clientData.plaques?.[0] || '',
         chantier: clientData.chantiers?.[0] || ''
       });
@@ -173,7 +176,34 @@ export default function PeseeSpace() {
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveOnly = async () => {
+    await savePesee();
+    setIsSaveDialogOpen(false);
+  };
+
+  const handleSaveAndPrint = async () => {
+    const success = await savePesee();
+    if (success) {
+      const currentData = getCurrentTabData();
+      if (currentData) {
+        handlePrint(currentData, products, false);
+      }
+    }
+    setIsSaveDialogOpen(false);
+  };
+
+  const handleSavePrintBonAndInvoice = async () => {
+    const success = await savePesee();
+    if (success) {
+      const currentData = getCurrentTabData();
+      if (currentData) {
+        handlePrintBothBonAndInvoice(currentData, products);
+      }
+    }
+    setIsSaveDialogOpen(false);
+  };
+
+  const savePesee = async (): Promise<boolean> => {
     const currentData = getCurrentTabData();
     
     try {
@@ -183,7 +213,7 @@ export default function PeseeSpace() {
           description: "Veuillez remplir tous les champs obligatoires.",
           variant: "destructive"
         });
-        return;
+        return false;
       }
 
       const selectedProduct = products.find(p => p.id === currentData.produitId);
@@ -193,7 +223,7 @@ export default function PeseeSpace() {
           description: "Veuillez sélectionner un produit.",
           variant: "destructive"
         });
-        return;
+        return false;
       }
 
       const net = Math.abs(currentData.poidsEntree - currentData.poidsSortie);
@@ -227,10 +257,12 @@ export default function PeseeSpace() {
         produitId: 0,
         poidsEntree: 0,
         poidsSortie: 0,
-        clientId: 0
+        clientId: 0,
+        typeClient: 'particulier'
       });
 
       loadData();
+      return true;
     } catch (error) {
       console.error('Error saving pesee:', error);
       toast({
@@ -238,6 +270,7 @@ export default function PeseeSpace() {
         description: "Impossible d'enregistrer la pesée.",
         variant: "destructive"
       });
+      return false;
     }
   };
 
@@ -320,12 +353,16 @@ export default function PeseeSpace() {
                 <div className="flex justify-end space-x-2">
                   <Button 
                     variant="outline" 
-                    onClick={() => handlePrint(tab.formData, products)}
+                    onClick={() => {
+                      if (tab.formData) {
+                        handlePrint(tab.formData, products, false);
+                      }
+                    }}
                   >
                     <Printer className="h-4 w-4 mr-2" />
                     Imprimer
                   </Button>
-                  <Button onClick={handleSave}>
+                  <Button onClick={() => setIsSaveDialogOpen(true)}>
                     <Save className="h-4 w-4 mr-2" />
                     Enregistrer
                   </Button>
@@ -339,6 +376,15 @@ export default function PeseeSpace() {
           <RecentPeseesTab pesees={pesees} />
         </TabsContent>
       </Tabs>
+
+      <SaveConfirmDialog
+        isOpen={isSaveDialogOpen}
+        onClose={() => setIsSaveDialogOpen(false)}
+        onConfirm={handleSaveOnly}
+        onConfirmAndPrint={handleSaveAndPrint}
+        onConfirmPrintAndInvoice={handleSavePrintBonAndInvoice}
+        moyenPaiement={currentData?.moyenPaiement || 'Direct'}
+      />
     </div>
   );
 }
