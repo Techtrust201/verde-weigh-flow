@@ -1,10 +1,10 @@
 
-const CACHE_NAME = 'barberis-v1';
+const CACHE_NAME = 'barberis-v2';
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
-  '/manifest.json'
+  '/manifest.json',
+  '/assets/',
+  '/src/'
 ];
 
 self.addEventListener('install', (event) => {
