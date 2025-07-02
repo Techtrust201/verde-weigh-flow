@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Combobox } from '@/components/ui/combobox';
 import { UserPlus, RotateCcw } from 'lucide-react';
 import { Client } from '@/lib/database';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
@@ -201,21 +202,20 @@ export const PeseeFormSection = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="plaque">Plaque *</Label>
-          <Input
-            id="plaque"
-            value={currentData?.plaque || ''}
-            onChange={(e) => updateCurrentTab({ plaque: e.target.value })}
-            placeholder="Saisir une plaque..."
-            list="plaques-datalist"
-          />
-          <datalist id="plaques-datalist">
-            {currentData?.clientId && (() => {
-              const client = clients.find(c => c.id === currentData.clientId);
-              return client?.plaques?.map((plaque, index) => (
-                <option key={index} value={plaque} />
-              )) || [];
+          <Combobox
+            options={(() => {
+              if (currentData?.clientId) {
+                const client = clients.find(c => c.id === currentData.clientId);
+                return client?.plaques?.map(plaque => ({ value: plaque, label: plaque })) || [];
+              }
+              return [];
             })()}
-          </datalist>
+            value={currentData?.plaque || ''}
+            onValueChange={(value) => updateCurrentTab({ plaque: value })}
+            placeholder="Sélectionner ou saisir une plaque..."
+            searchPlaceholder="Rechercher ou saisir une plaque..."
+            emptyText="Aucune plaque trouvée. Vous pouvez saisir directement."
+          />
         </div>
         
         <div>
@@ -231,20 +231,20 @@ export const PeseeFormSection = ({
         <div>
           <Label htmlFor="chantier">Chantier</Label>
           <div className="flex gap-2">
-            <Input
-              value={currentData?.chantier || ''}
-              onChange={(e) => updateCurrentTab({ chantier: e.target.value })}
-              placeholder="Saisir un chantier..."
-              list="chantiers-datalist"
-            />
-            <datalist id="chantiers-datalist">
-              {currentData?.clientId && (() => {
-                const client = clients.find(c => c.id === currentData.clientId);
-                return client?.chantiers?.map((chantier, index) => (
-                  <option key={index} value={chantier} />
-                )) || [];
+            <Combobox
+              options={(() => {
+                if (currentData?.clientId) {
+                  const client = clients.find(c => c.id === currentData.clientId);
+                  return client?.chantiers?.map(chantier => ({ value: chantier, label: chantier })) || [];
+                }
+                return [];
               })()}
-            </datalist>
+              value={currentData?.chantier || ''}
+              onValueChange={(value) => updateCurrentTab({ chantier: value })}
+              placeholder="Sélectionner ou saisir un chantier..."
+              searchPlaceholder="Rechercher ou saisir un chantier..."
+              emptyText="Aucun chantier trouvé. Vous pouvez saisir directement."
+            />
             <Dialog open={isAddChantierDialogOpen} onOpenChange={setIsAddChantierDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
