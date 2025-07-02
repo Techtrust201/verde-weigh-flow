@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, RotateCcw } from 'lucide-react';
 import { Client } from '@/lib/database';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 import ClientForm from '@/components/forms/ClientForm';
@@ -55,6 +55,16 @@ export const PeseeFormSection = ({
     return 'Nom entreprise *';
   };
 
+  const resetForm = () => {
+    updateCurrentTab({
+      clientId: undefined,
+      nomEntreprise: '',
+      typeClient: 'particulier',
+      plaque: '',
+      chantier: ''
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -82,7 +92,7 @@ export const PeseeFormSection = ({
           </Select>
         </div>
         {/* Si pas de client sélectionné, afficher le sélecteur de type */}
-        {!currentData?.clientId && (
+        {!currentData?.clientId ? (
           <div>
             <Label htmlFor="typeClient">Type de client</Label>
             <Select 
@@ -101,44 +111,92 @@ export const PeseeFormSection = ({
               </SelectContent>
             </Select>
           </div>
+        ) : (
+          <div>
+            <Label htmlFor="client">Client existant</Label>
+            <div className="flex gap-2">
+              <Select 
+                value={currentData?.clientId?.toString() || ''} 
+                onValueChange={(clientId) => {
+                  const client = clients.find(c => c.id === parseInt(clientId));
+                  if (client) {
+                    updateCurrentTab({
+                      clientId: client.id!,
+                      nomEntreprise: client.raisonSociale,
+                      typeClient: client.typeClient,
+                      plaque: client.plaques?.[0] || '',
+                      chantier: client.chantiers?.[0] || ''
+                    });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id!.toString()}>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          {client.typeClient === 'particulier' ? '👤' : 
+                           client.typeClient === 'professionnel' ? '🏢' : '💼'}
+                        </span>
+                        {client.raisonSociale}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetForm}
+                title="Réinitialiser le formulaire"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
 
-      <div>
-        <Label htmlFor="client">Client existant</Label>
-        <Select 
-          value={currentData?.clientId?.toString() || ''} 
-          onValueChange={(clientId) => {
-            const client = clients.find(c => c.id === parseInt(clientId));
-            if (client) {
-              updateCurrentTab({
-                clientId: client.id!,
-                nomEntreprise: client.raisonSociale,
-                typeClient: client.typeClient,
-                plaque: client.plaques?.[0] || '',
-                chantier: client.chantiers?.[0] || ''
-              });
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner un client ou saisir manuellement ci-dessous" />
-          </SelectTrigger>
-          <SelectContent>
-            {clients.map((client) => (
-              <SelectItem key={client.id} value={client.id!.toString()}>
-                <div className="flex items-center gap-2">
-                  <span>
-                    {client.typeClient === 'particulier' ? '👤' : 
-                     client.typeClient === 'professionnel' ? '🏢' : '💼'}
-                  </span>
-                  {client.raisonSociale}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {!currentData?.clientId && (
+        <div>
+          <Label htmlFor="client">Client existant</Label>
+          <Select 
+            value={currentData?.clientId?.toString() || ''} 
+            onValueChange={(clientId) => {
+              const client = clients.find(c => c.id === parseInt(clientId));
+              if (client) {
+                updateCurrentTab({
+                  clientId: client.id!,
+                  nomEntreprise: client.raisonSociale,
+                  typeClient: client.typeClient,
+                  plaque: client.plaques?.[0] || '',
+                  chantier: client.chantiers?.[0] || ''
+                });
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner un client ou saisir manuellement ci-dessous" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id!.toString()}>
+                  <div className="flex items-center gap-2">
+                    <span>
+                      {client.typeClient === 'particulier' ? '👤' : 
+                       client.typeClient === 'professionnel' ? '🏢' : '💼'}
+                    </span>
+                    {client.raisonSociale}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
@@ -147,7 +205,7 @@ export const PeseeFormSection = ({
             value={currentData?.plaque || ''} 
             onValueChange={(plaque) => updateCurrentTab({ plaque })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Sélectionner ou saisir une plaque" />
             </SelectTrigger>
             <SelectContent>
@@ -162,10 +220,10 @@ export const PeseeFormSection = ({
             </SelectContent>
           </Select>
           <Input
-            className="mt-2"
+            className="mt-1"
             value={currentData?.plaque || ''}
             onChange={(e) => updateCurrentTab({ plaque: e.target.value })}
-            placeholder="Ou saisir une nouvelle plaque..."
+            placeholder="Ou saisir directement..."
           />
         </div>
         
@@ -181,36 +239,39 @@ export const PeseeFormSection = ({
         
         <div>
           <Label htmlFor="chantier">Chantier</Label>
-          <Select 
-            value={currentData?.chantier || ''} 
-            onValueChange={(chantier) => updateCurrentTab({ chantier })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un chantier" />
-            </SelectTrigger>
-            <SelectContent>
-              {currentData?.clientId && (() => {
-                const client = clients.find(c => c.id === currentData.clientId);
-                return client?.chantiers?.map((chantier, index) => (
-                  <SelectItem key={index} value={chantier}>
-                    {chantier}
-                  </SelectItem>
-                )) || [];
-              })()}
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2 mt-2">
-            <Input
-              className="flex-1"
-              value={currentData?.chantier || ''}
-              onChange={(e) => updateCurrentTab({ chantier: e.target.value })}
-              placeholder="Ou saisir un nouveau chantier..."
-            />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Select 
+                value={currentData?.chantier || ''} 
+                onValueChange={(chantier) => updateCurrentTab({ chantier })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un chantier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currentData?.clientId && (() => {
+                    const client = clients.find(c => c.id === currentData.clientId);
+                    return client?.chantiers?.map((chantier, index) => (
+                      <SelectItem key={index} value={chantier}>
+                        {chantier}
+                      </SelectItem>
+                    )) || [];
+                  })()}
+                </SelectContent>
+              </Select>
+              <Input
+                className="mt-1"
+                value={currentData?.chantier || ''}
+                onChange={(e) => updateCurrentTab({ chantier: e.target.value })}
+                placeholder="Ou saisir directement..."
+              />
+            </div>
             <Dialog open={isAddChantierDialogOpen} onOpenChange={setIsAddChantierDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
                   variant="outline" 
                   size="sm"
+                  className="mt-0 self-start"
                   disabled={!currentData?.clientId}
                   title="Ajouter un nouveau chantier au client"
                 >
