@@ -247,14 +247,14 @@ export default function UtilisateurSpace() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <h4 className="font-semibold">Tech-Trust Agency</h4>
-              <p>123 Rue du Développement</p>
-              <p>75000 Paris</p>
+              <h4 className="font-semibold" href="https://www.tech-trust.fr">Tech-Trust Agency</h4>
+              <p>62 Imp. Font-Roubert</p>
+              <p>06250 Mougins</p>
             </div>
             <div>
               <h4 className="font-semibold">Contact</h4>
               <p>Email: contact@tech-trust.fr</p>
-              <p>Tél: 01 23 45 67 89</p>
+              <p>Tél: 06 99 48 66 29</p>
             </div>
             <div>
               <h4 className="font-semibold">Support</h4>
