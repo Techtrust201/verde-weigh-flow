@@ -104,27 +104,70 @@ export const PeseeFormSection = ({
         )}
       </div>
 
-      <ClientSelector
-        clients={clients}
-        currentData={currentData}
-        updateCurrentTab={updateCurrentTab}
-      />
+      <div>
+        <Label htmlFor="client">Client existant</Label>
+        <Select 
+          value={currentData?.clientId?.toString() || ''} 
+          onValueChange={(clientId) => {
+            const client = clients.find(c => c.id === parseInt(clientId));
+            if (client) {
+              updateCurrentTab({
+                clientId: client.id!,
+                nomEntreprise: client.raisonSociale,
+                typeClient: client.typeClient,
+                plaque: client.plaques?.[0] || '',
+                chantier: client.chantiers?.[0] || ''
+              });
+            }
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un client ou saisir manuellement ci-dessous" />
+          </SelectTrigger>
+          <SelectContent>
+            {clients.map((client) => (
+              <SelectItem key={client.id} value={client.id!.toString()}>
+                <div className="flex items-center gap-2">
+                  <span>
+                    {client.typeClient === 'particulier' ? '👤' : 
+                     client.typeClient === 'professionnel' ? '🏢' : '💼'}
+                  </span>
+                  {client.raisonSociale}
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <PlaqueAutocomplete
-          value={currentData?.plaque || ''}
-          clients={clients}
-          onSelect={(match) => {
-            updateCurrentTab({
-              plaque: match.plaque,
-              nomEntreprise: match.client.raisonSociale,
-              clientId: match.client.id!,
-              typeClient: match.client.typeClient,
-              chantier: match.client.chantiers?.[0] || ''
-            });
-          }}
-          onChange={(plaque) => updateCurrentTab({ plaque })}
-        />
+        <div>
+          <Label htmlFor="plaque">Plaque *</Label>
+          <Select 
+            value={currentData?.plaque || ''} 
+            onValueChange={(plaque) => updateCurrentTab({ plaque })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner ou saisir une plaque" />
+            </SelectTrigger>
+            <SelectContent>
+              {currentData?.clientId && (() => {
+                const client = clients.find(c => c.id === currentData.clientId);
+                return client?.plaques?.map((plaque, index) => (
+                  <SelectItem key={index} value={plaque}>
+                    <span className="font-mono">{plaque}</span>
+                  </SelectItem>
+                )) || [];
+              })()}
+            </SelectContent>
+          </Select>
+          <Input
+            className="mt-2"
+            value={currentData?.plaque || ''}
+            onChange={(e) => updateCurrentTab({ plaque: e.target.value })}
+            placeholder="Ou saisir une nouvelle plaque..."
+          />
+        </div>
         
         <div>
           <Label htmlFor="nomEntreprise">{getEntrepriseLabel()}</Label>
@@ -136,19 +179,70 @@ export const PeseeFormSection = ({
           />
         </div>
         
-        <ChantierAutocomplete
-          value={currentData?.chantier || ''}
-          clients={clients}
-          currentClientId={currentData?.clientId}
-          onSelect={(chantier) => updateCurrentTab({ chantier })}
-          onChange={(chantier) => updateCurrentTab({ chantier })}
-          isAddChantierDialogOpen={isAddChantierDialogOpen}
-          setIsAddChantierDialogOpen={setIsAddChantierDialogOpen}
-          newChantier={newChantier}
-          setNewChantier={setNewChantier}
-          handleAddChantier={handleAddChantier}
-          disabled={!currentData?.clientId}
-        />
+        <div>
+          <Label htmlFor="chantier">Chantier</Label>
+          <Select 
+            value={currentData?.chantier || ''} 
+            onValueChange={(chantier) => updateCurrentTab({ chantier })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner un chantier" />
+            </SelectTrigger>
+            <SelectContent>
+              {currentData?.clientId && (() => {
+                const client = clients.find(c => c.id === currentData.clientId);
+                return client?.chantiers?.map((chantier, index) => (
+                  <SelectItem key={index} value={chantier}>
+                    {chantier}
+                  </SelectItem>
+                )) || [];
+              })()}
+            </SelectContent>
+          </Select>
+          <div className="flex gap-2 mt-2">
+            <Input
+              className="flex-1"
+              value={currentData?.chantier || ''}
+              onChange={(e) => updateCurrentTab({ chantier: e.target.value })}
+              placeholder="Ou saisir un nouveau chantier..."
+            />
+            <Dialog open={isAddChantierDialogOpen} onOpenChange={setIsAddChantierDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  disabled={!currentData?.clientId}
+                  title="Ajouter un nouveau chantier au client"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Ajouter un nouveau chantier</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Nom du chantier</Label>
+                    <Input
+                      value={newChantier}
+                      onChange={(e) => setNewChantier(e.target.value)}
+                      placeholder="Nom du nouveau chantier"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsAddChantierDialogOpen(false)}>
+                    Annuler
+                  </Button>
+                  <Button onClick={handleAddChantier}>
+                    Ajouter
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-center">
