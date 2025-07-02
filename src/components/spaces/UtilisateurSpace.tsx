@@ -247,7 +247,9 @@ export default function UtilisateurSpace() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <h4 className="font-semibold" href="https://www.tech-trust.fr">Tech-Trust Agency</h4>
+              <h4 className="font-semibold">
+                <a href="https://www.tech-trust.fr" className="hover:underline">Tech-Trust Agency</a>
+              </h4>
               <p>62 Imp. Font-Roubert</p>
               <p>06250 Mougins</p>
             </div>
