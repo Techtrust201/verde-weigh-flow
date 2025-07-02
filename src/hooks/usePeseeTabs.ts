@@ -35,7 +35,7 @@ export const usePeseeTabs = () => {
     const newTabId = Date.now().toString();
     const newTab: PeseeTab = {
       id: newTabId,
-      label: `Pesée ${tabs.length + 1}`,
+      label: '', // Le label sera calculé dynamiquement
       formData: {
         numeroBon: generateBonNumber(),
         moyenPaiement: 'Direct',
@@ -52,6 +52,17 @@ export const usePeseeTabs = () => {
     
     setTabs([...tabs, newTab]);
     setActiveTabId(newTabId);
+  };
+
+  const getTabLabel = (tabId: string) => {
+    const index = tabs.findIndex(tab => tab.id === tabId);
+    const tab = tabs[index];
+    
+    if (tab?.formData.nomEntreprise && tab?.formData.plaque) {
+      return `${tab.formData.nomEntreprise.slice(0, 8)}... (${tab.formData.plaque})`;
+    }
+    
+    return `Pesée ${index + 1}`;
   };
 
   const closeTab = (tabId: string) => {
@@ -112,6 +123,7 @@ export const usePeseeTabs = () => {
     closeTab,
     updateCurrentTab,
     getCurrentTabData,
-    generateBonNumber
+    generateBonNumber,
+    getTabLabel
   };
 };

@@ -23,7 +23,8 @@ export default function PeseeSpace() {
     closeTab,
     updateCurrentTab,
     getCurrentTabData,
-    generateBonNumber
+    generateBonNumber,
+    getTabLabel
   } = usePeseeTabs();
 
   const [showRecentTab, setShowRecentTab] = useState(false);
@@ -295,7 +296,7 @@ export default function PeseeSpace() {
           <TabsList className="flex-1">
             {tabs.map((tab) => (
               <TabsTrigger key={tab.id} value={tab.id} className="relative group">
-                {tab.label}
+                {getTabLabel(tab.id)}
                 {tabs.length > 1 && (
                   <Button
                     variant="ghost"
