@@ -201,30 +201,21 @@ export const PeseeFormSection = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="plaque">Plaque *</Label>
-          <Select 
-            value={currentData?.plaque || ''} 
-            onValueChange={(plaque) => updateCurrentTab({ plaque })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Sélectionner ou saisir une plaque" />
-            </SelectTrigger>
-            <SelectContent>
-              {currentData?.clientId && (() => {
-                const client = clients.find(c => c.id === currentData.clientId);
-                return client?.plaques?.map((plaque, index) => (
-                  <SelectItem key={index} value={plaque}>
-                    <span className="font-mono">{plaque}</span>
-                  </SelectItem>
-                )) || [];
-              })()}
-            </SelectContent>
-          </Select>
           <Input
-            className="mt-1"
+            id="plaque"
             value={currentData?.plaque || ''}
             onChange={(e) => updateCurrentTab({ plaque: e.target.value })}
-            placeholder="Ou saisir directement..."
+            placeholder="Saisir une plaque..."
+            list="plaques-datalist"
           />
+          <datalist id="plaques-datalist">
+            {currentData?.clientId && (() => {
+              const client = clients.find(c => c.id === currentData.clientId);
+              return client?.plaques?.map((plaque, index) => (
+                <option key={index} value={plaque} />
+              )) || [];
+            })()}
+          </datalist>
         </div>
         
         <div>
@@ -240,32 +231,20 @@ export const PeseeFormSection = ({
         <div>
           <Label htmlFor="chantier">Chantier</Label>
           <div className="flex gap-2">
-            <div className="flex-1">
-              <Select 
-                value={currentData?.chantier || ''} 
-                onValueChange={(chantier) => updateCurrentTab({ chantier })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un chantier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currentData?.clientId && (() => {
-                    const client = clients.find(c => c.id === currentData.clientId);
-                    return client?.chantiers?.map((chantier, index) => (
-                      <SelectItem key={index} value={chantier}>
-                        {chantier}
-                      </SelectItem>
-                    )) || [];
-                  })()}
-                </SelectContent>
-              </Select>
-              <Input
-                className="mt-1"
-                value={currentData?.chantier || ''}
-                onChange={(e) => updateCurrentTab({ chantier: e.target.value })}
-                placeholder="Ou saisir directement..."
-              />
-            </div>
+            <Input
+              value={currentData?.chantier || ''}
+              onChange={(e) => updateCurrentTab({ chantier: e.target.value })}
+              placeholder="Saisir un chantier..."
+              list="chantiers-datalist"
+            />
+            <datalist id="chantiers-datalist">
+              {currentData?.clientId && (() => {
+                const client = clients.find(c => c.id === currentData.clientId);
+                return client?.chantiers?.map((chantier, index) => (
+                  <option key={index} value={chantier} />
+                )) || [];
+              })()}
+            </datalist>
             <Dialog open={isAddChantierDialogOpen} onOpenChange={setIsAddChantierDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
