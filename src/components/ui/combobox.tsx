@@ -57,8 +57,12 @@ export function Combobox({
         <Command>
           <CommandInput
             placeholder={searchPlaceholder}
-            value={value}
-            onValueChange={onValueChange}
+            onValueChange={(search) => {
+              // Permettre la saisie libre même si pas dans les options
+              if (search && !options.find(opt => opt.value === search)) {
+                onValueChange(search);
+              }
+            }}
           />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
