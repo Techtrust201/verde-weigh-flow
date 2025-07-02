@@ -65,7 +65,12 @@ export function Combobox({
             }}
           />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty className="text-sm text-center py-6 px-2">
+              <div className="space-y-1">
+                <div>{emptyText.split('.')[0]}.</div>
+                <div className="text-xs text-muted-foreground">{emptyText.split('.')[1]}.</div>
+              </div>
+            </CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem
