@@ -49,14 +49,14 @@ export default function Layout({ children, currentSpace, onSpaceChange }: Layout
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <div className={cn(
-        "bg-white shadow-lg transition-all duration-300 flex flex-col",
+        "bg-white shadow-lg transition-all duration-300 flex flex-col shrink-0",
         sidebarOpen ? "w-64" : "w-16"
       )}>
-        <div className="p-4 border-b">
-          <div className="flex items-center justify-between">
+        <div className="p-4 border-b min-h-[73px] flex items-center">
+          <div className="flex items-center justify-between w-full">
             <h1 className={cn(
-              "font-bold text-green-600 transition-opacity",
-              sidebarOpen ? "opacity-100" : "opacity-0"
+              "font-bold text-green-600 transition-all duration-300 whitespace-nowrap",
+              sidebarOpen ? "opacity-100 max-w-none" : "opacity-0 max-w-0 overflow-hidden"
             )}>
               Barberis Déchets Verts
             </h1>
@@ -64,6 +64,7 @@ export default function Layout({ children, currentSpace, onSpaceChange }: Layout
               variant="ghost"
               size="icon"
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="shrink-0"
             >
               {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
             </Button>
