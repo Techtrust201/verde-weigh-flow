@@ -14,7 +14,6 @@ interface ClientSelectorProps {
 }
 
 export const ClientSelector = ({ clients, currentData, updateCurrentTab }: ClientSelectorProps) => {
-  const [showPlaqueOptions, setShowPlaqueOptions] = useState(false);
   const [showChantierOptions, setShowChantierOptions] = useState(false);
 
   const getClientTypeIcon = (type: string) => {
@@ -77,25 +76,6 @@ export const ClientSelector = ({ clients, currentData, updateCurrentTab }: Clien
           </SelectContent>
         </Select>
       </div>
-
-      {/* Options de plaques multiples */}
-      {showPlaqueOptions && selectedClient && selectedClient.plaques && selectedClient.plaques.length > 1 && (
-        <div>
-          <Label>Plaques disponibles pour ce client</Label>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {selectedClient.plaques.map((plaque, index) => (
-              <Badge
-                key={index}
-                variant={currentData?.plaque === plaque ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => updateCurrentTab({ plaque })}
-              >
-                {plaque}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Options de chantiers multiples */}
       {showChantierOptions && selectedClient && selectedClient.chantiers && selectedClient.chantiers.length > 1 && (

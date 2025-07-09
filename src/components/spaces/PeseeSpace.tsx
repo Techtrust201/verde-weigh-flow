@@ -41,8 +41,8 @@ export default function PeseeSpace() {
     prenom: '',
     nom: '',
     siret: '',
-    telephones: [],
-    plaques: [],
+    telephone: '',
+    plaque: '',
     chantiers: [],
     transporteurId: 0,
     tarifsPreferentiels: {}
@@ -55,8 +55,8 @@ export default function PeseeSpace() {
     codePostal: '',
     ville: '',
     email: '',
-    telephones: [],
-    plaques: []
+    telephone: '',
+    plaque: ''
   });
 
   const { toast } = useToast();
@@ -70,8 +70,8 @@ export default function PeseeSpace() {
         prenom: currentData.typeClient === 'particulier' ? currentData.nomEntreprise || '' : '',
         nom: '',
         siret: '',
-        telephones: [],
-        plaques: currentData.plaque ? [currentData.plaque] : [],
+        telephone: '',
+        plaque: currentData.plaque || '',
         chantiers: currentData.chantier ? [currentData.chantier] : [],
         transporteurId: currentData.transporteurId || 0,
         tarifsPreferentiels: {}
@@ -140,8 +140,8 @@ export default function PeseeSpace() {
         raisonSociale: newClientForm.typeClient === 'particulier' 
           ? `${newClientForm.prenom} ${newClientForm.nom}` 
           : newClientForm.raisonSociale,
-        telephones: newClientForm.telephones || [],
-        plaques: newClientForm.plaques || [],
+        telephone: newClientForm.telephone || '',
+        plaque: newClientForm.plaque || '',
         chantiers: newClientForm.chantiers || [],
         transporteurId: newClientForm.transporteurId || 0,
         tarifsPreferentiels: newClientForm.tarifsPreferentiels || {},
@@ -155,7 +155,7 @@ export default function PeseeSpace() {
         nomEntreprise: clientData.raisonSociale,
         clientId: newClientId as number,
         typeClient: clientData.typeClient,
-        plaque: clientData.plaques?.[0] || '',
+        plaque: clientData.plaque || '',
         chantier: clientData.chantiers?.[0] || '',
         transporteurId: clientData.transporteurId || 0
       });
@@ -167,8 +167,8 @@ export default function PeseeSpace() {
         prenom: '',
         nom: '',
         siret: '',
-        telephones: [],
-        plaques: [],
+        telephone: '',
+        plaque: '',
         chantiers: [],
         transporteurId: 0,
         tarifsPreferentiels: {}
@@ -210,8 +210,8 @@ export default function PeseeSpace() {
     try {
       const transporteurData = {
         ...newTransporteurForm,
-        telephones: newTransporteurForm.telephones || [],
-        plaques: newTransporteurForm.plaques || [],
+        telephone: newTransporteurForm.telephone || '',
+        plaque: newTransporteurForm.plaque || '',
         createdAt: new Date(),
         updatedAt: new Date()
       } as Transporteur;
@@ -237,8 +237,8 @@ export default function PeseeSpace() {
         codePostal: '',
         ville: '',
         email: '',
-        telephones: [],
-        plaques: []
+        telephone: '',
+        plaque: ''
       });
     } catch (error) {
       toast({

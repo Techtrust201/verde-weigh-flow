@@ -10,6 +10,7 @@ import { Truck, Plus, Edit, Trash2, Search } from 'lucide-react';
 import { db, Transporteur } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
 import { useTransporteurData } from '@/hooks/useTransporteurData';
+import TransporteurForm from '@/components/forms/TransporteurForm';
 
 export default function TransporteursSpace() {
   const { transporteurs, loadTransporteurs } = useTransporteurData();
@@ -24,8 +25,8 @@ export default function TransporteursSpace() {
     codePostal: '',
     ville: '',
     email: '',
-    telephones: [],
-    plaques: []
+    telephone: '',
+    plaque: ''
   });
 
   const { toast } = useToast();
@@ -51,8 +52,8 @@ export default function TransporteursSpace() {
     try {
       const transporteurData = {
         ...formData,
-        telephones: formData.telephones || [],
-        plaques: formData.plaques || [],
+        telephone: formData.telephone || '',
+        plaque: formData.plaque || '',
         updatedAt: new Date()
       };
 
@@ -83,8 +84,8 @@ export default function TransporteursSpace() {
         codePostal: '',
         ville: '',
         email: '',
-        telephones: [],
-        plaques: []
+        telephone: '',
+        plaque: ''
       });
       loadTransporteurs();
     } catch (error) {
@@ -142,8 +143,8 @@ export default function TransporteursSpace() {
                 codePostal: '',
                 ville: '',
                 email: '',
-                telephones: [],
-                plaques: []
+                telephone: '',
+                plaque: ''
               });
             }}>
               <Plus className="h-4 w-4 mr-2" />
@@ -157,89 +158,11 @@ export default function TransporteursSpace() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="prenom">Prénom *</Label>
-                  <Input
-                    id="prenom"
-                    value={formData.prenom || ''}
-                    onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="nom">Nom *</Label>
-                  <Input
-                    id="nom"
-                    value={formData.nom || ''}
-                    onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="siret">SIRET</Label>
-                  <Input
-                    id="siret"
-                    value={formData.siret || ''}
-                    onChange={(e) => setFormData({ ...formData, siret: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="adresse">Adresse</Label>
-                  <Input
-                    id="adresse"
-                    value={formData.adresse || ''}
-                    onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="codePostal">Code Postal</Label>
-                  <Input
-                    id="codePostal"
-                    value={formData.codePostal || ''}
-                    onChange={(e) => setFormData({ ...formData, codePostal: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="ville">Ville</Label>
-                  <Input
-                    id="ville"
-                    value={formData.ville || ''}
-                    onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="telephones">Téléphones (séparés par des virgules)</Label>
-                  <Input
-                    id="telephones"
-                    value={formData.telephones?.join(', ') || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      telephones: e.target.value.split(',').map(t => t.trim()).filter(t => t) 
-                    })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="plaques">Plaques (séparées par des virgules)</Label>
-                  <Input
-                    id="plaques"
-                    value={formData.plaques?.join(', ') || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      plaques: e.target.value.split(',').map(p => p.trim()).filter(p => p) 
-                    })}
-                  />
-                </div>
-              </div>
+              <TransporteurForm 
+                formData={formData} 
+                onFormDataChange={setFormData}
+                isEditing={!!editingTransporteur}
+              />
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Annuler
@@ -274,7 +197,7 @@ export default function TransporteursSpace() {
                 <TableHead>SIRET</TableHead>
                 <TableHead>Ville</TableHead>
                 <TableHead>Téléphone</TableHead>
-                <TableHead>Plaques</TableHead>
+                <TableHead>Plaque</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -286,8 +209,8 @@ export default function TransporteursSpace() {
                   </TableCell>
                   <TableCell>{transporteur.siret}</TableCell>
                   <TableCell>{transporteur.ville}</TableCell>
-                  <TableCell>{transporteur.telephones?.[0]}</TableCell>
-                  <TableCell>{transporteur.plaques?.join(', ')}</TableCell>
+                  <TableCell>{transporteur.telephone}</TableCell>
+                  <TableCell>{transporteur.plaque}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button
