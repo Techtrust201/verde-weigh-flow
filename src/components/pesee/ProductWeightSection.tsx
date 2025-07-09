@@ -135,7 +135,7 @@ export const ProductWeightSection = ({
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="font-semibold text-blue-900">Coût calculé</h4>
+                    <h4 className="font-semibold text-green-600">Coût calculé</h4>
                     <p className="text-sm text-blue-700">
                       Poids net: {Math.abs((parseFloat(currentData.poidsEntree?.replace(',', '.')) || 0) - (parseFloat(currentData.poidsSortie?.replace(',', '.')) || 0)).toFixed(2)} kg
                     </p>
