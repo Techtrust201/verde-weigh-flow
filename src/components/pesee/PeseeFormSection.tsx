@@ -30,6 +30,12 @@ interface PeseeFormSectionProps {
   newChantier: string;
   setNewChantier: (chantier: string) => void;
   handleAddChantier: () => void;
+  isAddTransporteurDialogOpen: boolean;
+  setIsAddTransporteurDialogOpen: (open: boolean) => void;
+  newTransporteurForm: Partial<Transporteur>;
+  setNewTransporteurForm: (form: Partial<Transporteur>) => void;
+  handleAddNewTransporteur: () => void;
+  validateNewTransporteur: () => boolean;
 }
 
 export const PeseeFormSection = ({
@@ -48,7 +54,13 @@ export const PeseeFormSection = ({
   setIsAddChantierDialogOpen,
   newChantier,
   setNewChantier,
-  handleAddChantier
+  handleAddChantier,
+  isAddTransporteurDialogOpen,
+  setIsAddTransporteurDialogOpen,
+  newTransporteurForm,
+  setNewTransporteurForm,
+  handleAddNewTransporteur,
+  validateNewTransporteur
 }: PeseeFormSectionProps) => {
   
   const getEntrepriseLabel = () => {
@@ -205,7 +217,7 @@ export const PeseeFormSection = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
           <Label htmlFor="plaque">Plaque *</Label>
           <Combobox
@@ -256,7 +268,7 @@ export const PeseeFormSection = ({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="mt-0 self-start"
+                  className="mt-0 self-start shrink-0"
                   disabled={!currentData?.clientId}
                   title="Ajouter un nouveau chantier au client"
                 >
@@ -292,22 +304,115 @@ export const PeseeFormSection = ({
 
         <div>
           <Label htmlFor="transporteur">Transporteur</Label>
-          <Select 
-            value={currentData?.transporteurId?.toString() || ''} 
-            onValueChange={(value) => updateCurrentTab({ transporteurId: parseInt(value) || 0 })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un transporteur" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">Aucun transporteur</SelectItem>
-              {transporteurs.map((transporteur) => (
-                <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
-                  {transporteur.prenom} {transporteur.nom}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select 
+              value={currentData?.transporteurId?.toString() || ''} 
+              onValueChange={(value) => updateCurrentTab({ transporteurId: parseInt(value) || 0 })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner un transporteur" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Aucun transporteur</SelectItem>
+                {transporteurs.map((transporteur) => (
+                  <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
+                    {transporteur.prenom} {transporteur.nom}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Dialog open={isAddTransporteurDialogOpen} onOpenChange={setIsAddTransporteurDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="mt-0 self-start shrink-0"
+                  title="Ajouter un nouveau transporteur"
+                >
+                  <UserPlus className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Nouveau Transporteur</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Prénom *</Label>
+                      <Input
+                        value={newTransporteurForm.prenom || ''}
+                        onChange={(e) => setNewTransporteurForm({...newTransporteurForm, prenom: e.target.value})}
+                        placeholder="Prénom du transporteur"
+                      />
+                    </div>
+                    <div>
+                      <Label>Nom *</Label>
+                      <Input
+                        value={newTransporteurForm.nom || ''}
+                        onChange={(e) => setNewTransporteurForm({...newTransporteurForm, nom: e.target.value})}
+                        placeholder="Nom du transporteur"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>SIRET</Label>
+                    <Input
+                      value={newTransporteurForm.siret || ''}
+                      onChange={(e) => setNewTransporteurForm({...newTransporteurForm, siret: e.target.value})}
+                      placeholder="SIRET (optionnel)"
+                    />
+                  </div>
+                  <div>
+                    <Label>Adresse</Label>
+                    <Input
+                      value={newTransporteurForm.adresse || ''}
+                      onChange={(e) => setNewTransporteurForm({...newTransporteurForm, adresse: e.target.value})}
+                      placeholder="Adresse"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Code postal</Label>
+                      <Input
+                        value={newTransporteurForm.codePostal || ''}
+                        onChange={(e) => setNewTransporteurForm({...newTransporteurForm, codePostal: e.target.value})}
+                        placeholder="Code postal"
+                      />
+                    </div>
+                    <div>
+                      <Label>Ville</Label>
+                      <Input
+                        value={newTransporteurForm.ville || ''}
+                        onChange={(e) => setNewTransporteurForm({...newTransporteurForm, ville: e.target.value})}
+                        placeholder="Ville"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={newTransporteurForm.email || ''}
+                      onChange={(e) => setNewTransporteurForm({...newTransporteurForm, email: e.target.value})}
+                      placeholder="Email"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsAddTransporteurDialogOpen(false)}>
+                    Annuler
+                  </Button>
+                  <Button 
+                    onClick={handleAddNewTransporteur}
+                    disabled={!validateNewTransporteur()}
+                  >
+                    Créer et sélectionner
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 

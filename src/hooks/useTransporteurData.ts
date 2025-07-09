@@ -20,6 +20,7 @@ export const useTransporteurData = () => {
 
   return {
     transporteurs,
-    loadTransporteurs
+    loadTransporteurs,
+    setTransporteurs
   };
 };

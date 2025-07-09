@@ -73,7 +73,7 @@ export const generatePrintContent = (
         <p><strong>Important:</strong> Tous les chauffeurs prenant livraison de matériaux sont tenus de vérifier au passage de la bascule, le poids de leur chargement et de faire le nécessaire en cas de surcharge.</p>
       </div>
       <div class="copy-type">
-        <p>Copie ${formData.moyenPaiement === 'Direct' ? 'Chauffeur' : 'Bureau'}</p>
+        <p>Copie Chauffeur</p>
       </div>
     </div>
   `;
@@ -117,7 +117,7 @@ export const generatePrintContent = (
     </head>
     <body>
       ${bonContent}
-      ${bonContent.replace('Copie Chauffeur', 'Copie Bureau')}
+      ${bonContent}
     </body>
     </html>
   `;

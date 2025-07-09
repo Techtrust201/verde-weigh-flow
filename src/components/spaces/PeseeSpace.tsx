@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Scale, Save, Printer, Plus, X } from 'lucide-react';
-import { db, Pesee, Client } from '@/lib/database';
+import { db, Pesee, Client, Transporteur } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
 import { usePeseeData } from '@/hooks/usePeseeData';
 import { useTransporteurData } from '@/hooks/useTransporteurData';
@@ -16,7 +16,7 @@ import { handlePrint, handlePrintBothBonAndInvoice } from '@/utils/peseeUtils';
 
 export default function PeseeSpace() {
   const { pesees, clients, products, loadData } = usePeseeData();
-  const { transporteurs } = useTransporteurData();
+  const { transporteurs, loadTransporteurs } = useTransporteurData();
   const {
     tabs,
     activeTabId,
@@ -32,6 +32,7 @@ export default function PeseeSpace() {
   const [showRecentTab, setShowRecentTab] = useState(false);
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   const [isAddChantierDialogOpen, setIsAddChantierDialogOpen] = useState(false);
+  const [isAddTransporteurDialogOpen, setIsAddTransporteurDialogOpen] = useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [newChantier, setNewChantier] = useState('');
   const [newClientForm, setNewClientForm] = useState<Partial<Client>>({
@@ -45,6 +46,17 @@ export default function PeseeSpace() {
     chantiers: [],
     transporteurId: 0,
     tarifsPreferentiels: {}
+  });
+  const [newTransporteurForm, setNewTransporteurForm] = useState<Partial<Transporteur>>({
+    prenom: '',
+    nom: '',
+    siret: '',
+    adresse: '',
+    codePostal: '',
+    ville: '',
+    email: '',
+    telephones: [],
+    plaques: []
   });
 
   const { toast } = useToast();
@@ -185,6 +197,55 @@ export default function PeseeSpace() {
       if (!newClientForm.raisonSociale) return false;
       if (newClientForm.typeClient === 'professionnel' && !newClientForm.siret) return false;
       return true;
+    }
+  };
+
+  const validateNewTransporteur = (): boolean => {
+    return Boolean(newTransporteurForm.prenom && newTransporteurForm.nom);
+  };
+
+  const handleAddNewTransporteur = async () => {
+    if (!validateNewTransporteur()) return;
+
+    try {
+      const transporteurData = {
+        ...newTransporteurForm,
+        telephones: newTransporteurForm.telephones || [],
+        plaques: newTransporteurForm.plaques || [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as Transporteur;
+
+      const id = await db.transporteurs.add(transporteurData);
+      await loadData();
+      await loadTransporteurs();
+      
+      // Sélectionner le nouveau transporteur
+      updateCurrentTab({ transporteurId: id as number });
+      
+      toast({
+        title: "Transporteur créé",
+        description: "Le transporteur a été créé et sélectionné avec succès."
+      });
+      
+      setIsAddTransporteurDialogOpen(false);
+      setNewTransporteurForm({
+        prenom: '',
+        nom: '',
+        siret: '',
+        adresse: '',
+        codePostal: '',
+        ville: '',
+        email: '',
+        telephones: [],
+        plaques: []
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer le transporteur.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -370,6 +431,12 @@ export default function PeseeSpace() {
                   newChantier={newChantier}
                   setNewChantier={setNewChantier}
                   handleAddChantier={handleAddChantier}
+                  isAddTransporteurDialogOpen={isAddTransporteurDialogOpen}
+                  setIsAddTransporteurDialogOpen={setIsAddTransporteurDialogOpen}
+                  newTransporteurForm={newTransporteurForm}
+                  setNewTransporteurForm={setNewTransporteurForm}
+                  handleAddNewTransporteur={handleAddNewTransporteur}
+                  validateNewTransporteur={validateNewTransporteur}
                 />
 
                 <ProductWeightSection

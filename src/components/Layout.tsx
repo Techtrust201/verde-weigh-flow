@@ -22,6 +22,7 @@ interface LayoutProps {
 const spaces = [
   { id: 'pesee', name: 'Pesée', icon: Scale },
   { id: 'clients', name: 'Clients', icon: Users },
+  { id: 'transporteurs', name: 'Transporteurs', icon: User },
   { id: 'produits', name: 'Produits', icon: Package },
   { id: 'historique', name: 'Historique', icon: History },
   { id: 'utilisateur', name: 'Utilisateur', icon: User },
@@ -33,17 +34,34 @@ export default function Layout({ children, currentSpace, onSpaceChange }: Layout
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      console.log('Online event triggered');
+      setIsOnline(true);
+    };
+    const handleOffline = () => {
+      console.log('Offline event triggered');
+      setIsOnline(false);
+    };
+
+    // Vérifier immédiatement le statut
+    setIsOnline(navigator.onLine);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Vérifier périodiquement le statut de connexion
+    const checkConnection = setInterval(() => {
+      if (navigator.onLine !== isOnline) {
+        setIsOnline(navigator.onLine);
+      }
+    }, 1000);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(checkConnection);
     };
-  }, []);
+  }, [isOnline]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
