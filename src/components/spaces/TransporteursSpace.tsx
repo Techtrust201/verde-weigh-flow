@@ -53,18 +53,20 @@ export default function TransporteursSpace() {
         ...formData,
         telephones: formData.telephones || [],
         plaques: formData.plaques || [],
-        createdAt: new Date(),
         updatedAt: new Date()
-      } as Transporteur;
+      };
 
-      if (editingTransporteur) {
-        await db.transporteurs.update(editingTransporteur.id!, transporteurData);
+      if (editingTransporteur && editingTransporteur.id) {
+        await db.transporteurs.update(editingTransporteur.id, transporteurData);
         toast({
           title: "Transporteur modifié",
           description: "Le transporteur a été mis à jour avec succès."
         });
       } else {
-        await db.transporteurs.add(transporteurData);
+        await db.transporteurs.add({
+          ...transporteurData,
+          createdAt: new Date()
+        } as Transporteur);
         toast({
           title: "Transporteur ajouté",
           description: "Le nouveau transporteur a été créé avec succès."

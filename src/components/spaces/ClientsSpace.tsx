@@ -358,18 +358,6 @@ export default function ClientsSpace() {
                 </div>
               )}
 
-              {formData.typeClient !== 'particulier' && (
-                <div>
-                  <Label htmlFor="dateCreation">Date de création de la société</Label>
-                  <Input
-                    id="dateCreation"
-                    type="date"
-                    value={formData.dateCreation || ''}
-                    onChange={(e) => setFormData({...formData, dateCreation: e.target.value})}
-                  />
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="siret">

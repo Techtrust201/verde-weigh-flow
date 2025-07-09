@@ -1,19 +1,19 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
-import { Client } from '@/lib/database';
+import { Client, Transporteur } from '@/lib/database';
 
 interface ClientFormProps {
   formData: Partial<Client>;
   onFormDataChange: (data: Partial<Client>) => void;
   isEditing?: boolean;
+  transporteurs?: Transporteur[];
 }
 
-export default function ClientForm({ formData, onFormDataChange, isEditing = false }: ClientFormProps) {
+export default function ClientForm({ formData, onFormDataChange, isEditing = false, transporteurs = [] }: ClientFormProps) {
   const addTelephone = () => {
     onFormDataChange({
       ...formData,
@@ -133,18 +133,6 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
             id="raisonSociale"
             value={formData.raisonSociale || ''}
             onChange={(e) => onFormDataChange({...formData, raisonSociale: e.target.value})}
-          />
-        </div>
-      )}
-
-      {formData.typeClient !== 'particulier' && (
-        <div>
-          <Label htmlFor="dateCreation">Date de création de la société</Label>
-          <Input
-            id="dateCreation"
-            type="date"
-            value={formData.dateCreation || ''}
-            onChange={(e) => onFormDataChange({...formData, dateCreation: e.target.value})}
           />
         </div>
       )}
@@ -311,6 +299,28 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
           </div>
         ))}
       </div>
+
+      {transporteurs.length > 0 && (
+        <div>
+          <Label htmlFor="transporteur">Transporteur par défaut</Label>
+          <Select 
+            value={formData.transporteurId?.toString() || ''} 
+            onValueChange={(value) => onFormDataChange({...formData, transporteurId: parseInt(value) || undefined})}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner un transporteur" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Aucun transporteur</SelectItem>
+              {transporteurs.map((transporteur) => (
+                <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
+                  {transporteur.prenom} {transporteur.nom}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }
