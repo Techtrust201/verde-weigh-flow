@@ -14,53 +14,6 @@ interface ClientFormProps {
 }
 
 export default function ClientForm({ formData, onFormDataChange, isEditing = false, transporteurs = [] }: ClientFormProps) {
-  const addTelephone = () => {
-    onFormDataChange({
-      ...formData,
-      telephones: [...(formData.telephones || []), '']
-    });
-  };
-
-  const updateTelephone = (index: number, value: string) => {
-    const newTelephones = [...(formData.telephones || [])];
-    newTelephones[index] = value;
-    onFormDataChange({
-      ...formData,
-      telephones: newTelephones
-    });
-  };
-
-  const removeTelephone = (index: number) => {
-    const newTelephones = formData.telephones?.filter((_, i) => i !== index) || [];
-    onFormDataChange({
-      ...formData,
-      telephones: newTelephones
-    });
-  };
-
-  const addPlaque = () => {
-    onFormDataChange({
-      ...formData,
-      plaques: [...(formData.plaques || []), '']
-    });
-  };
-
-  const updatePlaque = (index: number, value: string) => {
-    const newPlaques = [...(formData.plaques || [])];
-    newPlaques[index] = value;
-    onFormDataChange({
-      ...formData,
-      plaques: newPlaques
-    });
-  };
-
-  const removePlaque = (index: number) => {
-    const newPlaques = formData.plaques?.filter((_, i) => i !== index) || [];
-    onFormDataChange({
-      ...formData,
-      plaques: newPlaques
-    });
-  };
 
   const addChantier = () => {
     onFormDataChange({
@@ -220,57 +173,23 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
       </div>
 
       <div>
-        <div className="flex justify-between items-center mb-2">
-          <Label>Téléphones</Label>
-          <Button type="button" variant="outline" size="sm" onClick={addTelephone}>
-            <Plus className="h-3 w-3 mr-1" />
-            Ajouter
-          </Button>
-        </div>
-        {formData.telephones?.map((tel, index) => (
-          <div key={index} className="flex gap-2 mb-2">
-            <Input
-              value={tel}
-              onChange={(e) => updateTelephone(index, e.target.value)}
-              placeholder="Numéro de téléphone"
-            />
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
-              onClick={() => removeTelephone(index)}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        ))}
+        <Label htmlFor="telephone">Téléphone</Label>
+        <Input
+          id="telephone"
+          value={formData.telephone || ''}
+          onChange={(e) => onFormDataChange({...formData, telephone: e.target.value})}
+          placeholder="Numéro de téléphone"
+        />
       </div>
 
       <div>
-        <div className="flex justify-between items-center mb-2">
-          <Label>Plaques d'immatriculation</Label>
-          <Button type="button" variant="outline" size="sm" onClick={addPlaque}>
-            <Plus className="h-3 w-3 mr-1" />
-            Ajouter
-          </Button>
-        </div>
-        {formData.plaques?.map((plaque, index) => (
-          <div key={index} className="flex gap-2 mb-2">
-            <Input
-              value={plaque}
-              onChange={(e) => updatePlaque(index, e.target.value)}
-              placeholder="Plaque d'immatriculation"
-            />
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
-              onClick={() => removePlaque(index)}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        ))}
+        <Label htmlFor="plaque">Plaque d'immatriculation</Label>
+        <Input
+          id="plaque"
+          value={formData.plaque || ''}
+          onChange={(e) => onFormDataChange({...formData, plaque: e.target.value})}
+          placeholder="Plaque d'immatriculation"
+        />
       </div>
 
       <div>
@@ -300,27 +219,25 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
         ))}
       </div>
 
-      {transporteurs.length > 0 && (
-        <div>
-          <Label htmlFor="transporteur">Transporteur par défaut</Label>
-          <Select 
-            value={formData.transporteurId?.toString() || ''} 
-            onValueChange={(value) => onFormDataChange({...formData, transporteurId: value === '' ? undefined : parseInt(value)})}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un transporteur" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Aucun transporteur</SelectItem>
-              {transporteurs.map((transporteur) => (
-                <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
-                  {transporteur.prenom} {transporteur.nom}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <div>
+        <Label htmlFor="transporteur">Transporteur par défaut</Label>
+        <Select 
+          value={formData.transporteurId?.toString() || ''} 
+          onValueChange={(value) => onFormDataChange({...formData, transporteurId: value === '' ? undefined : parseInt(value)})}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un transporteur" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Aucun transporteur</SelectItem>
+            {transporteurs?.map((transporteur) => (
+              <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
+                {transporteur.prenom} {transporteur.nom}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }

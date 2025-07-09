@@ -141,7 +141,7 @@ export const PeseeFormSection = ({
                       clientId: client.id!,
                       nomEntreprise: client.raisonSociale,
                       typeClient: client.typeClient,
-                      plaque: client.plaques?.[0] || '',
+                      plaque: client.plaque || '',
                       chantier: client.chantiers?.[0] || '',
                       transporteurId: client.transporteurId || 0
                     });
@@ -190,7 +190,7 @@ export const PeseeFormSection = ({
                   clientId: client.id!,
                   nomEntreprise: client.raisonSociale,
                   typeClient: client.typeClient,
-                  plaque: client.plaques?.[0] || '',
+                  plaque: client.plaque || '',
                   chantier: client.chantiers?.[0] || '',
                   transporteurId: client.transporteurId || 0
                 });
@@ -224,7 +224,7 @@ export const PeseeFormSection = ({
             options={(() => {
               if (currentData?.clientId) {
                 const client = clients.find(c => c.id === currentData.clientId);
-                return client?.plaques?.map(plaque => ({ value: plaque, label: plaque })) || [];
+                return client?.plaque ? [{ value: client.plaque, label: client.plaque }] : [];
               }
               return [];
             })()}

@@ -1,26 +1,27 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Users, Phone, Mail, Search, Filter } from 'lucide-react';
-import { db, Client } from '@/lib/database';
+import { Input } from '@/components/ui/input';
+import { Edit, Plus, Search, Trash2, User, Building, Briefcase } from 'lucide-react';
+import { Client, db, Transporteur } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
+import ClientForm from '@/components/forms/ClientForm';
 
 export default function ClientsSpace() {
   const [clients, setClients] = useState<Client[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [transporteurs, setTransporteurs] = useState<Transporteur[]>([]);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'particulier' | 'professionnel' | 'micro-entreprise'>('all');
   const [formData, setFormData] = useState<Partial<Client>>({
     typeClient: 'particulier',
-    raisonSociale: '',
     prenom: '',
     nom: '',
+    raisonSociale: '',
     siret: '',
     codeNAF: '',
     activite: '',
@@ -28,44 +29,46 @@ export default function ClientsSpace() {
     codePostal: '',
     ville: '',
     representantLegal: '',
-    telephones: [],
+    telephone: '',
     email: '',
-    plaques: [],
+    plaque: '',
     chantiers: []
   });
   const { toast } = useToast();
 
   useEffect(() => {
     loadClients();
+    loadTransporteurs();
   }, []);
 
   const loadClients = async () => {
     try {
-      const clientsData = await db.clients.toArray();
+      const clientsData = await db.clients.orderBy('createdAt').reverse().toArray();
       setClients(clientsData);
     } catch (error) {
-      console.error('Error loading clients:', error);
+      console.error('Erreur lors du chargement des clients:', error);
     }
   };
 
-  const filteredClients = useMemo(() => {
-    return clients.filter(client => {
-      const matchesSearch = searchTerm === '' || 
-        client.raisonSociale.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.siret?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.prenom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.ville?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.plaques.some(plaque => plaque.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        client.chantiers.some(chantier => chantier.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        client.telephones.some(tel => tel.includes(searchTerm));
-      
-      const matchesType = typeFilter === 'all' || client.typeClient === typeFilter;
-      
-      return matchesSearch && matchesType;
-    });
-  }, [clients, searchTerm, typeFilter]);
+  const loadTransporteurs = async () => {
+    try {
+      const transporteursData = await db.transporteurs.orderBy('createdAt').reverse().toArray();
+      setTransporteurs(transporteursData);
+    } catch (error) {
+      console.error('Erreur lors du chargement des transporteurs:', error);
+    }
+  };
+
+  const filteredClients = clients.filter(client =>
+    client.raisonSociale.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.siret?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.adresse?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.ville?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.plaque?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.telephone?.includes(searchTerm) ||
+    client.chantiers.some(chantier => chantier.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const validateForm = () => {
     if (!formData.typeClient) {
@@ -117,69 +120,52 @@ export default function ClientsSpace() {
         raisonSociale: formData.typeClient === 'particulier' 
           ? `${formData.prenom} ${formData.nom}` 
           : formData.raisonSociale,
-        telephones: formData.telephones || [],
-        plaques: formData.plaques || [],
-        chantiers: formData.chantiers || [],
-        updatedAt: new Date()
+        telephone: formData.telephone || '',
+        plaque: formData.plaque || '',
+        chantiers: formData.chantiers || []
       };
 
-      if (editingClient && editingClient.id) {
-        await db.clients.update(editingClient.id, clientData);
+      if (selectedClient) {
+        await db.clients.update(selectedClient.id!, {
+          ...clientData,
+          updatedAt: new Date()
+        });
         toast({
-          title: "Client modifié",
-          description: "Les informations du client ont été mises à jour."
+          title: "Succès",
+          description: "Client modifié avec succès."
         });
       } else {
         await db.clients.add({
           ...clientData,
-          createdAt: new Date()
+          createdAt: new Date(),
+          updatedAt: new Date()
         } as Client);
         toast({
-          title: "Client ajouté",
-          description: "Le nouveau client a été créé avec succès."
+          title: "Succès",
+          description: "Client créé avec succès."
         });
       }
 
-      setIsDialogOpen(false);
-      setEditingClient(null);
-      resetForm();
       loadClients();
+      resetForm();
+      setIsCreateDialogOpen(false);
+      setIsEditDialogOpen(false);
     } catch (error) {
-      console.error('Error saving client:', error);
+      console.error('Erreur lors de la sauvegarde:', error);
       toast({
         title: "Erreur",
-        description: "Impossible de sauvegarder le client.",
+        description: "Une erreur s'est produite lors de la sauvegarde.",
         variant: "destructive"
       });
-    }
-  };
-
-  const handleDelete = async (client: Client) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer le client "${client.raisonSociale}" ?`)) {
-      try {
-        await db.clients.delete(client.id!);
-        toast({
-          title: "Client supprimé",
-          description: "Le client a été supprimé avec succès."
-        });
-        loadClients();
-      } catch (error) {
-        console.error('Error deleting client:', error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de supprimer le client.",
-          variant: "destructive"
-        });
-      }
     }
   };
 
   const resetForm = () => {
     setFormData({
       typeClient: 'particulier',
-      raisonSociale: '',
       prenom: '',
       nom: '',
+      raisonSociale: '',
       siret: '',
       codeNAF: '',
       activite: '',
@@ -187,479 +173,233 @@ export default function ClientsSpace() {
       codePostal: '',
       ville: '',
       representantLegal: '',
-      telephones: [],
+      telephone: '',
       email: '',
-      plaques: [],
+      plaque: '',
       chantiers: []
     });
+    setSelectedClient(null);
   };
 
-  const openEditDialog = (client: Client) => {
-    setEditingClient(client);
-    setFormData(client);
-    setIsDialogOpen(true);
+  const handleEdit = (client: Client) => {
+    setSelectedClient(client);
+    setFormData({
+      ...client,
+      chantiers: client.chantiers || []
+    });
+    setIsEditDialogOpen(true);
   };
 
-  const openAddDialog = () => {
-    setEditingClient(null);
-    resetForm();
-    setIsDialogOpen(true);
-  };
-
-  const getClientBadge = (type: string) => {
-    switch (type) {
-      case 'particulier':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Particulier</Badge>;
-      case 'professionnel':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Professionnel</Badge>;
-      case 'micro-entreprise':
-        return <Badge variant="outline" className="bg-orange-100 text-orange-800">Micro-entreprise</Badge>;
-      default:
-        return <Badge variant="secondary">Non défini</Badge>;
+  const handleDelete = async (client: Client) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) {
+      try {
+        await db.clients.delete(client.id!);
+        toast({
+          title: "Succès",
+          description: "Client supprimé avec succès."
+        });
+        loadClients();
+      } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur s'est produite lors de la suppression.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
-  const addTelephone = () => {
-    setFormData({
-      ...formData,
-      telephones: [...(formData.telephones || []), '']
-    });
+  const getClientTypeIcon = (type: string) => {
+    switch (type) {
+      case 'particulier':
+        return <User className="h-4 w-4" />;
+      case 'professionnel':
+        return <Building className="h-4 w-4" />;
+      case 'micro-entreprise':
+        return <Briefcase className="h-4 w-4" />;
+      default:
+        return <User className="h-4 w-4" />;
+    }
   };
 
-  const updateTelephone = (index: number, value: string) => {
-    const newTelephones = [...(formData.telephones || [])];
-    newTelephones[index] = value;
-    setFormData({
-      ...formData,
-      telephones: newTelephones
-    });
-  };
-
-  const removeTelephone = (index: number) => {
-    const newTelephones = formData.telephones?.filter((_, i) => i !== index) || [];
-    setFormData({
-      ...formData,
-      telephones: newTelephones
-    });
-  };
-
-  const addPlaque = () => {
-    setFormData({
-      ...formData,
-      plaques: [...(formData.plaques || []), '']
-    });
-  };
-
-  const updatePlaque = (index: number, value: string) => {
-    const newPlaques = [...(formData.plaques || [])];
-    newPlaques[index] = value;
-    setFormData({
-      ...formData,
-      plaques: newPlaques
-    });
-  };
-
-  const removePlaque = (index: number) => {
-    const newPlaques = formData.plaques?.filter((_, i) => i !== index) || [];
-    setFormData({
-      ...formData,
-      plaques: newPlaques
-    });
-  };
-
-  const addChantier = () => {
-    setFormData({
-      ...formData,
-      chantiers: [...(formData.chantiers || []), '']
-    });
-  };
-
-  const updateChantier = (index: number, value: string) => {
-    const newChantiers = [...(formData.chantiers || [])];
-    newChantiers[index] = value;
-    setFormData({
-      ...formData,
-      chantiers: newChantiers
-    });
-  };
-
-  const removeChantier = (index: number) => {
-    const newChantiers = formData.chantiers?.filter((_, i) => i !== index) || [];
-    setFormData({
-      ...formData,
-      chantiers: newChantiers
-    });
+  const getClientTypeBadge = (type: string) => {
+    const variants = {
+      'particulier': 'secondary',
+      'professionnel': 'default',
+      'micro-entreprise': 'outline'
+    } as const;
+    
+    return (
+      <Badge variant={variants[type as keyof typeof variants] || 'secondary'} className="flex items-center gap-1">
+        {getClientTypeIcon(type)}
+        {type === 'particulier' ? 'Particulier' : 
+         type === 'professionnel' ? 'Professionnel' : 
+         'Micro-entreprise'}
+      </Badge>
+    );
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gestion des Clients</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Gestion des Clients</h2>
+          <p className="text-muted-foreground">Gérez vos clients particuliers et professionnels</p>
+        </div>
+        
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openAddDialog}>
+            <Button onClick={resetForm}>
               <Plus className="h-4 w-4 mr-2" />
-              Nouveau Client
+              Nouveau client
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {editingClient ? 'Modifier le client' : 'Nouveau client'}
-              </DialogTitle>
+              <DialogTitle>Nouveau client</DialogTitle>
             </DialogHeader>
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="typeClient">Type de client *</Label>
-                <Select 
-                  value={formData.typeClient} 
-                  onValueChange={(value: 'particulier' | 'professionnel' | 'micro-entreprise') => 
-                    setFormData({...formData, typeClient: value})
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="particulier">Particulier</SelectItem>
-                    <SelectItem value="professionnel">Professionnel</SelectItem>
-                    <SelectItem value="micro-entreprise">Micro-entreprise</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.typeClient === 'particulier' ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="prenom">Prénom *</Label>
-                    <Input
-                      id="prenom"
-                      value={formData.prenom || ''}
-                      onChange={(e) => setFormData({...formData, prenom: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="nom">Nom *</Label>
-                    <Input
-                      id="nom"
-                      value={formData.nom || ''}
-                      onChange={(e) => setFormData({...formData, nom: e.target.value})}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <Label htmlFor="raisonSociale">Raison Sociale *</Label>
-                  <Input
-                    id="raisonSociale"
-                    value={formData.raisonSociale || ''}
-                    onChange={(e) => setFormData({...formData, raisonSociale: e.target.value})}
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="siret">
-                    SIRET {formData.typeClient === 'professionnel' ? '*' : '(optionnel)'}
-                  </Label>
-                  <Input
-                    id="siret"
-                    value={formData.siret || ''}
-                    onChange={(e) => setFormData({...formData, siret: e.target.value})}
-                  />
-                </div>
-                {formData.typeClient !== 'particulier' && (
-                  <div>
-                    <Label htmlFor="codeNAF">Code NAF</Label>
-                    <Input
-                      id="codeNAF"
-                      value={formData.codeNAF || ''}
-                      onChange={(e) => setFormData({...formData, codeNAF: e.target.value})}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {formData.typeClient !== 'particulier' && (
-                <>
-                  <div>
-                    <Label htmlFor="activite">Activité</Label>
-                    <Input
-                      id="activite"
-                      value={formData.activite || ''}
-                      onChange={(e) => setFormData({...formData, activite: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="representantLegal">Représentant Légal</Label>
-                    <Input
-                      id="representantLegal"
-                      value={formData.representantLegal || ''}
-                      onChange={(e) => setFormData({...formData, representantLegal: e.target.value})}
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <Label htmlFor="adresse">Adresse</Label>
-                  <Input
-                    id="adresse"
-                    value={formData.adresse || ''}
-                    onChange={(e) => setFormData({...formData, adresse: e.target.value})}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="codePostal">Code Postal</Label>
-                    <Input
-                      id="codePostal"
-                      value={formData.codePostal || ''}
-                      onChange={(e) => setFormData({...formData, codePostal: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="ville">Ville</Label>
-                    <Input
-                      id="ville"
-                      value={formData.ville || ''}
-                      onChange={(e) => setFormData({...formData, ville: e.target.value})}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label>Téléphones</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addTelephone}>
-                    <Plus className="h-3 w-3 mr-1" />
-                    Ajouter
-                  </Button>
-                </div>
-                {formData.telephones?.map((tel, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <Input
-                      value={tel}
-                      onChange={(e) => updateTelephone(index, e.target.value)}
-                      placeholder="Numéro de téléphone"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => removeTelephone(index)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label>Plaques d'immatriculation</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addPlaque}>
-                    <Plus className="h-3 w-3 mr-1" />
-                    Ajouter
-                  </Button>
-                </div>
-                {formData.plaques?.map((plaque, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <Input
-                      value={plaque}
-                      onChange={(e) => updatePlaque(index, e.target.value)}
-                      placeholder="Plaque d'immatriculation"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => removePlaque(index)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label>Chantiers</Label>
-                  <Button type="button" variant="outline" size="sm" onClick={addChantier}>
-                    <Plus className="h-3 w-3 mr-1" />
-                    Ajouter
-                  </Button>
-                </div>
-                {formData.chantiers?.map((chantier, index) => (
-                  <div key={index} className="flex gap-2 mb-2">
-                    <Input
-                      value={chantier}
-                      onChange={(e) => updateChantier(index, e.target.value)}
-                      placeholder="Nom du chantier"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => removeChantier(index)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2 mt-6">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <ClientForm 
+              formData={formData} 
+              onFormDataChange={setFormData}
+              transporteurs={transporteurs}
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                 Annuler
               </Button>
               <Button onClick={handleSave}>
-                {editingClient ? 'Modifier' : 'Créer'}
+                Créer
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Barre de recherche et filtres */}
-      <div className="flex gap-4 items-center">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Rechercher par nom, SIRET, email, téléphone, plaque, chantier..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+      <Card>
+        <CardHeader>
+          <CardTitle>Rechercher des clients</CardTitle>
+          <CardDescription>Recherchez par nom, SIRET, email, adresse ou plaque</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Clients ({filteredClients.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Type</TableHead>
+                <TableHead>Raison Sociale</TableHead>
+                <TableHead>SIRET</TableHead>
+                <TableHead>Contact</TableHead>
+                <TableHead>Adresse</TableHead>
+                <TableHead>Plaque</TableHead>
+                <TableHead>Transporteur</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredClients.map((client) => {
+                const transporteur = transporteurs.find(t => t.id === client.transporteurId);
+                return (
+                  <TableRow key={client.id}>
+                    <TableCell>{getClientTypeBadge(client.typeClient)}</TableCell>
+                    <TableCell>{client.raisonSociale}</TableCell>
+                    <TableCell>{client.siret}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {client.telephone && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{client.telephone}</span>
+                          </div>
+                        )}
+                        {client.email && (
+                          <div className="text-sm text-muted-foreground">{client.email}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {client.adresse && <div>{client.adresse}</div>}
+                        {client.codePostal && client.ville && (
+                          <div className="text-muted-foreground">{client.codePostal} {client.ville}</div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {client.plaque && (
+                        <Badge variant="outline" className="font-mono">
+                          {client.plaque}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {transporteur && (
+                        <Badge variant="secondary">
+                          {transporteur.prenom} {transporteur.nom}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(client)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(client)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier le client</DialogTitle>
+          </DialogHeader>
+          <ClientForm 
+            formData={formData} 
+            onFormDataChange={setFormData}
+            isEditing={true}
+            transporteurs={transporteurs}
           />
-        </div>
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-400" />
-          <Select value={typeFilter} onValueChange={(value: any) => setTypeFilter(value)}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les types</SelectItem>
-              <SelectItem value="particulier">Particuliers</SelectItem>
-              <SelectItem value="professionnel">Professionnels</SelectItem>
-              <SelectItem value="micro-entreprise">Micro-entreprises</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredClients.map((client) => (
-          <Card key={client.id}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="flex items-center">
-                    <Users className="h-5 w-5 mr-2" />
-                    {client.raisonSociale}
-                  </span>
-                  <div className="mt-2">
-                    {getClientBadge(client.typeClient)}
-                  </div>
-                </div>
-                <div className="flex space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEditDialog(client)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(client)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {client.siret && client.siret !== '00000000000000' && (
-                <div className="text-sm">
-                  <strong>SIRET:</strong> {client.siret}
-                </div>
-              )}
-              {client.adresse && (
-                <div className="text-sm">
-                  <strong>Adresse:</strong> {client.adresse}
-                  {client.codePostal && client.ville && `, ${client.codePostal} ${client.ville}`}
-                </div>
-              )}
-              {client.email && (
-                <div className="flex items-center text-sm">
-                  <Mail className="h-3 w-3 mr-1" />
-                  {client.email}
-                </div>
-              )}
-              {client.telephones && client.telephones.length > 0 && (
-                <div className="flex items-center text-sm">
-                  <Phone className="h-3 w-3 mr-1" />
-                  {client.telephones[0]}
-                  {client.telephones.length > 1 && (
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      +{client.telephones.length - 1}
-                    </Badge>
-                  )}
-                </div>
-              )}
-              {client.plaques && client.plaques.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {client.plaques.map((plaque, index) => (
-                    <Badge key={index} variant="outline" className="text-xs">{plaque}</Badge>
-                  ))}
-                </div>
-              )}
-              {client.chantiers && client.chantiers.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  <span className="text-xs font-medium text-gray-600">Chantiers:</span>
-                  {client.chantiers.map((chantier, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">{chantier}</Badge>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredClients.length === 0 && searchTerm === '' && typeFilter === 'all' && (
-        <div className="text-center py-12">
-          <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucun client</h3>
-          <p className="text-gray-500 mb-4">Commencez par ajouter votre premier client.</p>
-          <Button onClick={openAddDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter un client
-          </Button>
-        </div>
-      )}
-
-      {filteredClients.length === 0 && (searchTerm !== '' || typeFilter !== 'all') && (
-        <div className="text-center py-12">
-          <Search className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucun résultat</h3>
-          <p className="text-gray-500">Aucun client ne correspond à vos critères de recherche.</p>
-        </div>
-      )}
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleSave}>
+              Sauvegarder
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

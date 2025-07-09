@@ -58,11 +58,12 @@ export const PlaqueAutocomplete = ({ value, clients, onSelect, onChange }: Plaqu
     if (plaque.length > 1) {
       const matches: PlaqueMatch[] = [];
       clients.forEach(client => {
-        client.plaques.forEach(clientPlaque => {
+        if (client.plaque) {
+          const clientPlaque = client.plaque;
           if (clientPlaque.toLowerCase().includes(plaque.toLowerCase())) {
             matches.push({ client, plaque: clientPlaque });
           }
-        });
+        }
       });
       setPlaqueMatches(matches);
       setShowPlaqueMatches(matches.length > 0);

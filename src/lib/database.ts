@@ -12,9 +12,9 @@ export interface Client {
   codePostal?: string;
   ville?: string;
   representantLegal?: string;
-  telephones: string[];
+  telephone?: string;
   email?: string;
-  plaques: string[];
+  plaque?: string;
   chantiers: string[];
   transporteurId?: number;
   tarifsPreferentiels?: {
@@ -40,8 +40,8 @@ export interface Transporteur {
   codePostal?: string;
   ville?: string;
   email?: string;
-  telephones: string[];
-  plaques: string[];
+  telephone?: string;
+  plaque?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,9 +102,9 @@ export class BarberisDB extends Dexie {
 
   constructor() {
     super('BarberisDB');
-    this.version(3).stores({
-      clients: '++id, typeClient, raisonSociale, siret, *plaques, *chantiers, transporteurId, createdAt',
-      transporteurs: '++id, prenom, nom, siret, *plaques, createdAt',
+    this.version(4).stores({
+      clients: '++id, typeClient, raisonSociale, siret, plaque, *chantiers, transporteurId, createdAt',
+      transporteurs: '++id, prenom, nom, siret, plaque, createdAt',
       products: '++id, nom, codeProduct, isFavorite, createdAt',
       pesees: '++id, numeroBon, plaque, nomEntreprise, produitId, clientId, transporteurId, dateHeure, synchronized, createdAt',
       userSettings: '++id, nomEntreprise, createdAt'
@@ -115,6 +115,27 @@ export class BarberisDB extends Dexie {
         }
         if (!client.tarifsPreferentiels) {
           client.tarifsPreferentiels = {};
+        }
+        // Migration des anciens champs arrays vers champs simples
+        if (client.telephones && Array.isArray(client.telephones)) {
+          client.telephone = client.telephones[0] || '';
+          delete client.telephones;
+        }
+        if (client.plaques && Array.isArray(client.plaques)) {
+          client.plaque = client.plaques[0] || '';
+          delete client.plaques;
+        }
+      });
+    }).upgrade(tx => {
+      return tx.table('transporteurs').toCollection().modify(transporteur => {
+        // Migration des anciens champs arrays vers champs simples
+        if (transporteur.telephones && Array.isArray(transporteur.telephones)) {
+          transporteur.telephone = transporteur.telephones[0] || '';
+          delete transporteur.telephones;
+        }
+        if (transporteur.plaques && Array.isArray(transporteur.plaques)) {
+          transporteur.plaque = transporteur.plaques[0] || '';
+          delete transporteur.plaques;
         }
       });
     });
@@ -140,8 +161,8 @@ export async function initializeSampleData() {
         codePostal: '69000',
         ville: 'Lyon',
         email: 'pierre.martin@transport.fr',
-        telephones: ['04 78 12 34 56'],
-        plaques: ['TR-123-AB', 'TR-456-CD'],
+        telephone: '04 78 12 34 56',
+        plaque: 'TR-123-AB',
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -160,9 +181,9 @@ export async function initializeSampleData() {
         codePostal: '69000',
         ville: 'Lyon',
         representantLegal: 'Pierre Martin',
-        telephones: ['04 78 12 34 56', '06 78 90 12 34'],
+        telephone: '04 78 12 34 56',
         email: 'contact@martin-tp.fr',
-        plaques: ['AB-123-CD', 'EF-456-GH'],
+        plaque: 'AB-123-CD',
         chantiers: ['Chantier A', 'Chantier B'],
         tarifsPreferentiels: {},
         createdAt: new Date(),
@@ -174,8 +195,8 @@ export async function initializeSampleData() {
         prenom: 'Jean',
         nom: 'Dupont',
         siret: '00000000000000',
-        telephones: ['06 12 34 56 78'],
-        plaques: ['CD-789-EF'],
+        telephone: '06 12 34 56 78',
+        plaque: 'CD-789-EF',
         chantiers: [],
         tarifsPreferentiels: {},
         createdAt: new Date(),
@@ -190,9 +211,9 @@ export async function initializeSampleData() {
         codePostal: '69001',
         ville: 'Lyon',
         representantLegal: 'Marie Martin',
-        telephones: ['04 78 98 76 54'],
+        telephone: '04 78 98 76 54',
         email: 'marie@martin-jardinage.fr',
-        plaques: ['GH-012-IJ'],
+        plaque: 'GH-012-IJ',
         chantiers: ['Particuliers'],
         tarifsPreferentiels: {},
         createdAt: new Date(),

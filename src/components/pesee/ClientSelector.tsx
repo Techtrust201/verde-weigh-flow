@@ -35,15 +35,9 @@ export const ClientSelector = ({ clients, currentData, updateCurrentTab }: Clien
         typeClient: client.typeClient
       };
 
-      // Gestion des plaques
-      if (client.plaques && client.plaques.length > 0) {
-        if (client.plaques.length === 1) {
-          updates.plaque = client.plaques[0];
-          setShowPlaqueOptions(false);
-        } else {
-          updates.plaque = client.plaques[0]; // Par défaut la première
-          setShowPlaqueOptions(true);
-        }
+      // Gestion de la plaque
+      if (client.plaque) {
+        updates.plaque = client.plaque;
       }
 
       // Gestion des chantiers
