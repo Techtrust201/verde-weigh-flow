@@ -4,9 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Upload, CheckCircle, AlertCircle, Wifi, WifiOff, Clock, Settings } from 'lucide-react';
 import { db, Pesee, UserSettings } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
+import { setupAutoSync, stopAutoSync } from '@/utils/syncScheduler';
 
 export default function ComptabiliteSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
@@ -14,6 +17,7 @@ export default function ComptabiliteSpace() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -22,7 +26,7 @@ export default function ComptabiliteSpace() {
     const handleOnline = () => {
       setIsOnline(true);
       // Auto-sync when coming online
-      if (userSettings?.cleAPISage) {
+      if (userSettings?.cleAPISage && autoSyncEnabled) {
         handleSyncToSage();
       }
     };
@@ -32,11 +36,17 @@ export default function ComptabiliteSpace() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Démarrer la synchronisation automatique si activée
+    if (autoSyncEnabled) {
+      setupAutoSync();
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      stopAutoSync();
     };
-  }, []);
+  }, [autoSyncEnabled, userSettings]);
 
   const loadData = async () => {
     try {
@@ -49,6 +59,24 @@ export default function ComptabiliteSpace() {
       setUserSettings(settingsData || null);
     } catch (error) {
       console.error('Error loading data:', error);
+    }
+  };
+
+  const handleAutoSyncToggle = (enabled: boolean) => {
+    setAutoSyncEnabled(enabled);
+    
+    if (enabled) {
+      setupAutoSync();
+      toast({
+        title: "Synchronisation automatique activée",
+        description: "Les données seront synchronisées automatiquement chaque jour à 17h55."
+      });
+    } else {
+      stopAutoSync();
+      toast({
+        title: "Synchronisation automatique désactivée",
+        description: "Vous devrez synchroniser manuellement vos données."
+      });
     }
   };
 
@@ -79,13 +107,17 @@ export default function ComptabiliteSpace() {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Marquer les pesées comme synchronisées
-      // (vous pourriez ajouter un champ 'synchronized' à votre modèle Pesee)
+      const pendingPesees = pesees.filter(pesee => !pesee.synchronized);
+      for (const pesee of pendingPesees) {
+        await db.pesees.update(pesee.id!, { synchronized: true });
+      }
       
       setLastSync(new Date());
+      loadData(); // Recharger les données
       
       toast({
         title: "Synchronisation réussie",
-        description: `${pesees.length} pesée(s) envoyée(s) vers Sage.`
+        description: `${pendingPesees.length} pesée(s) envoyée(s) vers Sage.`
       });
     } catch (error) {
       console.error('Error syncing to Sage:', error);
@@ -127,7 +159,7 @@ export default function ComptabiliteSpace() {
         <AlertDescription>
           {userSettings?.cleAPISage ? (
             <span className="text-green-600">
-              ✓ Configuration Sage active. Synchronisation automatique activée.
+              ✓ Configuration Sage active. Synchronisation automatique {autoSyncEnabled ? 'activée' : 'désactivée'}.
             </span>
           ) : (
             <span className="text-orange-600">
@@ -136,6 +168,45 @@ export default function ComptabiliteSpace() {
           )}
         </AlertDescription>
       </Alert>
+
+      {/* Configuration de la synchronisation automatique */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Configuration de la synchronisation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <Label htmlFor="auto-sync">Synchronisation automatique quotidienne</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Synchronise automatiquement les données avec Sage chaque jour à 17h55
+              </p>
+            </div>
+            <Switch
+              id="auto-sync"
+              checked={autoSyncEnabled}
+              onCheckedChange={handleAutoSyncToggle}
+              disabled={!userSettings?.cleAPISage}
+            />
+          </div>
+          
+          {autoSyncEnabled && (
+            <Alert>
+              <Clock className="h-4 w-4" />
+              <AlertDescription>
+                La synchronisation automatique est programmée tous les jours à 17h55. 
+                Assurez-vous que l'application reste ouverte pour que la synchronisation se déclenche.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Sync Status */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

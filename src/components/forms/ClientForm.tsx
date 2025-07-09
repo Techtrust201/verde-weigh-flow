@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -188,8 +188,12 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
           id="plaque"
           value={formData.plaque || ''}
           onChange={(e) => onFormDataChange({...formData, plaque: e.target.value})}
-          placeholder="Plaque d'immatriculation"
+          placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
+          className="font-mono"
         />
+        <p className="text-xs text-muted-foreground mt-1">
+          Format recommandé : AB-123-CD
+        </p>
       </div>
 
       <div>
