@@ -5,7 +5,6 @@ export interface Client {
   id?: number;
   typeClient: 'particulier' | 'professionnel' | 'micro-entreprise';
   raisonSociale: string;
-  dateCreation?: string;
   siret?: string;
   codeNAF?: string;
   activite?: string;
@@ -17,10 +16,32 @@ export interface Client {
   email?: string;
   plaques: string[];
   chantiers: string[];
+  transporteurId?: number;
+  tarifsPreferentiels?: {
+    [productId: number]: {
+      prixHT?: number;
+      prixTTC?: number;
+    };
+  };
   // Champs spécifiques aux particuliers
   prenom?: string;
   nom?: string;
   dateNaissance?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Transporteur {
+  id?: number;
+  prenom: string;
+  nom: string;
+  siret?: string;
+  adresse?: string;
+  codePostal?: string;
+  ville?: string;
+  email?: string;
+  telephones: string[];
+  plaques: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +73,7 @@ export interface Pesee {
   prixHT: number;
   prixTTC: number;
   clientId?: number;
+  transporteurId?: number;
   synchronized?: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -73,21 +95,26 @@ export interface UserSettings {
 
 export class BarberisDB extends Dexie {
   clients!: Table<Client>;
+  transporteurs!: Table<Transporteur>;
   products!: Table<Product>;
   pesees!: Table<Pesee>;
   userSettings!: Table<UserSettings>;
 
   constructor() {
     super('BarberisDB');
-    this.version(2).stores({
-      clients: '++id, typeClient, raisonSociale, siret, *plaques, *chantiers, createdAt',
+    this.version(3).stores({
+      clients: '++id, typeClient, raisonSociale, siret, *plaques, *chantiers, transporteurId, createdAt',
+      transporteurs: '++id, prenom, nom, siret, *plaques, createdAt',
       products: '++id, nom, codeProduct, isFavorite, createdAt',
-      pesees: '++id, numeroBon, plaque, nomEntreprise, produitId, clientId, dateHeure, synchronized, createdAt',
+      pesees: '++id, numeroBon, plaque, nomEntreprise, produitId, clientId, transporteurId, dateHeure, synchronized, createdAt',
       userSettings: '++id, nomEntreprise, createdAt'
     }).upgrade(tx => {
       return tx.table('clients').toCollection().modify(client => {
         if (!client.typeClient) {
           client.typeClient = client.siret && client.siret !== '00000000000000' ? 'professionnel' : 'particulier';
+        }
+        if (!client.tarifsPreferentiels) {
+          client.tarifsPreferentiels = {};
         }
       });
     });
@@ -101,6 +128,25 @@ export async function initializeSampleData() {
   const clientsCount = await db.clients.count();
   const productsCount = await db.products.count();
   const userSettingsCount = await db.userSettings.count();
+  const transporteursCount = await db.transporteurs.count();
+
+  if (transporteursCount === 0) {
+    await db.transporteurs.bulkAdd([
+      {
+        prenom: 'Pierre',
+        nom: 'Martin',
+        siret: '12345678901234',
+        adresse: '123 Rue des Transporteurs',
+        codePostal: '69000',
+        ville: 'Lyon',
+        email: 'pierre.martin@transport.fr',
+        telephones: ['04 78 12 34 56'],
+        plaques: ['TR-123-AB', 'TR-456-CD'],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ]);
+  }
 
   if (clientsCount === 0) {
     await db.clients.bulkAdd([
@@ -118,6 +164,7 @@ export async function initializeSampleData() {
         email: 'contact@martin-tp.fr',
         plaques: ['AB-123-CD', 'EF-456-GH'],
         chantiers: ['Chantier A', 'Chantier B'],
+        tarifsPreferentiels: {},
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -130,6 +177,7 @@ export async function initializeSampleData() {
         telephones: ['06 12 34 56 78'],
         plaques: ['CD-789-EF'],
         chantiers: [],
+        tarifsPreferentiels: {},
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -146,6 +194,7 @@ export async function initializeSampleData() {
         email: 'marie@martin-jardinage.fr',
         plaques: ['GH-012-IJ'],
         chantiers: ['Particuliers'],
+        tarifsPreferentiels: {},
         createdAt: new Date(),
         updatedAt: new Date()
       }

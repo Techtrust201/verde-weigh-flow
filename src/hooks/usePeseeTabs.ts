@@ -11,9 +11,10 @@ export interface PeseeTab {
     nomEntreprise: string;
     chantier: string;
     produitId: number;
-    poidsEntree: number;
-    poidsSortie: number;
+    poidsEntree: string;
+    poidsSortie: string;
     clientId: number;
+    transporteurId: number;
     typeClient?: 'particulier' | 'professionnel' | 'micro-entreprise';
   };
 }
@@ -31,6 +32,10 @@ export const usePeseeTabs = () => {
     return `${year}${month}${day}-${time}`;
   };
 
+  const getDefaultPaymentMethod = (typeClient?: 'particulier' | 'professionnel' | 'micro-entreprise'): 'Direct' | 'En compte' => {
+    return typeClient === 'professionnel' ? 'En compte' : 'Direct';
+  };
+
   const createNewTab = () => {
     const newTabId = Date.now().toString();
     const newTab: PeseeTab = {
@@ -43,9 +48,10 @@ export const usePeseeTabs = () => {
         nomEntreprise: '',
         chantier: '',
         produitId: 0,
-        poidsEntree: 0,
-        poidsSortie: 0,
+        poidsEntree: '',
+        poidsSortie: '',
         clientId: 0,
+        transporteurId: 0,
         typeClient: 'particulier'
       }
     };
@@ -79,11 +85,19 @@ export const usePeseeTabs = () => {
   };
 
   const updateCurrentTab = (updates: Partial<PeseeTab['formData']>) => {
-    setTabs(tabs.map(tab => 
-      tab.id === activeTabId 
-        ? { ...tab, formData: { ...tab.formData, ...updates } }
-        : tab
-    ));
+    setTabs(tabs.map(tab => {
+      if (tab.id === activeTabId) {
+        const newFormData = { ...tab.formData, ...updates };
+        
+        // Mettre à jour automatiquement le moyen de paiement selon le type de client
+        if (updates.typeClient) {
+          newFormData.moyenPaiement = getDefaultPaymentMethod(updates.typeClient);
+        }
+        
+        return { ...tab, formData: newFormData };
+      }
+      return tab;
+    }));
   };
 
   const getCurrentTabData = () => {

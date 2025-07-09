@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Combobox } from '@/components/ui/combobox';
 import { UserPlus, RotateCcw } from 'lucide-react';
-import { Client } from '@/lib/database';
+import { Client, Transporteur } from '@/lib/database';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 import ClientForm from '@/components/forms/ClientForm';
 import { PlaqueAutocomplete } from './PlaqueAutocomplete';
@@ -16,6 +16,7 @@ import { ClientSelector } from './ClientSelector';
 interface PeseeFormSectionProps {
   currentData: PeseeTab['formData'] | undefined;
   clients: Client[];
+  transporteurs: Transporteur[];
   updateCurrentTab: (updates: Partial<PeseeTab['formData']>) => void;
   onAddClient: () => void;
   isAddClientDialogOpen: boolean;
@@ -34,6 +35,7 @@ interface PeseeFormSectionProps {
 export const PeseeFormSection = ({
   currentData,
   clients,
+  transporteurs,
   updateCurrentTab,
   onAddClient,
   isAddClientDialogOpen,
@@ -58,11 +60,13 @@ export const PeseeFormSection = ({
 
   const resetForm = () => {
     updateCurrentTab({
-      clientId: undefined,
+      clientId: 0,
+      transporteurId: 0,
       nomEntreprise: '',
       typeClient: 'particulier',
       plaque: '',
-      chantier: ''
+      chantier: '',
+      moyenPaiement: 'Direct'
     });
   };
 
@@ -126,7 +130,8 @@ export const PeseeFormSection = ({
                       nomEntreprise: client.raisonSociale,
                       typeClient: client.typeClient,
                       plaque: client.plaques?.[0] || '',
-                      chantier: client.chantiers?.[0] || ''
+                      chantier: client.chantiers?.[0] || '',
+                      transporteurId: client.transporteurId || 0
                     });
                   }
                 }}
@@ -174,7 +179,8 @@ export const PeseeFormSection = ({
                   nomEntreprise: client.raisonSociale,
                   typeClient: client.typeClient,
                   plaque: client.plaques?.[0] || '',
-                  chantier: client.chantiers?.[0] || ''
+                  chantier: client.chantiers?.[0] || '',
+                  transporteurId: client.transporteurId || 0
                 });
               }
             }}
@@ -199,7 +205,7 @@ export const PeseeFormSection = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
           <Label htmlFor="plaque">Plaque *</Label>
           <Combobox
@@ -283,6 +289,26 @@ export const PeseeFormSection = ({
             </Dialog>
           </div>
         </div>
+
+        <div>
+          <Label htmlFor="transporteur">Transporteur</Label>
+          <Select 
+            value={currentData?.transporteurId?.toString() || ''} 
+            onValueChange={(value) => updateCurrentTab({ transporteurId: parseInt(value) || 0 })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner un transporteur" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">Aucun transporteur</SelectItem>
+              {transporteurs.map((transporteur) => (
+                <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
+                  {transporteur.prenom} {transporteur.nom}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex justify-center">
@@ -299,7 +325,8 @@ export const PeseeFormSection = ({
             </DialogHeader>
             <ClientForm 
               formData={newClientForm} 
-              onFormDataChange={setNewClientForm} 
+              onFormDataChange={setNewClientForm}
+              transporteurs={transporteurs}
             />
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsAddClientDialogOpen(false)}>

@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import ClientsSpace from './components/spaces/ClientsSpace';
 import ProductsSpace from './components/spaces/ProductsSpace';
 import PeseeSpace from './components/spaces/PeseeSpace';
+import TransporteursSpace from './components/spaces/TransporteursSpace';
 import HistoriqueSpace from './components/spaces/HistoriqueSpace';
 import UtilisateurSpace from './components/spaces/UtilisateurSpace';
 import ComptabiliteSpace from './components/spaces/ComptabiliteSpace';
@@ -39,6 +40,8 @@ const App = () => {
         return <ProductsSpace />;
       case 'pesee':
         return <PeseeSpace />;
+      case 'transporteurs':
+        return <TransporteursSpace />;
       case 'historique':
         return <HistoriqueSpace />;
       case 'utilisateur':

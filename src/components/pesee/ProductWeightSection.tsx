@@ -2,7 +2,7 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+import { Calculator } from 'lucide-react';
 import { Product } from '@/lib/database';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 
@@ -12,14 +12,34 @@ interface ProductWeightSectionProps {
   updateCurrentTab: (updates: Partial<PeseeTab['formData']>) => void;
 }
 
-export const ProductWeightSection = ({ currentData, products, updateCurrentTab }: ProductWeightSectionProps) => {
+export const ProductWeightSection = ({
+  currentData,
+  products,
+  updateCurrentTab
+}: ProductWeightSectionProps) => {
   const selectedProduct = products.find(p => p.id === currentData?.produitId);
-  const net = Math.abs((currentData?.poidsEntree || 0) - (currentData?.poidsSortie || 0));
-  const prixHT = net * (selectedProduct?.prixHT || 0);
-  const prixTTC = net * (selectedProduct?.prixTTC || 0);
+  
+  const parseWeight = (value: string): number => {
+    return parseFloat(value.replace(',', '.')) || 0;
+  };
+
+  const poidsEntree = parseWeight(currentData?.poidsEntree || '');
+  const poidsSortie = parseWeight(currentData?.poidsSortie || '');
+  const net = Math.abs(poidsEntree - poidsSortie);
+
+  const handleWeightChange = (field: 'poidsEntree' | 'poidsSortie', value: string) => {
+    // Permettre les virgules et les points
+    const formattedValue = value.replace(/[^0-9.,]/g, '');
+    updateCurrentTab({ [field]: formattedValue });
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <div className="flex items-center space-x-2">
+        <Calculator className="h-5 w-5" />
+        <h3 className="text-lg font-semibold">Produit et Pesée</h3>
+      </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="produit">Produit *</Label>
@@ -33,64 +53,48 @@ export const ProductWeightSection = ({ currentData, products, updateCurrentTab }
             <SelectContent>
               {products.map((product) => (
                 <SelectItem key={product.id} value={product.id!.toString()}>
-                  {product.nom} - {product.prixTTC.toFixed(2)}€/T
+                  {product.nom}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
+
         <div>
-          <Label htmlFor="poidsEntree">Poids entrée (T)</Label>
+          <Label htmlFor="poidsEntree">Poids d'entrée (T)</Label>
           <Input
             id="poidsEntree"
-            type="number"
-            step="0.01"
-            value={currentData?.poidsEntree || 0}
-            onChange={(e) => updateCurrentTab({ poidsEntree: parseFloat(e.target.value) || 0 })}
+            type="text"
+            value={currentData?.poidsEntree || ''}
+            onChange={(e) => handleWeightChange('poidsEntree', e.target.value)}
+            placeholder="0.000"
           />
         </div>
+
         <div>
-          <Label htmlFor="poidsSortie">Poids sortie (T)</Label>
+          <Label htmlFor="poidsSortie">Poids de sortie (T)</Label>
           <Input
             id="poidsSortie"
-            type="number"
-            step="0.01"
-            value={currentData?.poidsSortie || 0}
-            onChange={(e) => updateCurrentTab({ poidsSortie: parseFloat(e.target.value) || 0 })}
+            type="text"
+            value={currentData?.poidsSortie || ''}
+            onChange={(e) => handleWeightChange('poidsSortie', e.target.value)}
+            placeholder="0.000"
           />
         </div>
       </div>
 
-      <Card className="bg-green-50">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-green-600">
-                {net.toFixed(2)}
-              </div>
-              <div className="text-sm text-gray-600">Net (T)</div>
-            </div>
-            <div>
-              <div className="text-xl font-semibold">
-                {selectedProduct?.prixHT.toFixed(2) || '0.00'}€
-              </div>
-              <div className="text-sm text-gray-600">Prix HT/T</div>
-            </div>
-            <div>
-              <div className="text-xl font-semibold text-green-600">
-                {prixHT.toFixed(2)}€
-              </div>
-              <div className="text-sm text-gray-600">Total HT</div>
-            </div>
-            <div>
-              <div className="text-xl font-bold text-green-600">
-                {prixTTC.toFixed(2)}€
-              </div>
-              <div className="text-sm text-gray-600">Total TTC</div>
-            </div>
+      <div className="bg-muted p-4 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Poids Net</Label>
+            <div className="text-2xl font-bold">{net.toFixed(3)} T</div>
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <Label>Produit sélectionné</Label>
+            <div className="text-lg">{selectedProduct?.nom || 'Aucun produit sélectionné'}</div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

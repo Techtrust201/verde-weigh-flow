@@ -6,6 +6,7 @@ import { Scale, Save, Printer, Plus, X } from 'lucide-react';
 import { db, Pesee, Client } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
 import { usePeseeData } from '@/hooks/usePeseeData';
+import { useTransporteurData } from '@/hooks/useTransporteurData';
 import { usePeseeTabs } from '@/hooks/usePeseeTabs';
 import { PeseeFormSection } from '@/components/pesee/PeseeFormSection';
 import { ProductWeightSection } from '@/components/pesee/ProductWeightSection';
@@ -15,6 +16,7 @@ import { handlePrint, handlePrintBothBonAndInvoice } from '@/utils/peseeUtils';
 
 export default function PeseeSpace() {
   const { pesees, clients, products, loadData } = usePeseeData();
+  const { transporteurs } = useTransporteurData();
   const {
     tabs,
     activeTabId,
@@ -40,7 +42,9 @@ export default function PeseeSpace() {
     siret: '',
     telephones: [],
     plaques: [],
-    chantiers: []
+    chantiers: [],
+    transporteurId: 0,
+    tarifsPreferentiels: {}
   });
 
   const { toast } = useToast();
@@ -56,7 +60,9 @@ export default function PeseeSpace() {
         siret: '',
         telephones: [],
         plaques: currentData.plaque ? [currentData.plaque] : [],
-        chantiers: currentData.chantier ? [currentData.chantier] : []
+        chantiers: currentData.chantier ? [currentData.chantier] : [],
+        transporteurId: currentData.transporteurId || 0,
+        tarifsPreferentiels: {}
       });
     }
     setIsAddClientDialogOpen(true);
@@ -125,6 +131,8 @@ export default function PeseeSpace() {
         telephones: newClientForm.telephones || [],
         plaques: newClientForm.plaques || [],
         chantiers: newClientForm.chantiers || [],
+        transporteurId: newClientForm.transporteurId || 0,
+        tarifsPreferentiels: newClientForm.tarifsPreferentiels || {},
         createdAt: new Date(),
         updatedAt: new Date()
       } as Client;
@@ -136,7 +144,8 @@ export default function PeseeSpace() {
         clientId: newClientId as number,
         typeClient: clientData.typeClient,
         plaque: clientData.plaques?.[0] || '',
-        chantier: clientData.chantiers?.[0] || ''
+        chantier: clientData.chantiers?.[0] || '',
+        transporteurId: clientData.transporteurId || 0
       });
 
       setIsAddClientDialogOpen(false);
@@ -148,7 +157,9 @@ export default function PeseeSpace() {
         siret: '',
         telephones: [],
         plaques: [],
-        chantiers: []
+        chantiers: [],
+        transporteurId: 0,
+        tarifsPreferentiels: {}
       });
       
       toast({
@@ -187,7 +198,7 @@ export default function PeseeSpace() {
     if (success) {
       const currentData = getCurrentTabData();
       if (currentData) {
-        handlePrint(currentData, products, false);
+        handlePrint(currentData, products, transporteurs, false);
       }
     }
     setIsSaveDialogOpen(false);
@@ -198,7 +209,7 @@ export default function PeseeSpace() {
     if (success) {
       const currentData = getCurrentTabData();
       if (currentData) {
-        handlePrintBothBonAndInvoice(currentData, products);
+        handlePrintBothBonAndInvoice(currentData, products, transporteurs);
       }
     }
     setIsSaveDialogOpen(false);
@@ -227,16 +238,30 @@ export default function PeseeSpace() {
         return false;
       }
 
-      const net = Math.abs(currentData.poidsEntree - currentData.poidsSortie);
-      const prixHT = net * selectedProduct.prixHT;
-      const prixTTC = net * selectedProduct.prixTTC;
+      const poidsEntree = parseFloat(currentData.poidsEntree.replace(',', '.')) || 0;
+      const poidsSortie = parseFloat(currentData.poidsSortie.replace(',', '.')) || 0;
+      const net = Math.abs(poidsEntree - poidsSortie);
+
+      // Vérifier les tarifs préférentiels
+      const client = clients.find(c => c.id === currentData.clientId);
+      let prixHT = selectedProduct.prixHT;
+      let prixTTC = selectedProduct.prixTTC;
+
+      if (client?.tarifsPreferentiels && client.tarifsPreferentiels[currentData.produitId]) {
+        const tarifPref = client.tarifsPreferentiels[currentData.produitId];
+        if (tarifPref.prixHT) prixHT = tarifPref.prixHT;
+        if (tarifPref.prixTTC) prixTTC = tarifPref.prixTTC;
+      }
 
       const peseeData: Pesee = {
         ...currentData,
         dateHeure: new Date(),
+        poidsEntree,
+        poidsSortie,
         net,
-        prixHT,
-        prixTTC,
+        prixHT: net * prixHT,
+        prixTTC: net * prixTTC,
+        transporteurId: currentData.transporteurId || undefined,
         synchronized: false,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -256,9 +281,10 @@ export default function PeseeSpace() {
         nomEntreprise: '',
         chantier: '',
         produitId: 0,
-        poidsEntree: 0,
-        poidsSortie: 0,
+        poidsEntree: '',
+        poidsSortie: '',
         clientId: 0,
+        transporteurId: 0,
         typeClient: 'particulier'
       });
 
@@ -330,6 +356,7 @@ export default function PeseeSpace() {
                 <PeseeFormSection
                   currentData={tab.formData}
                   clients={clients}
+                  transporteurs={transporteurs}
                   updateCurrentTab={updateCurrentTab}
                   onAddClient={prepareNewClientForm}
                   isAddClientDialogOpen={isAddClientDialogOpen}
@@ -356,7 +383,7 @@ export default function PeseeSpace() {
                     variant="outline" 
                     onClick={() => {
                       if (tab.formData) {
-                        handlePrint(tab.formData, products, false);
+                        handlePrint(tab.formData, products, transporteurs, false);
                       }
                     }}
                   >
