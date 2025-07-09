@@ -53,8 +53,7 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
     newPlaques[index] = value;
     onFormDataChange({
       ...formData,
-      plaques: newPlaques,
-      plaque: newPlaques[0] || '' // Maintenir la compatibilité avec le champ unique
+      plaques: newPlaques
     });
   };
 
@@ -62,8 +61,7 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
     const newPlaques = formData.plaques?.filter((_, i) => i !== index) || [];
     onFormDataChange({
       ...formData,
-      plaques: newPlaques,
-      plaque: newPlaques[0] || '' // Maintenir la compatibilité avec le champ unique
+      plaques: newPlaques
     });
   };
 
@@ -240,8 +238,8 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
         {(!formData.plaques || formData.plaques.length === 0) && (
           <div className="flex gap-2 mb-2">
             <Input
-              value={formData.plaque || ''}
-              onChange={(e) => onFormDataChange({...formData, plaque: e.target.value, plaques: [e.target.value]})}
+              value=""
+              onChange={(e) => onFormDataChange({...formData, plaques: [e.target.value]})}
               placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
               className="font-mono"
             />

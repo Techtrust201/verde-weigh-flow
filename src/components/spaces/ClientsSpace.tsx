@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +39,6 @@ export default function ClientsSpace() {
     representantLegal: '',
     telephone: '',
     email: '',
-    plaque: '',
     plaques: [],
     chantiers: [],
     tarifsPreferentiels: {}
@@ -87,7 +85,6 @@ export default function ClientsSpace() {
       client.email,
       client.adresse,
       client.ville,
-      client.plaque,
       client.telephone,
       ...(client.plaques || []),
       ...(client.chantiers || [])
@@ -169,8 +166,7 @@ export default function ClientsSpace() {
           ? `${formData.prenom} ${formData.nom}` 
           : formData.raisonSociale,
         telephone: formData.telephone || '',
-        plaque: formData.plaques?.[0] || formData.plaque || '',
-        plaques: formData.plaques || (formData.plaque ? [formData.plaque] : []),
+        plaques: formData.plaques || [],
         chantiers: formData.chantiers || [],
         tarifsPreferentiels: formData.tarifsPreferentiels || {}
       };
@@ -225,7 +221,6 @@ export default function ClientsSpace() {
       representantLegal: '',
       telephone: '',
       email: '',
-      plaque: '',
       plaques: [],
       chantiers: [],
       tarifsPreferentiels: {}
@@ -237,7 +232,7 @@ export default function ClientsSpace() {
     setSelectedClient(client);
     setFormData({
       ...client,
-      plaques: client.plaques || (client.plaque ? [client.plaque] : []),
+      plaques: client.plaques || [],
       chantiers: client.chantiers || [],
       tarifsPreferentiels: client.tarifsPreferentiels || {}
     });
@@ -295,7 +290,7 @@ export default function ClientsSpace() {
   };
 
   const renderPlaques = (client: Client) => {
-    const plaques = client.plaques || (client.plaque ? [client.plaque] : []);
+    const plaques = client.plaques || [];
     if (plaques.length === 0) return null;
 
     const [firstPlaque, ...otherPlaques] = plaques.sort();

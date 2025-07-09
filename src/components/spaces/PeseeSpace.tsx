@@ -43,7 +43,7 @@ export default function PeseeSpace() {
     nom: '',
     siret: '',
     telephone: '',
-    plaque: '',
+    plaques: [],
     chantiers: [],
     transporteurId: 0,
     tarifsPreferentiels: {}
@@ -72,7 +72,7 @@ export default function PeseeSpace() {
         nom: '',
         siret: '',
         telephone: '',
-        plaque: currentData.plaque || '',
+        plaques: currentData.plaque ? [currentData.plaque] : [],
         chantiers: currentData.chantier ? [currentData.chantier] : [],
         transporteurId: currentData.transporteurId || 0,
         tarifsPreferentiels: {}
@@ -142,7 +142,7 @@ export default function PeseeSpace() {
           ? `${newClientForm.prenom} ${newClientForm.nom}` 
           : newClientForm.raisonSociale,
         telephone: newClientForm.telephone || '',
-        plaque: newClientForm.plaque || '',
+        plaques: newClientForm.plaques || [],
         chantiers: newClientForm.chantiers || [],
         transporteurId: newClientForm.transporteurId || 0,
         tarifsPreferentiels: newClientForm.tarifsPreferentiels || {},
@@ -156,7 +156,7 @@ export default function PeseeSpace() {
         nomEntreprise: clientData.raisonSociale,
         clientId: newClientId as number,
         typeClient: clientData.typeClient,
-        plaque: clientData.plaque || '',
+        plaque: clientData.plaques?.[0] || '',
         chantier: clientData.chantiers?.[0] || '',
         transporteurId: clientData.transporteurId || 0
       });
@@ -169,7 +169,7 @@ export default function PeseeSpace() {
         nom: '',
         siret: '',
         telephone: '',
-        plaque: '',
+        plaques: [],
         chantiers: [],
         transporteurId: 0,
         tarifsPreferentiels: {}

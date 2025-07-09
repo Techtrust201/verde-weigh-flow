@@ -34,9 +34,9 @@ export const ClientSelector = ({ clients, currentData, updateCurrentTab }: Clien
         typeClient: client.typeClient
       };
 
-      // Gestion de la plaque
-      if (client.plaque) {
-        updates.plaque = client.plaque;
+      // Gestion de la plaque - utiliser la première plaque disponible
+      if (client.plaques && client.plaques.length > 0) {
+        updates.plaque = client.plaques[0];
       }
 
       // Gestion des chantiers
