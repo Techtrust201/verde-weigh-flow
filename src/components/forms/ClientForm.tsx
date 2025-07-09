@@ -226,14 +226,17 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
       <div>
         <Label htmlFor="transporteur">Transporteur par défaut</Label>
         <Select 
-          value={formData.transporteurId?.toString() || ''} 
-          onValueChange={(value) => onFormDataChange({...formData, transporteurId: value === '' ? undefined : parseInt(value)})}
+          value={formData.transporteurId?.toString() || 'none'} 
+          onValueChange={(value) => onFormDataChange({
+            ...formData, 
+            transporteurId: value === 'none' ? undefined : parseInt(value)
+          })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Sélectionner un transporteur" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Aucun transporteur</SelectItem>
+            <SelectItem value="none">Aucun transporteur</SelectItem>
             {transporteurs?.map((transporteur) => (
               <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
                 {transporteur.prenom} {transporteur.nom}
