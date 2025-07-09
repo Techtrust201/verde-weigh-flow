@@ -10,6 +10,7 @@ import { Edit, Plus, Search, Trash2, User, Building, Briefcase, Filter } from 'l
 import { Client, db, Transporteur, Product } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
 import ClientForm from '@/components/forms/ClientForm';
+import PreferentialPricingSection from '@/components/forms/PreferentialPricingSection';
 
 export default function ClientsSpace() {
   const [clients, setClients] = useState<Client[]>([]);

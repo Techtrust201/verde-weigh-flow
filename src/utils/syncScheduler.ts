@@ -49,8 +49,8 @@ const performAutoSync = async () => {
       return;
     }
 
-    // Récupérer les pesées non synchronisées
-    const pendingPesees = await db.pesees.where('synchronized').notEqual(true).toArray();
+    // Récupérer les pesées non synchronisées (utiliser 1 au lieu de true pour IndexedDB)
+    const pendingPesees = await db.pesees.where('synchronized').notEqual(1).toArray();
     
     if (pendingPesees.length === 0) {
       console.log('✅ Synchronisation automatique: aucune donnée en attente');
