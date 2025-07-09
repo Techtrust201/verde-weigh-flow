@@ -131,20 +131,20 @@ export const ProductWeightSection = ({
           </div>
 
           {/* Calcul du coût en temps réel */}
-          {calculatedCost && <Card className="border-l-4 border-l-blue-500 bg-blue-50">
+          {calculatedCost && <Card className="border-l-4 border-l-green-500 bg-lime-100">
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-semibold text-green-600">Coût calculé</h4>
-                    <p className="text-sm text-blue-700">
+                    <p className="text-sm text-green-500">
                       Poids net: {Math.abs((parseFloat(currentData.poidsEntree?.replace(',', '.')) || 0) - (parseFloat(currentData.poidsSortie?.replace(',', '.')) || 0)).toFixed(2)} kg
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-blue-900">
+                    <div className="text-lg font-bold text-green-600">
                       {calculatedCost.ttc.toFixed(2)}€ TTC
                     </div>
-                    <div className="text-sm text-blue-700">
+                    <div className="text-sm text-green-500">
                       {calculatedCost.ht.toFixed(2)}€ HT
                     </div>
                   </div>
