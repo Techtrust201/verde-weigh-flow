@@ -39,6 +39,34 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
     });
   };
 
+  // Gestion des plaques multiples pour les clients
+  const addPlaque = () => {
+    const plaques = formData.plaques || [];
+    onFormDataChange({
+      ...formData,
+      plaques: [...plaques, '']
+    });
+  };
+
+  const updatePlaque = (index: number, value: string) => {
+    const newPlaques = [...(formData.plaques || [])];
+    newPlaques[index] = value;
+    onFormDataChange({
+      ...formData,
+      plaques: newPlaques,
+      plaque: newPlaques[0] || '' // Maintenir la compatibilité avec le champ unique
+    });
+  };
+
+  const removePlaque = (index: number) => {
+    const newPlaques = formData.plaques?.filter((_, i) => i !== index) || [];
+    onFormDataChange({
+      ...formData,
+      plaques: newPlaques,
+      plaque: newPlaques[0] || '' // Maintenir la compatibilité avec le champ unique
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -182,15 +210,51 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
         />
       </div>
 
+      {/* Gestion des plaques multiples */}
       <div>
-        <Label htmlFor="plaque">Plaque d'immatriculation</Label>
-        <Input
-          id="plaque"
-          value={formData.plaque || ''}
-          onChange={(e) => onFormDataChange({...formData, plaque: e.target.value})}
-          placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
-          className="font-mono"
-        />
+        <div className="flex justify-between items-center mb-2">
+          <Label>Plaques d'immatriculation</Label>
+          <Button type="button" variant="outline" size="sm" onClick={addPlaque}>
+            <Plus className="h-3 w-3 mr-1" />
+            Ajouter
+          </Button>
+        </div>
+        {(formData.plaques || []).map((plaque, index) => (
+          <div key={index} className="flex gap-2 mb-2">
+            <Input
+              value={plaque}
+              onChange={(e) => updatePlaque(index, e.target.value)}
+              placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
+              className="font-mono"
+            />
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={() => removePlaque(index)}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+        {(!formData.plaques || formData.plaques.length === 0) && (
+          <div className="flex gap-2 mb-2">
+            <Input
+              value={formData.plaque || ''}
+              onChange={(e) => onFormDataChange({...formData, plaque: e.target.value, plaques: [e.target.value]})}
+              placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
+              className="font-mono"
+            />
+            <Button 
+              type="button" 
+              variant="outline" 
+              size="sm" 
+              onClick={addPlaque}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground mt-1">
           Format recommandé : AB-123-CD
         </p>

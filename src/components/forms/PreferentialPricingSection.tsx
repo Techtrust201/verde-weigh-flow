@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, Euro } from 'lucide-react';
+import { Plus, Trash2, Euro, AlertCircle } from 'lucide-react';
 import { Product, Client } from '@/lib/database';
 
 interface PreferentialPricingSectionProps {
@@ -14,12 +14,15 @@ interface PreferentialPricingSectionProps {
   products: Product[];
 }
 
+const TVA_RATE = 0.20; // 20% TVA par défaut
+
 export default function PreferentialPricingSection({ 
   formData, 
   onFormDataChange, 
   products 
 }: PreferentialPricingSectionProps) {
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [errors, setErrors] = useState<{[key: number]: string}>({});
 
   const addPreferentialPrice = () => {
     if (!selectedProductId) return;
@@ -45,7 +48,24 @@ export default function PreferentialPricingSection({
     if (!newTarifs[productId]) {
       newTarifs[productId] = {};
     }
-    newTarifs[productId][field] = value;
+
+    // Calculer automatiquement l'autre prix
+    if (field === 'prixHT') {
+      newTarifs[productId].prixHT = value;
+      newTarifs[productId].prixTTC = value * (1 + TVA_RATE);
+    } else {
+      newTarifs[productId].prixTTC = value;
+      newTarifs[productId].prixHT = value / (1 + TVA_RATE);
+    }
+
+    // Validation
+    const newErrors = { ...errors };
+    if (value <= 0) {
+      newErrors[productId] = 'Le prix doit être supérieur à 0';
+    } else {
+      delete newErrors[productId];
+    }
+    setErrors(newErrors);
 
     onFormDataChange({
       ...formData,
@@ -56,11 +76,23 @@ export default function PreferentialPricingSection({
   const removePreferentialPrice = (productId: number) => {
     const newTarifs = { ...formData.tarifsPreferentiels };
     delete newTarifs[productId];
+    
+    const newErrors = { ...errors };
+    delete newErrors[productId];
+    setErrors(newErrors);
 
     onFormDataChange({
       ...formData,
       tarifsPreferentiels: newTarifs
     });
+  };
+
+  const validatePricing = () => {
+    const hasErrors = Object.keys(errors).length > 0;
+    const hasEmptyHT = formData.tarifsPreferentiels && Object.values(formData.tarifsPreferentiels).some(
+      tarif => !tarif.prixHT || tarif.prixHT <= 0
+    );
+    return !hasErrors && !hasEmptyHT;
   };
 
   const availableProducts = products.filter(product => 
@@ -85,7 +117,7 @@ export default function PreferentialPricingSection({
             <SelectContent>
               {availableProducts.map((product) => (
                 <SelectItem key={product.id} value={product.id!.toString()}>
-                  {product.nom} (Tarif normal: {product.prixTTC}€ TTC)
+                  {product.nom} (Tarif normal: {product.prixTTC.toFixed(2)}€ TTC)
                 </SelectItem>
               ))}
             </SelectContent>
@@ -108,8 +140,10 @@ export default function PreferentialPricingSection({
               const product = products.find(p => p.id === productId);
               if (!product) return null;
 
+              const hasError = errors[productId];
+
               return (
-                <div key={productId} className="border rounded-lg p-3 space-y-2">
+                <div key={productId} className={`border rounded-lg p-3 space-y-2 ${hasError ? 'border-red-200 bg-red-50' : ''}`}>
                   <div className="flex justify-between items-center">
                     <h4 className="font-medium">{product.nom}</h4>
                     <Button
@@ -122,16 +156,25 @@ export default function PreferentialPricingSection({
                     </Button>
                   </div>
                   
+                  {hasError && (
+                    <div className="flex items-center gap-1 text-sm text-red-600">
+                      <AlertCircle className="h-4 w-4" />
+                      {hasError}
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label htmlFor={`prixHT-${productId}`}>Prix HT (€)</Label>
+                      <Label htmlFor={`prixHT-${productId}`}>Prix HT (€) *</Label>
                       <Input
                         id={`prixHT-${productId}`}
                         type="number"
                         step="0.01"
-                        value={pricing.prixHT || ''}
+                        min="0"
+                        value={pricing.prixHT?.toFixed(2) || ''}
                         onChange={(e) => updatePreferentialPrice(productId, 'prixHT', parseFloat(e.target.value) || 0)}
-                        placeholder={`Normal: ${product.prixHT}€`}
+                        placeholder={`Normal: ${product.prixHT.toFixed(2)}€`}
+                        className={hasError ? 'border-red-300' : ''}
                       />
                     </div>
                     <div>
@@ -140,10 +183,16 @@ export default function PreferentialPricingSection({
                         id={`prixTTC-${productId}`}
                         type="number"
                         step="0.01"
-                        value={pricing.prixTTC || ''}
+                        min="0"
+                        value={pricing.prixTTC?.toFixed(2) || ''}
                         onChange={(e) => updatePreferentialPrice(productId, 'prixTTC', parseFloat(e.target.value) || 0)}
-                        placeholder={`Normal: ${product.prixTTC}€`}
+                        placeholder={`Normal: ${product.prixTTC.toFixed(2)}€`}
+                        className="bg-gray-50"
+                        readOnly
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Calculé automatiquement (TVA {(TVA_RATE * 100).toFixed(0)}%)
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -156,6 +205,16 @@ export default function PreferentialPricingSection({
           <p className="text-sm text-muted-foreground text-center py-4">
             Aucun tarif préférentiel défini pour ce client
           </p>
+        )}
+
+        {/* Validation globale */}
+        {formData.tarifsPreferentiels && Object.keys(formData.tarifsPreferentiels).length > 0 && !validatePricing() && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <span className="text-sm text-red-600">
+              Veuillez corriger les erreurs avant de sauvegarder
+            </span>
+          </div>
         )}
       </CardContent>
     </Card>

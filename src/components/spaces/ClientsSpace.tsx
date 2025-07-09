@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +41,7 @@ export default function ClientsSpace() {
     telephone: '',
     email: '',
     plaque: '',
+    plaques: [],
     chantiers: [],
     tarifsPreferentiels: {}
   });
@@ -79,15 +81,19 @@ export default function ClientsSpace() {
   };
 
   const filteredClients = clients.filter(client => {
-    const matchesSearch = client.raisonSociale.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.siret?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.adresse?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.ville?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.plaque?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.telephone?.includes(searchTerm) ||
-      client.chantiers.some(chantier => chantier.toLowerCase().includes(searchTerm.toLowerCase()));
+    const searchFields = [
+      client.raisonSociale,
+      client.siret,
+      client.email,
+      client.adresse,
+      client.ville,
+      client.plaque,
+      client.telephone,
+      ...(client.plaques || []),
+      ...(client.chantiers || [])
+    ].filter(Boolean).join(' ').toLowerCase();
 
+    const matchesSearch = searchFields.includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'all' || client.typeClient === typeFilter;
     const matchesTransporteur = transporteurFilter === 'all' || client.transporteurId?.toString() === transporteurFilter;
     const matchesVille = villeFilter === 'all' || client.ville === villeFilter;
@@ -135,6 +141,21 @@ export default function ClientsSpace() {
       }
     }
 
+    // Validation des tarifs préférentiels
+    if (formData.tarifsPreferentiels) {
+      const hasInvalidPricing = Object.values(formData.tarifsPreferentiels).some(
+        tarif => !tarif.prixHT || tarif.prixHT <= 0
+      );
+      if (hasInvalidPricing) {
+        toast({
+          title: "Erreur",
+          description: "Tous les tarifs préférentiels doivent avoir un prix HT valide.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+
     return true;
   };
 
@@ -148,7 +169,8 @@ export default function ClientsSpace() {
           ? `${formData.prenom} ${formData.nom}` 
           : formData.raisonSociale,
         telephone: formData.telephone || '',
-        plaque: formData.plaque || '',
+        plaque: formData.plaques?.[0] || formData.plaque || '',
+        plaques: formData.plaques || (formData.plaque ? [formData.plaque] : []),
         chantiers: formData.chantiers || [],
         tarifsPreferentiels: formData.tarifsPreferentiels || {}
       };
@@ -204,6 +226,7 @@ export default function ClientsSpace() {
       telephone: '',
       email: '',
       plaque: '',
+      plaques: [],
       chantiers: [],
       tarifsPreferentiels: {}
     });
@@ -214,6 +237,7 @@ export default function ClientsSpace() {
     setSelectedClient(client);
     setFormData({
       ...client,
+      plaques: client.plaques || (client.plaque ? [client.plaque] : []),
       chantiers: client.chantiers || [],
       tarifsPreferentiels: client.tarifsPreferentiels || {}
     });
@@ -267,6 +291,26 @@ export default function ClientsSpace() {
          type === 'professionnel' ? 'Professionnel' : 
          'Micro-entreprise'}
       </Badge>
+    );
+  };
+
+  const renderPlaques = (client: Client) => {
+    const plaques = client.plaques || (client.plaque ? [client.plaque] : []);
+    if (plaques.length === 0) return null;
+
+    const [firstPlaque, ...otherPlaques] = plaques.sort();
+    
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+          {firstPlaque}
+        </span>
+        {otherPlaques.length > 0 && (
+          <Badge variant="secondary" className="text-xs">
+            +{otherPlaques.length}
+          </Badge>
+        )}
+      </div>
     );
   };
 
@@ -433,11 +477,7 @@ export default function ClientsSpace() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {client.plaque && (
-                        <div className="text-sm bg-gray-100 px-2 py-1 rounded font-mono">
-                          {client.plaque}
-                        </div>
-                      )}
+                      {renderPlaques(client)}
                     </TableCell>
                     <TableCell>
                       {transporteur && (
