@@ -58,6 +58,7 @@ export default function ProductsSpace() {
 
       const productData = {
         ...formData,
+        tva: formData.tauxTVA || 20, // Mapper tauxTVA vers tva pour la compatibilité
         updatedAt: new Date()
       } as Product;
 

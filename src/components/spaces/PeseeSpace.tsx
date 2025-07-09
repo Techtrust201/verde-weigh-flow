@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -323,6 +324,7 @@ export default function PeseeSpace() {
         prixHT: net * prixHT,
         prixTTC: net * prixTTC,
         transporteurId: currentData.transporteurId || undefined,
+        typeClient: currentData.typeClient || 'particulier', // S'assurer que typeClient est défini
         synchronized: false,
         createdAt: new Date(),
         updatedAt: new Date()

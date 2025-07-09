@@ -16,7 +16,6 @@ export interface Client {
   representantLegal?: string;
   telephone?: string;
   email?: string;
-  plaque?: string;
   plaques?: string[]; // Support des plaques multiples
   chantiers: string[];
   transporteurId?: number;
@@ -53,6 +52,9 @@ export interface Product {
   prixTTC: number;
   unite: string;
   tva: number;
+  tauxTVA: number;
+  codeProduct: string;
+  isFavorite: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,6 +91,20 @@ export interface User {
   updatedAt: Date;
 }
 
+export interface UserSettings {
+  id?: number;
+  nomEntreprise: string;
+  adresse: string;
+  email: string;
+  telephone: string;
+  siret: string;
+  codeAPE: string;
+  logo: string;
+  cleAPISage: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Config {
   id?: number;
   key: string;
@@ -113,17 +129,19 @@ class AppDatabase extends Dexie {
   products!: Table<Product>;
   pesees!: Table<Pesee>;
   users!: Table<User>;
+  userSettings!: Table<UserSettings>;
   config!: Table<Config>;
   syncLogs!: Table<SyncLog>;
 
   constructor() {
     super('AppDatabase');
     this.version(1).stores({
-      clients: '++id, typeClient, raisonSociale, siret, email, ville, plaque, createdAt, updatedAt',
+      clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
       transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
-      products: '++id, nom, prixHT, prixTTC, unite, createdAt, updatedAt',
+      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
       pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, synchronized, createdAt, updatedAt',
       users: '++id, nom, prenom, email, role, createdAt, updatedAt',
+      userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
       config: '++id, key, createdAt, updatedAt',
       syncLogs: '++id, type, status, synchronized, createdAt'
     });
@@ -131,3 +149,50 @@ class AppDatabase extends Dexie {
 }
 
 export const db = new AppDatabase();
+
+// Fonction d'initialisation des données d'exemple
+export const initializeSampleData = async () => {
+  try {
+    // Vérifier si des données existent déjà
+    const existingProducts = await db.products.count();
+    if (existingProducts > 0) {
+      console.log('Des données existent déjà, initialisation ignorée');
+      return;
+    }
+
+    // Créer des produits d'exemple
+    const sampleProducts: Product[] = [
+      {
+        nom: 'Sable',
+        description: 'Sable de construction',
+        prixHT: 25.0,
+        prixTTC: 30.0,
+        unite: 'tonne',
+        tva: 20,
+        tauxTVA: 20,
+        codeProduct: 'SAB001',
+        isFavorite: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        nom: 'Gravier',
+        description: 'Gravier pour béton',
+        prixHT: 30.0,
+        prixTTC: 36.0,
+        unite: 'tonne',
+        tva: 20,
+        tauxTVA: 20,
+        codeProduct: 'GRA001',
+        isFavorite: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
+    await db.products.bulkAdd(sampleProducts);
+    console.log('Données d\'exemple initialisées avec succès');
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation des données:', error);
+  }
+};
