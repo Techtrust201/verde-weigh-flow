@@ -304,15 +304,28 @@ export default function PeseeSpace() {
       const poidsSortie = parseFloat(currentData.poidsSortie.replace(',', '.')) || 0;
       const net = Math.abs(poidsEntree - poidsSortie);
 
-      // Vérifier les tarifs préférentiels
-      const client = clients.find(c => c.id === currentData.clientId);
+      // Utiliser le tarif standard par défaut
       let prixHT = selectedProduct.prixHT;
       let prixTTC = selectedProduct.prixTTC;
 
-      if (client?.tarifsPreferentiels && client.tarifsPreferentiels[currentData.produitId]) {
-        const tarifPref = client.tarifsPreferentiels[currentData.produitId];
-        if (tarifPref.prixHT) prixHT = tarifPref.prixHT;
-        if (tarifPref.prixTTC) prixTTC = tarifPref.prixTTC;
+      // Appliquer le tarif préférentiel UNIQUEMENT si :
+      // 1. Un client est sélectionné (clientId existe)
+      // 2. Le client existe en base de données
+      // 3. Ce client a des tarifs préférentiels définis
+      // 4. Ce client a un tarif préférentiel pour ce produit spécifique
+      if (currentData.clientId) {
+        const client = clients.find(c => c.id === currentData.clientId);
+        if (client && 
+            client.tarifsPreferentiels && 
+            client.tarifsPreferentiels[currentData.produitId]) {
+          
+          const tarifPref = client.tarifsPreferentiels[currentData.produitId];
+          if (tarifPref.prixHT && tarifPref.prixTTC) {
+            prixHT = tarifPref.prixHT;
+            prixTTC = tarifPref.prixTTC;
+            console.log(`Tarif préférentiel appliqué lors de la sauvegarde pour le client ${client.raisonSociale} - Produit ${selectedProduct.nom}: ${prixHT}€ HT`);
+          }
+        }
       }
 
       const peseeData: Pesee = {
@@ -324,7 +337,7 @@ export default function PeseeSpace() {
         prixHT: net * prixHT,
         prixTTC: net * prixTTC,
         transporteurId: currentData.transporteurId || undefined,
-        typeClient: currentData.typeClient || 'particulier', // S'assurer que typeClient est défini
+        typeClient: currentData.typeClient || 'particulier',
         synchronized: false,
         createdAt: new Date(),
         updatedAt: new Date()
