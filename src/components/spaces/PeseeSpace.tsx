@@ -300,6 +300,7 @@ export default function PeseeSpace() {
         return false;
       }
 
+      // Convertir les poids en tonnes (pas de division par 1000 car déjà en tonnes)
       const poidsEntree = parseFloat(currentData.poidsEntree.replace(',', '.')) || 0;
       const poidsSortie = parseFloat(currentData.poidsSortie.replace(',', '.')) || 0;
       const net = Math.abs(poidsEntree - poidsSortie);
@@ -331,9 +332,9 @@ export default function PeseeSpace() {
       const peseeData: Pesee = {
         ...currentData,
         dateHeure: new Date(),
-        poidsEntree,
-        poidsSortie,
-        net,
+        poidsEntree, // déjà en tonnes
+        poidsSortie, // déjà en tonnes
+        net, // déjà en tonnes
         prixHT: net * prixHT,
         prixTTC: net * prixTTC,
         transporteurId: currentData.transporteurId || undefined,

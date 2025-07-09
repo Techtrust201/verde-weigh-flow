@@ -64,6 +64,7 @@ export const ProductWeightSection = ({
       return;
     }
 
+    // Convertir les valeurs en nombres (en tonnes directement)
     const poidsEntree = parseFloat(currentData.poidsEntree.replace(',', '.')) || 0;
     const poidsSortie = parseFloat(currentData.poidsSortie.replace(',', '.')) || 0;
     const net = Math.abs(poidsEntree - poidsSortie);
@@ -165,24 +166,24 @@ export const ProductWeightSection = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="poidsEntree">Poids d'entrée (kg)</Label>
+              <Label htmlFor="poidsEntree">Poids d'entrée (tonnes)</Label>
               <Input 
                 id="poidsEntree" 
                 type="text" 
                 value={currentData?.poidsEntree || ''} 
                 onChange={e => updateCurrentTab({ poidsEntree: e.target.value })} 
-                placeholder="0,00" 
+                placeholder="0,000" 
               />
             </div>
 
             <div>
-              <Label htmlFor="poidsSortie">Poids de sortie (kg)</Label>
+              <Label htmlFor="poidsSortie">Poids de sortie (tonnes)</Label>
               <Input 
                 id="poidsSortie" 
                 type="text" 
                 value={currentData?.poidsSortie || ''} 
                 onChange={e => updateCurrentTab({ poidsSortie: e.target.value })} 
-                placeholder="0,00" 
+                placeholder="0,000" 
               />
             </div>
           </div>
@@ -195,7 +196,7 @@ export const ProductWeightSection = ({
                   <div>
                     <h4 className="font-semibold text-green-600">Coût calculé</h4>
                     <p className="text-sm text-green-500">
-                      Poids net: {Math.abs((parseFloat(currentData.poidsEntree?.replace(',', '.')) || 0) - (parseFloat(currentData.poidsSortie?.replace(',', '.')) || 0)).toFixed(2)} kg
+                      Poids net: {Math.abs((parseFloat(currentData.poidsEntree?.replace(',', '.')) || 0) - (parseFloat(currentData.poidsSortie?.replace(',', '.')) || 0)).toFixed(3)} tonnes
                     </p>
                     {hasPrefPricing && (
                       <p className="text-xs text-blue-600">

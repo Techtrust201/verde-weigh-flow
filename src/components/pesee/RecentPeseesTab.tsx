@@ -27,7 +27,7 @@ export const RecentPeseesTab = ({ pesees }: RecentPeseesTabProps) => {
               </div>
               <div>
                 <Badge variant="outline" className="mb-2">
-                  {pesee.net} T
+                  {pesee.net.toFixed(3)} tonnes
                 </Badge>
                 <div className="text-sm text-gray-600">
                   {pesee.moyenPaiement}

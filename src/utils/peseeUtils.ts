@@ -11,6 +11,7 @@ export const generatePrintContent = (
   const selectedProduct = products.find(p => p.id === formData.produitId);
   const selectedTransporteur = transporteurs.find(t => t.id === formData.transporteurId);
   
+  // Les poids sont déjà en tonnes
   const poidsEntree = parseFloat(formData.poidsEntree.replace(',', '.')) || 0;
   const poidsSortie = parseFloat(formData.poidsSortie.replace(',', '.')) || 0;
   const net = Math.abs(poidsEntree - poidsSortie);
@@ -55,15 +56,15 @@ export const generatePrintContent = (
       </div>
       <div class="row">
         <span class="label">Poids Entrée:</span>
-        <span>${poidsEntree.toFixed(3)} T</span>
+        <span>${poidsEntree.toFixed(3)} tonnes</span>
       </div>
       <div class="row">
         <span class="label">Poids Sortie:</span>
-        <span>${poidsSortie.toFixed(3)} T</span>
+        <span>${poidsSortie.toFixed(3)} tonnes</span>
       </div>
       <div class="row">
         <span class="label">Poids Net:</span>
-        <span>${net.toFixed(3)} T</span>
+        <span>${net.toFixed(3)} tonnes</span>
       </div>
       <div class="row">
         <span class="label">Paiement:</span>

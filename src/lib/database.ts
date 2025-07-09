@@ -67,9 +67,9 @@ export interface Pesee {
   nomEntreprise: string;
   chantier?: string;
   produitId: number;
-  poidsEntree: number;
-  poidsSortie: number;
-  net: number;
+  poidsEntree: number; // en tonnes
+  poidsSortie: number; // en tonnes
+  net: number; // en tonnes
   prixHT: number;
   prixTTC: number;
   moyenPaiement: string;
