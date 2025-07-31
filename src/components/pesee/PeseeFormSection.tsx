@@ -1,23 +1,34 @@
-
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Combobox } from '@/components/ui/combobox';
-import { UserPlus, RotateCcw } from 'lucide-react';
-import { Client, Transporteur } from '@/lib/database';
-import { PeseeTab } from '@/hooks/usePeseeTabs';
-import ClientForm from '@/components/forms/ClientForm';
-import { PlaqueAutocomplete } from './PlaqueAutocomplete';
-import { ChantierAutocomplete } from './ChantierAutocomplete';
-import { ClientSelector } from './ClientSelector';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Combobox } from "@/components/ui/combobox";
+import { UserPlus, RotateCcw } from "lucide-react";
+import { Client, Transporteur } from "@/lib/database";
+import { PeseeTab } from "@/hooks/usePeseeTabs";
+import ClientForm from "@/components/forms/ClientForm";
+import { PlaqueAutocomplete } from "./PlaqueAutocomplete";
+import { ChantierAutocomplete } from "./ChantierAutocomplete";
+import { ClientSelector } from "./ClientSelector";
 
 interface PeseeFormSectionProps {
-  currentData: PeseeTab['formData'] | undefined;
+  currentData: PeseeTab["formData"] | undefined;
   clients: Client[];
   transporteurs: Transporteur[];
-  updateCurrentTab: (updates: Partial<PeseeTab['formData']>) => void;
+  updateCurrentTab: (updates: Partial<PeseeTab["formData"]>) => void;
   onAddClient: () => void;
   isAddClientDialogOpen: boolean;
   setIsAddClientDialogOpen: (open: boolean) => void;
@@ -60,25 +71,24 @@ export const PeseeFormSection = ({
   newTransporteurForm,
   setNewTransporteurForm,
   handleAddNewTransporteur,
-  validateNewTransporteur
+  validateNewTransporteur,
 }: PeseeFormSectionProps) => {
-  
   const getEntrepriseLabel = () => {
-    if (currentData?.typeClient === 'particulier') {
-      return 'Nom *';
+    if (currentData?.typeClient === "particulier") {
+      return "Nom *";
     }
-    return 'Nom entreprise *';
+    return "Nom entreprise *";
   };
 
   const resetForm = () => {
     updateCurrentTab({
       clientId: 0,
       transporteurId: 0,
-      nomEntreprise: '',
-      typeClient: 'particulier',
-      plaque: '',
-      chantier: '',
-      moyenPaiement: 'Direct'
+      nomEntreprise: "",
+      typeClient: "particulier",
+      plaque: "",
+      chantier: "",
+      moyenPaiement: "Direct",
     });
   };
 
@@ -89,15 +99,17 @@ export const PeseeFormSection = ({
           <Label htmlFor="numeroBon">Numéro de bon</Label>
           <Input
             id="numeroBon"
-            value={currentData?.numeroBon || ''}
+            value={currentData?.numeroBon || ""}
             onChange={(e) => updateCurrentTab({ numeroBon: e.target.value })}
           />
         </div>
         <div>
           <Label htmlFor="moyenPaiement">Moyen de paiement</Label>
-          <Select 
-            value={currentData?.moyenPaiement || 'Direct'} 
-            onValueChange={(value: 'Direct' | 'En compte') => updateCurrentTab({ moyenPaiement: value })}
+          <Select
+            value={currentData?.moyenPaiement || "Direct"}
+            onValueChange={(value: "Direct" | "En compte") =>
+              updateCurrentTab({ moyenPaiement: value })
+            }
           >
             <SelectTrigger>
               <SelectValue />
@@ -112,11 +124,11 @@ export const PeseeFormSection = ({
         {!currentData?.clientId ? (
           <div>
             <Label htmlFor="typeClient">Type de client</Label>
-            <Select 
-              value={currentData?.typeClient || 'particulier'} 
-              onValueChange={(value: 'particulier' | 'professionnel' | 'micro-entreprise') => 
-                updateCurrentTab({ typeClient: value })
-              }
+            <Select
+              value={currentData?.typeClient || "particulier"}
+              onValueChange={(
+                value: "particulier" | "professionnel" | "micro-entreprise"
+              ) => updateCurrentTab({ typeClient: value })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -124,47 +136,20 @@ export const PeseeFormSection = ({
               <SelectContent>
                 <SelectItem value="particulier">👤 Particulier</SelectItem>
                 <SelectItem value="professionnel">🏢 Professionnel</SelectItem>
-                <SelectItem value="micro-entreprise">💼 Micro-entreprise</SelectItem>
+                <SelectItem value="micro-entreprise">
+                  💼 Micro-entreprise
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         ) : (
           <div>
-            <Label htmlFor="client">Client existant</Label>
-            <div className="flex gap-2">
-              <Select 
-                value={currentData?.clientId?.toString() || ''} 
-                onValueChange={(clientId) => {
-                  const client = clients.find(c => c.id === parseInt(clientId));
-                  if (client) {
-                    updateCurrentTab({
-                      clientId: client.id!,
-                      nomEntreprise: client.raisonSociale,
-                      typeClient: client.typeClient,
-                      plaque: client.plaques?.[0] || '',
-                      chantier: client.chantiers?.[0] || '',
-                      transporteurId: client.transporteurId || 0
-                    });
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id!.toString()}>
-                      <div className="flex items-center gap-2">
-                        <span>
-                          {client.typeClient === 'particulier' ? '👤' : 
-                           client.typeClient === 'professionnel' ? '🏢' : '💼'}
-                        </span>
-                        {client.raisonSociale}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <ClientSelector
+              clients={clients}
+              currentData={currentData}
+              updateCurrentTab={updateCurrentTab}
+            />
+            <div className="flex gap-2 mt-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -180,40 +165,11 @@ export const PeseeFormSection = ({
 
       {!currentData?.clientId && (
         <div>
-          <Label htmlFor="client">Client existant</Label>
-          <Select 
-            value={currentData?.clientId?.toString() || ''} 
-            onValueChange={(clientId) => {
-              const client = clients.find(c => c.id === parseInt(clientId));
-              if (client) {
-                updateCurrentTab({
-                  clientId: client.id!,
-                  nomEntreprise: client.raisonSociale,
-                  typeClient: client.typeClient,
-                  plaque: client.plaques?.[0] || '',
-                  chantier: client.chantiers?.[0] || '',
-                  transporteurId: client.transporteurId || 0
-                });
-              }
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Sélectionner un client ou saisir manuellement ci-dessous" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id!.toString()}>
-                  <div className="flex items-center gap-2">
-                    <span>
-                      {client.typeClient === 'particulier' ? '👤' : 
-                       client.typeClient === 'professionnel' ? '🏢' : '💼'}
-                    </span>
-                    {client.raisonSociale}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <ClientSelector
+            clients={clients}
+            currentData={currentData}
+            updateCurrentTab={updateCurrentTab}
+          />
         </div>
       )}
 
@@ -223,50 +179,73 @@ export const PeseeFormSection = ({
           <Combobox
             options={(() => {
               if (currentData?.clientId) {
-                const client = clients.find(c => c.id === currentData.clientId);
-                return client?.plaques?.map(plaque => ({ value: plaque, label: plaque })) || [];
+                const client = clients.find(
+                  (c) => c.id === currentData.clientId
+                );
+                return (
+                  client?.plaques?.map((plaque) => ({
+                    value: plaque,
+                    label: plaque,
+                  })) || []
+                );
               }
               return [];
             })()}
-            value={currentData?.plaque || ''}
+            value={currentData?.plaque || ""}
             onValueChange={(value) => updateCurrentTab({ plaque: value })}
             placeholder="Sélectionner ou saisir une plaque..."
             searchPlaceholder="Rechercher ou saisir une plaque..."
             emptyText="Aucune plaque trouvée. Vous pouvez saisir directement."
           />
         </div>
-        
+
         <div>
           <Label htmlFor="nomEntreprise">{getEntrepriseLabel()}</Label>
           <Input
             id="nomEntreprise"
-            value={currentData?.nomEntreprise || ''}
-            onChange={(e) => updateCurrentTab({ nomEntreprise: e.target.value })}
-            placeholder={currentData?.typeClient === 'particulier' ? 'Nom du particulier...' : 'Nom de l\'entreprise...'}
+            value={currentData?.nomEntreprise || ""}
+            onChange={(e) =>
+              updateCurrentTab({ nomEntreprise: e.target.value })
+            }
+            placeholder={
+              currentData?.typeClient === "particulier"
+                ? "Nom du particulier..."
+                : "Nom de l'entreprise..."
+            }
           />
         </div>
-        
+
         <div>
           <Label htmlFor="chantier">Chantier</Label>
           <div className="flex gap-2">
             <Combobox
               options={(() => {
                 if (currentData?.clientId) {
-                  const client = clients.find(c => c.id === currentData.clientId);
-                  return client?.chantiers?.map(chantier => ({ value: chantier, label: chantier })) || [];
+                  const client = clients.find(
+                    (c) => c.id === currentData.clientId
+                  );
+                  return (
+                    client?.chantiers?.map((chantier) => ({
+                      value: chantier,
+                      label: chantier,
+                    })) || []
+                  );
                 }
                 return [];
               })()}
-              value={currentData?.chantier || ''}
+              value={currentData?.chantier || ""}
               onValueChange={(value) => updateCurrentTab({ chantier: value })}
               placeholder="Sélectionner ou saisir un chantier..."
               searchPlaceholder="Rechercher ou saisir un chantier..."
               emptyText="Aucun chantier trouvé. Vous pouvez saisir directement."
             />
-            <Dialog open={isAddChantierDialogOpen} onOpenChange={setIsAddChantierDialogOpen}>
+            <Dialog
+              open={isAddChantierDialogOpen}
+              onOpenChange={setIsAddChantierDialogOpen}
+            >
               <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   className="mt-0 self-start shrink-0"
                   disabled={!currentData?.clientId}
@@ -290,12 +269,13 @@ export const PeseeFormSection = ({
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsAddChantierDialogOpen(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAddChantierDialogOpen(false)}
+                  >
                     Annuler
                   </Button>
-                  <Button onClick={handleAddChantier}>
-                    Ajouter
-                  </Button>
+                  <Button onClick={handleAddChantier}>Ajouter</Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -305,9 +285,11 @@ export const PeseeFormSection = ({
         <div>
           <Label htmlFor="transporteur">Transporteur</Label>
           <div className="flex gap-2">
-            <Select 
-              value={currentData?.transporteurId?.toString() || ''} 
-              onValueChange={(value) => updateCurrentTab({ transporteurId: parseInt(value) || 0 })}
+            <Select
+              value={currentData?.transporteurId?.toString() || ""}
+              onValueChange={(value) =>
+                updateCurrentTab({ transporteurId: parseInt(value) || 0 })
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un transporteur" />
@@ -315,16 +297,22 @@ export const PeseeFormSection = ({
               <SelectContent>
                 <SelectItem value="0">Aucun transporteur</SelectItem>
                 {transporteurs.map((transporteur) => (
-                  <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
+                  <SelectItem
+                    key={transporteur.id}
+                    value={transporteur.id!.toString()}
+                  >
                     {transporteur.prenom} {transporteur.nom}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Dialog open={isAddTransporteurDialogOpen} onOpenChange={setIsAddTransporteurDialogOpen}>
+            <Dialog
+              open={isAddTransporteurDialogOpen}
+              onOpenChange={setIsAddTransporteurDialogOpen}
+            >
               <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   className="mt-0 self-start shrink-0"
                   title="Ajouter un nouveau transporteur"
@@ -341,16 +329,26 @@ export const PeseeFormSection = ({
                     <div>
                       <Label>Prénom *</Label>
                       <Input
-                        value={newTransporteurForm.prenom || ''}
-                        onChange={(e) => setNewTransporteurForm({...newTransporteurForm, prenom: e.target.value})}
+                        value={newTransporteurForm.prenom || ""}
+                        onChange={(e) =>
+                          setNewTransporteurForm({
+                            ...newTransporteurForm,
+                            prenom: e.target.value,
+                          })
+                        }
                         placeholder="Prénom du transporteur"
                       />
                     </div>
                     <div>
                       <Label>Nom *</Label>
                       <Input
-                        value={newTransporteurForm.nom || ''}
-                        onChange={(e) => setNewTransporteurForm({...newTransporteurForm, nom: e.target.value})}
+                        value={newTransporteurForm.nom || ""}
+                        onChange={(e) =>
+                          setNewTransporteurForm({
+                            ...newTransporteurForm,
+                            nom: e.target.value,
+                          })
+                        }
                         placeholder="Nom du transporteur"
                       />
                     </div>
@@ -358,16 +356,26 @@ export const PeseeFormSection = ({
                   <div>
                     <Label>SIRET</Label>
                     <Input
-                      value={newTransporteurForm.siret || ''}
-                      onChange={(e) => setNewTransporteurForm({...newTransporteurForm, siret: e.target.value})}
+                      value={newTransporteurForm.siret || ""}
+                      onChange={(e) =>
+                        setNewTransporteurForm({
+                          ...newTransporteurForm,
+                          siret: e.target.value,
+                        })
+                      }
                       placeholder="SIRET (optionnel)"
                     />
                   </div>
                   <div>
                     <Label>Adresse</Label>
                     <Input
-                      value={newTransporteurForm.adresse || ''}
-                      onChange={(e) => setNewTransporteurForm({...newTransporteurForm, adresse: e.target.value})}
+                      value={newTransporteurForm.adresse || ""}
+                      onChange={(e) =>
+                        setNewTransporteurForm({
+                          ...newTransporteurForm,
+                          adresse: e.target.value,
+                        })
+                      }
                       placeholder="Adresse"
                     />
                   </div>
@@ -375,16 +383,26 @@ export const PeseeFormSection = ({
                     <div>
                       <Label>Code postal</Label>
                       <Input
-                        value={newTransporteurForm.codePostal || ''}
-                        onChange={(e) => setNewTransporteurForm({...newTransporteurForm, codePostal: e.target.value})}
+                        value={newTransporteurForm.codePostal || ""}
+                        onChange={(e) =>
+                          setNewTransporteurForm({
+                            ...newTransporteurForm,
+                            codePostal: e.target.value,
+                          })
+                        }
                         placeholder="Code postal"
                       />
                     </div>
                     <div>
                       <Label>Ville</Label>
                       <Input
-                        value={newTransporteurForm.ville || ''}
-                        onChange={(e) => setNewTransporteurForm({...newTransporteurForm, ville: e.target.value})}
+                        value={newTransporteurForm.ville || ""}
+                        onChange={(e) =>
+                          setNewTransporteurForm({
+                            ...newTransporteurForm,
+                            ville: e.target.value,
+                          })
+                        }
                         placeholder="Ville"
                       />
                     </div>
@@ -393,17 +411,25 @@ export const PeseeFormSection = ({
                     <Label>Email</Label>
                     <Input
                       type="email"
-                      value={newTransporteurForm.email || ''}
-                      onChange={(e) => setNewTransporteurForm({...newTransporteurForm, email: e.target.value})}
+                      value={newTransporteurForm.email || ""}
+                      onChange={(e) =>
+                        setNewTransporteurForm({
+                          ...newTransporteurForm,
+                          email: e.target.value,
+                        })
+                      }
                       placeholder="Email"
                     />
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" onClick={() => setIsAddTransporteurDialogOpen(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAddTransporteurDialogOpen(false)}
+                  >
                     Annuler
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleAddNewTransporteur}
                     disabled={!validateNewTransporteur()}
                   >
@@ -417,7 +443,10 @@ export const PeseeFormSection = ({
       </div>
 
       <div className="flex justify-center">
-        <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>
+        <Dialog
+          open={isAddClientDialogOpen}
+          onOpenChange={setIsAddClientDialogOpen}
+        >
           <DialogTrigger asChild>
             <Button variant="outline" onClick={onAddClient}>
               <UserPlus className="h-4 w-4 mr-2" />
@@ -428,16 +457,19 @@ export const PeseeFormSection = ({
             <DialogHeader>
               <DialogTitle>Nouveau Client</DialogTitle>
             </DialogHeader>
-            <ClientForm 
-              formData={newClientForm} 
+            <ClientForm
+              formData={newClientForm}
               onFormDataChange={setNewClientForm}
               transporteurs={transporteurs}
             />
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsAddClientDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddClientDialogOpen(false)}
+              >
                 Annuler
               </Button>
-              <Button 
+              <Button
                 onClick={handleAddNewClient}
                 disabled={!validateNewClient()}
               >
