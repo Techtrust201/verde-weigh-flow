@@ -222,7 +222,7 @@ export const PeseeFormSection = ({
                     variant="outline"
                     role="combobox"
                     aria-expanded={clientSelectorOpen}
-                    className="w-full justify-between h-12 px-4 py-3 bg-white border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors duration-200 rounded-lg"
+                    className="w-full justify-between  px-4 py-3 bg-white border-2 border-gray-200 transition-colors duration-200 rounded-lg"
                   >
                     {selectedClient ? (
                       <div className="flex items-center gap-3 w-full">
@@ -244,7 +244,7 @@ export const PeseeFormSection = ({
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 w-full">
-                        <span className="text-gray-500 font-medium">
+                        <span className="font-medium">
                           Rechercher un client...
                         </span>
                       </div>
@@ -360,7 +360,7 @@ export const PeseeFormSection = ({
                     variant="outline"
                     role="combobox"
                     aria-expanded={clientSelectorOpen}
-                    className="w-full justify-between h-12 px-4 py-3 bg-white border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors duration-200 rounded-lg"
+                    className="w-full justify-between px-4 py-3 bg-white border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors duration-200 rounded-lg"
                   >
                     {selectedClient ? (
                       <div className="flex items-center gap-3 w-full">
@@ -382,7 +382,7 @@ export const PeseeFormSection = ({
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 w-full">
-                        <span className="text-gray-500 font-medium">
+                        <span className="font-medium">
                           Rechercher un client...
                         </span>
                       </div>
@@ -488,7 +488,7 @@ export const PeseeFormSection = ({
                 size="sm"
                 onClick={resetForm}
                 title="Réinitialiser le formulaire"
-                className="h-12 px-3"
+                className="content-center"
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
@@ -527,6 +527,7 @@ export const PeseeFormSection = ({
           <Label htmlFor="nomEntreprise">{getEntrepriseLabel()}</Label>
           <Input
             id="nomEntreprise"
+            className=" placeholder:text-black"
             value={currentData?.nomEntreprise || ""}
             onChange={(e) =>
               updateCurrentTab({ nomEntreprise: e.target.value })
