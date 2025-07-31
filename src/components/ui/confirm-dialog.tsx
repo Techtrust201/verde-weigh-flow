@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AlertTriangle, Info } from "lucide-react";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -37,18 +38,46 @@ export function ConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader className="space-y-4">
+          <div className="flex items-center space-x-3">
+            <div className={`
+              flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center
+              ${variant === "destructive" 
+                ? "bg-destructive/20 text-destructive" 
+                : "bg-primary/20 text-primary"
+              }
+            `}>
+              {variant === "destructive" ? (
+                <AlertTriangle className="w-5 h-5" />
+              ) : (
+                <Info className="w-5 h-5" />
+              )}
+            </div>
+            <AlertDialogTitle className="text-lg font-semibold text-left">
+              {title}
+            </AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="text-muted-foreground text-left ml-13">
+            {description}
+          </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => onOpenChange(false)}>
+        <AlertDialogFooter className="mt-6 space-x-3">
+          <AlertDialogCancel 
+            onClick={() => onOpenChange(false)}
+            className="flex-1"
+          >
             {cancelText}
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            className={variant === "destructive" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            className={`
+              flex-1
+              ${variant === "destructive" 
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive" 
+                : "bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary"
+              }
+            `}
           >
             {confirmText}
           </AlertDialogAction>

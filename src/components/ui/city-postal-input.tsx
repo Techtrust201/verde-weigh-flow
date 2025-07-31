@@ -29,8 +29,10 @@ export function CityPostalInput({
 }: CityPostalInputProps) {
   const [cities, setCities] = useState<CityData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
+  const [postalOpen, setPostalOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [postalSearch, setPostalSearch] = useState("");
+  const [citySearch, setCitySearch] = useState("");
 
   const searchCities = useCallback(async (query: string) => {
     if (query.length < 2) {
@@ -61,15 +63,25 @@ export function CityPostalInput({
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (searchValue) {
-        searchCities(searchValue);
+      if (postalSearch) {
+        searchCities(postalSearch);
       }
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchValue, searchCities]);
+  }, [postalSearch, searchCities]);
 
-  const handleSelect = (city: CityData, postalCode?: string) => {
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (citySearch) {
+        searchCities(citySearch);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [citySearch, searchCities]);
+
+  const handlePostalSelect = (city: CityData, postalCode?: string) => {
     onCityChange(city.nom);
     
     if (postalCode) {
@@ -78,8 +90,21 @@ export function CityPostalInput({
       onPostalChange(city.codesPostaux[0]);
     }
     
-    setOpen(false);
-    setSearchValue("");
+    setPostalOpen(false);
+    setPostalSearch("");
+  };
+
+  const handleCitySelect = (city: CityData, postalCode?: string) => {
+    onCityChange(city.nom);
+    
+    if (postalCode) {
+      onPostalChange(postalCode);
+    } else if (city.codesPostaux.length === 1) {
+      onPostalChange(city.codesPostaux[0]);
+    }
+    
+    setCityOpen(false);
+    setCitySearch("");
   };
 
   const displayValue = cityValue || postalValue || "";
@@ -87,12 +112,12 @@ export function CityPostalInput({
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={postalOpen} onOpenChange={setPostalOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
-              aria-expanded={open}
+              aria-expanded={postalOpen}
               className="w-full justify-between"
               disabled={disabled}
             >
@@ -103,9 +128,9 @@ export function CityPostalInput({
           <PopoverContent className="w-[400px] p-0">
             <Command>
               <CommandInput
-                placeholder="Rechercher par code postal ou ville..."
-                value={searchValue}
-                onValueChange={setSearchValue}
+                placeholder="Rechercher par code postal..."
+                value={postalSearch}
+                onValueChange={setPostalSearch}
               />
               <CommandList>
                 <CommandEmpty>
@@ -115,9 +140,9 @@ export function CityPostalInput({
                   {cities.map((city) => (
                     city.codesPostaux.map((postal) => (
                       <CommandItem
-                        key={`${city.code}-${postal}`}
+                        key={`postal-${city.code}-${postal}`}
                         value={`${postal} ${city.nom}`}
-                        onSelect={() => handleSelect(city, postal)}
+                        onSelect={() => handlePostalSelect(city, postal)}
                       >
                         <Check
                           className={cn(
@@ -142,12 +167,12 @@ export function CityPostalInput({
       </div>
       
       <div>
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={cityOpen} onOpenChange={setCityOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
-              aria-expanded={open}
+              aria-expanded={cityOpen}
               className="w-full justify-between"
               disabled={disabled}
             >
@@ -158,9 +183,9 @@ export function CityPostalInput({
           <PopoverContent className="w-[400px] p-0">
             <Command>
               <CommandInput
-                placeholder="Rechercher par ville ou code postal..."
-                value={searchValue}
-                onValueChange={setSearchValue}
+                placeholder="Rechercher par ville..."
+                value={citySearch}
+                onValueChange={setCitySearch}
               />
               <CommandList>
                 <CommandEmpty>
@@ -170,9 +195,9 @@ export function CityPostalInput({
                   {cities.map((city) => (
                     city.codesPostaux.map((postal) => (
                       <CommandItem
-                        key={`${city.code}-${postal}`}
+                        key={`city-${city.code}-${postal}`}
                         value={`${city.nom} ${postal}`}
-                        onSelect={() => handleSelect(city, postal)}
+                        onSelect={() => handleCitySelect(city, postal)}
                       >
                         <Check
                           className={cn(
