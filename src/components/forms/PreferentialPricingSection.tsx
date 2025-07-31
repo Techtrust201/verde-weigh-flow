@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -166,29 +166,25 @@ export default function PreferentialPricingSection({
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label htmlFor={`prixHT-${productId}`}>Prix HT (€) *</Label>
-                      <Input
+                      <NumericInput
                         id={`prixHT-${productId}`}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={pricing.prixHT?.toFixed(2) || ''}
-                        onChange={(e) => updatePreferentialPrice(productId, 'prixHT', parseFloat(e.target.value) || 0)}
+                        value={pricing.prixHT || undefined}
+                        onChange={(value) => updatePreferentialPrice(productId, 'prixHT', value)}
                         placeholder={`Normal: ${product.prixHT.toFixed(2)}€`}
                         className={hasError ? 'border-red-300' : ''}
+                        min={0}
                       />
                     </div>
                     <div>
                       <Label htmlFor={`prixTTC-${productId}`}>Prix TTC (€)</Label>
-                      <Input
+                      <NumericInput
                         id={`prixTTC-${productId}`}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={pricing.prixTTC?.toFixed(2) || ''}
-                        onChange={(e) => updatePreferentialPrice(productId, 'prixTTC', parseFloat(e.target.value) || 0)}
+                        value={pricing.prixTTC || undefined}
+                        onChange={(value) => updatePreferentialPrice(productId, 'prixTTC', value)}
                         placeholder={`Normal: ${product.prixTTC.toFixed(2)}€`}
                         className="bg-gray-50"
-                        readOnly
+                        disabled
+                        min={0}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
                         Calculé automatiquement (TVA {(TVA_RATE * 100).toFixed(0)}%)
