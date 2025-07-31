@@ -1,13 +1,18 @@
-
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, AlertCircle } from 'lucide-react';
-import { Client, Transporteur } from '@/lib/database';
-import { CityPostalInput } from '@/components/ui/city-postal-input';
-import { validateEmail, getEmailError } from '@/utils/validation';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Client, Transporteur } from "@/lib/database";
+import { CityPostalInput } from "@/components/ui/city-postal-input";
+import { validateEmail, getEmailError } from "@/utils/validation";
 
 interface ClientFormProps {
   formData: Partial<Client>;
@@ -16,18 +21,23 @@ interface ClientFormProps {
   transporteurs?: Transporteur[];
 }
 
-export default function ClientForm({ formData, onFormDataChange, isEditing = false, transporteurs = [] }: ClientFormProps) {
+export default function ClientForm({
+  formData,
+  onFormDataChange,
+  isEditing = false,
+  transporteurs = [],
+}: ClientFormProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
 
   const handleEmailChange = (email: string) => {
-    onFormDataChange({...formData, email});
+    onFormDataChange({ ...formData, email });
     setEmailError(getEmailError(email));
   };
 
   const addChantier = () => {
     onFormDataChange({
       ...formData,
-      chantiers: [...(formData.chantiers || []), '']
+      chantiers: [...(formData.chantiers || []), ""],
     });
   };
 
@@ -36,15 +46,16 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
     newChantiers[index] = value;
     onFormDataChange({
       ...formData,
-      chantiers: newChantiers
+      chantiers: newChantiers,
     });
   };
 
   const removeChantier = (index: number) => {
-    const newChantiers = formData.chantiers?.filter((_, i) => i !== index) || [];
+    const newChantiers =
+      formData.chantiers?.filter((_, i) => i !== index) || [];
     onFormDataChange({
       ...formData,
-      chantiers: newChantiers
+      chantiers: newChantiers,
     });
   };
 
@@ -53,7 +64,7 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
     const plaques = formData.plaques || [];
     onFormDataChange({
       ...formData,
-      plaques: [...plaques, '']
+      plaques: [...plaques, ""],
     });
   };
 
@@ -62,7 +73,7 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
     newPlaques[index] = value;
     onFormDataChange({
       ...formData,
-      plaques: newPlaques
+      plaques: newPlaques,
     });
   };
 
@@ -70,7 +81,7 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
     const newPlaques = formData.plaques?.filter((_, i) => i !== index) || [];
     onFormDataChange({
       ...formData,
-      plaques: newPlaques
+      plaques: newPlaques,
     });
   };
 
@@ -78,11 +89,11 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
     <div className="space-y-6">
       <div>
         <Label htmlFor="typeClient">Type de client *</Label>
-        <Select 
-          value={formData.typeClient} 
-          onValueChange={(value: 'particulier' | 'professionnel' | 'micro-entreprise') => 
-            onFormDataChange({...formData, typeClient: value})
-          }
+        <Select
+          value={formData.typeClient}
+          onValueChange={(
+            value: "particulier" | "professionnel" | "micro-entreprise"
+          ) => onFormDataChange({ ...formData, typeClient: value })}
         >
           <SelectTrigger>
             <SelectValue />
@@ -95,22 +106,26 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
         </Select>
       </div>
 
-      {formData.typeClient === 'particulier' ? (
+      {formData.typeClient === "particulier" ? (
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="prenom">Prénom *</Label>
             <Input
               id="prenom"
-              value={formData.prenom || ''}
-              onChange={(e) => onFormDataChange({...formData, prenom: e.target.value})}
+              value={formData.prenom || ""}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, prenom: e.target.value })
+              }
             />
           </div>
           <div>
             <Label htmlFor="nom">Nom *</Label>
             <Input
               id="nom"
-              value={formData.nom || ''}
-              onChange={(e) => onFormDataChange({...formData, nom: e.target.value})}
+              value={formData.nom || ""}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, nom: e.target.value })
+              }
             />
           </div>
         </div>
@@ -119,8 +134,10 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
           <Label htmlFor="raisonSociale">Raison Sociale *</Label>
           <Input
             id="raisonSociale"
-            value={formData.raisonSociale || ''}
-            onChange={(e) => onFormDataChange({...formData, raisonSociale: e.target.value})}
+            value={formData.raisonSociale || ""}
+            onChange={(e) =>
+              onFormDataChange({ ...formData, raisonSociale: e.target.value })
+            }
           />
         </div>
       )}
@@ -128,42 +145,54 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="siret">
-            SIRET {formData.typeClient === 'professionnel' ? '*' : '(optionnel)'}
+            SIRET{" "}
+            {formData.typeClient === "professionnel" ? "*" : "(optionnel)"}
           </Label>
           <Input
             id="siret"
-            value={formData.siret || ''}
-            onChange={(e) => onFormDataChange({...formData, siret: e.target.value})}
+            value={formData.siret || ""}
+            onChange={(e) =>
+              onFormDataChange({ ...formData, siret: e.target.value })
+            }
           />
         </div>
-        {formData.typeClient !== 'particulier' && (
+        {formData.typeClient !== "particulier" && (
           <div>
             <Label htmlFor="codeNAF">Code NAF</Label>
             <Input
               id="codeNAF"
-              value={formData.codeNAF || ''}
-              onChange={(e) => onFormDataChange({...formData, codeNAF: e.target.value})}
+              value={formData.codeNAF || ""}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, codeNAF: e.target.value })
+              }
             />
           </div>
         )}
       </div>
 
-      {formData.typeClient !== 'particulier' && (
+      {formData.typeClient !== "particulier" && (
         <>
           <div>
             <Label htmlFor="activite">Activité</Label>
             <Input
               id="activite"
-              value={formData.activite || ''}
-              onChange={(e) => onFormDataChange({...formData, activite: e.target.value})}
+              value={formData.activite || ""}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, activite: e.target.value })
+              }
             />
           </div>
           <div>
             <Label htmlFor="representantLegal">Représentant Légal</Label>
             <Input
               id="representantLegal"
-              value={formData.representantLegal || ''}
-              onChange={(e) => onFormDataChange({...formData, representantLegal: e.target.value})}
+              value={formData.representantLegal || ""}
+              onChange={(e) =>
+                onFormDataChange({
+                  ...formData,
+                  representantLegal: e.target.value,
+                })
+              }
             />
           </div>
         </>
@@ -174,17 +203,24 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
           <Label htmlFor="adresse">Adresse</Label>
           <Input
             id="adresse"
-            value={formData.adresse || ''}
-            onChange={(e) => onFormDataChange({...formData, adresse: e.target.value})}
+            value={formData.adresse || ""}
+            onChange={(e) =>
+              onFormDataChange({ ...formData, adresse: e.target.value })
+            }
           />
         </div>
         <div>
           <Label>Code Postal et Ville</Label>
           <CityPostalInput
-            cityValue={formData.ville || ''}
-            postalValue={formData.codePostal || ''}
-            onCityChange={(city) => onFormDataChange({...formData, ville: city})}
-            onPostalChange={(postal) => onFormDataChange({...formData, codePostal: postal})}
+            cityValue={formData.ville || ""}
+            postalValue={formData.codePostal || ""}
+            onBothChange={(city, postal) => {
+              onFormDataChange({
+                ...formData,
+                ville: city,
+                codePostal: postal,
+              });
+            }}
           />
         </div>
         <div>
@@ -192,9 +228,9 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
           <Input
             id="email"
             type="email"
-            value={formData.email || ''}
+            value={formData.email || ""}
             onChange={(e) => handleEmailChange(e.target.value)}
-            className={emailError ? 'border-red-300' : ''}
+            className={emailError ? "border-red-300" : ""}
           />
           {emailError && (
             <div className="flex items-center gap-1 text-sm text-red-600 mt-1">
@@ -209,8 +245,10 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
         <Label htmlFor="telephone">Téléphone</Label>
         <Input
           id="telephone"
-          value={formData.telephone || ''}
-          onChange={(e) => onFormDataChange({...formData, telephone: e.target.value})}
+          value={formData.telephone || ""}
+          onChange={(e) =>
+            onFormDataChange({ ...formData, telephone: e.target.value })
+          }
           placeholder="Numéro de téléphone"
         />
       </div>
@@ -232,10 +270,10 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
               placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
               className="font-mono"
             />
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => removePlaque(index)}
             >
               <Trash2 className="h-3 w-3" />
@@ -246,14 +284,16 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
           <div className="flex gap-2 mb-2">
             <Input
               value=""
-              onChange={(e) => onFormDataChange({...formData, plaques: [e.target.value]})}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, plaques: [e.target.value] })
+              }
               placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
               className="font-mono"
             />
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={addPlaque}
             >
               <Plus className="h-3 w-3" />
@@ -268,7 +308,12 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
       <div>
         <div className="flex justify-between items-center mb-2">
           <Label>Chantiers</Label>
-          <Button type="button" variant="outline" size="sm" onClick={addChantier}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addChantier}
+          >
             <Plus className="h-3 w-3 mr-1" />
             Ajouter
           </Button>
@@ -280,10 +325,10 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
               onChange={(e) => updateChantier(index, e.target.value)}
               placeholder="Nom du chantier"
             />
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => removeChantier(index)}
             >
               <Trash2 className="h-3 w-3" />
@@ -294,12 +339,14 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
 
       <div>
         <Label htmlFor="transporteur">Transporteur par défaut</Label>
-        <Select 
-          value={formData.transporteurId?.toString() || 'none'} 
-          onValueChange={(value) => onFormDataChange({
-            ...formData, 
-            transporteurId: value === 'none' ? undefined : parseInt(value)
-          })}
+        <Select
+          value={formData.transporteurId?.toString() || "none"}
+          onValueChange={(value) =>
+            onFormDataChange({
+              ...formData,
+              transporteurId: value === "none" ? undefined : parseInt(value),
+            })
+          }
         >
           <SelectTrigger>
             <SelectValue placeholder="Sélectionner un transporteur" />
@@ -307,7 +354,10 @@ export default function ClientForm({ formData, onFormDataChange, isEditing = fal
           <SelectContent>
             <SelectItem value="none">Aucun transporteur</SelectItem>
             {transporteurs?.map((transporteur) => (
-              <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
+              <SelectItem
+                key={transporteur.id}
+                value={transporteur.id!.toString()}
+              >
                 {transporteur.prenom} {transporteur.nom}
               </SelectItem>
             ))}

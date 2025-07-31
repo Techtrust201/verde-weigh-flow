@@ -1,7 +1,18 @@
 import * as React from "react";
 import { useState, useEffect, useCallback } from "react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,8 +26,9 @@ interface CityData {
 interface CityPostalInputProps {
   cityValue: string;
   postalValue: string;
-  onCityChange: (city: string) => void;
-  onPostalChange: (postal: string) => void;
+  onCityChange?: (city: string) => void;
+  onPostalChange?: (postal: string) => void;
+  onBothChange?: (city: string, postal: string) => void;
   disabled?: boolean;
 }
 
@@ -25,7 +37,8 @@ export function CityPostalInput({
   postalValue,
   onCityChange,
   onPostalChange,
-  disabled = false
+  onBothChange,
+  disabled = false,
 }: CityPostalInputProps) {
   const [cities, setCities] = useState<CityData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,14 +55,13 @@ export function CityPostalInput({
 
     setIsLoading(true);
     try {
-      // Search by city name or postal code
-      const isPostalCode = /^\d/.test(query);
+      const isPostalCode = /^\d+$/.test(query);
       const searchParam = isPostalCode ? `codePostal=${query}` : `nom=${query}`;
-      
+
       const response = await fetch(
         `https://geo.api.gouv.fr/communes?${searchParam}&fields=nom,code,codesPostaux&boost=population&limit=10`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         setCities(data);
@@ -82,33 +94,37 @@ export function CityPostalInput({
   }, [citySearch, searchCities]);
 
   const handlePostalSelect = (city: CityData, postalCode?: string) => {
-    // Toujours remplir les deux champs
-    onCityChange(city.nom);
-    
-    if (postalCode) {
-      onPostalChange(postalCode);
-    } else if (city.codesPostaux.length === 1) {
-      onPostalChange(city.codesPostaux[0]);
+    const finalPostalCode = postalCode || city.codesPostaux[0];
+
+    if (onBothChange && finalPostalCode) {
+      onBothChange(city.nom, finalPostalCode);
+    } else {
+      onCityChange?.(city.nom);
+      if (finalPostalCode) {
+        onPostalChange?.(finalPostalCode);
+      }
     }
-    
+
     setPostalOpen(false);
     setPostalSearch("");
-    setCities([]); // Clear search results
+    setCities([]);
   };
 
   const handleCitySelect = (city: CityData, postalCode?: string) => {
-    // Toujours remplir les deux champs
-    onCityChange(city.nom);
-    
-    if (postalCode) {
-      onPostalChange(postalCode);
-    } else if (city.codesPostaux.length === 1) {
-      onPostalChange(city.codesPostaux[0]);
+    const finalPostalCode = postalCode || city.codesPostaux[0];
+
+    if (onBothChange && finalPostalCode) {
+      onBothChange(city.nom, finalPostalCode);
+    } else {
+      onCityChange?.(city.nom);
+      if (finalPostalCode) {
+        onPostalChange?.(finalPostalCode);
+      }
     }
-    
+
     setCityOpen(false);
     setCitySearch("");
-    setCities([]); // Clear search results
+    setCities([]);
   };
 
   const displayValue = cityValue || postalValue || "";
@@ -138,10 +154,12 @@ export function CityPostalInput({
               />
               <CommandList>
                 <CommandEmpty>
-                  {isLoading ? "Recherche en cours..." : "Aucune ville trouvée."}
+                  {isLoading
+                    ? "Recherche en cours..."
+                    : "Aucune ville trouvée."}
                 </CommandEmpty>
                 <CommandGroup>
-                  {cities.map((city) => (
+                  {cities.map((city) =>
                     city.codesPostaux.map((postal) => (
                       <CommandItem
                         key={`postal-${city.code}-${postal}`}
@@ -158,18 +176,20 @@ export function CityPostalInput({
                         />
                         <div className="flex flex-col">
                           <span className="font-medium">{postal}</span>
-                          <span className="text-sm text-muted-foreground">{city.nom}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {city.nom}
+                          </span>
                         </div>
                       </CommandItem>
                     ))
-                  ))}
+                  )}
                 </CommandGroup>
               </CommandList>
             </Command>
           </PopoverContent>
         </Popover>
       </div>
-      
+
       <div>
         <Popover open={cityOpen} onOpenChange={setCityOpen}>
           <PopoverTrigger asChild>
@@ -193,10 +213,12 @@ export function CityPostalInput({
               />
               <CommandList>
                 <CommandEmpty>
-                  {isLoading ? "Recherche en cours..." : "Aucune ville trouvée."}
+                  {isLoading
+                    ? "Recherche en cours..."
+                    : "Aucune ville trouvée."}
                 </CommandEmpty>
                 <CommandGroup>
-                  {cities.map((city) => (
+                  {cities.map((city) =>
                     city.codesPostaux.map((postal) => (
                       <CommandItem
                         key={`city-${city.code}-${postal}`}
@@ -213,11 +235,13 @@ export function CityPostalInput({
                         />
                         <div className="flex flex-col">
                           <span className="font-medium">{city.nom}</span>
-                          <span className="text-sm text-muted-foreground">{postal}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {postal}
+                          </span>
                         </div>
                       </CommandItem>
                     ))
-                  ))}
+                  )}
                 </CommandGroup>
               </CommandList>
             </Command>
