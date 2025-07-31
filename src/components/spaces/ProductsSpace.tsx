@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -185,21 +186,24 @@ export default function ProductsSpace() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="prixHT">Prix HT (€)</Label>
-                  <Input
+                  <NumericInput
                     id="prixHT"
-                    type="number"
-                    step="0.01"
                     value={formData.prixHT}
-                    onChange={(e) => setFormData({...formData, prixHT: parseFloat(e.target.value) || 0})}
+                    onChange={(value) => setFormData({...formData, prixHT: value || 0})}
+                    placeholder="0.00"
+                    min={0}
                   />
                 </div>
                 <div>
                   <Label htmlFor="tauxTVA">Taux TVA (%)</Label>
-                  <Input
+                  <NumericInput
                     id="tauxTVA"
-                    type="number"
                     value={formData.tauxTVA}
-                    onChange={(e) => setFormData({...formData, tauxTVA: parseFloat(e.target.value) || 0})}
+                    onChange={(value) => setFormData({...formData, tauxTVA: value || 20})}
+                    placeholder="20"
+                    allowDecimals={false}
+                    min={0}
+                    max={100}
                   />
                 </div>
               </div>

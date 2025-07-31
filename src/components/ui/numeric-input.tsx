@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface NumericInputProps extends Omit<React.ComponentProps<"input">, "onChange" | "value"> {
   value?: number;
-  onChange: (value: number) => void;
+  onChange: (value: number | undefined) => void;
   allowDecimals?: boolean;
   min?: number;
   max?: number;
@@ -14,9 +14,9 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
   ({ className, value, onChange, allowDecimals = true, min = 0, max, placeholder, ...props }, ref) => {
     const [displayValue, setDisplayValue] = React.useState<string>("");
 
-    React.useEffect(() => {
-      setDisplayValue(value !== undefined && value !== 0 ? value.toString() : "");
-    }, [value]);
+  React.useEffect(() => {
+    setDisplayValue(value !== undefined ? value.toString() : "");
+  }, [value]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value;
@@ -24,7 +24,7 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
       // Allow empty string for clearing
       if (inputValue === "") {
         setDisplayValue("");
-        onChange(0);
+        onChange(undefined);
         return;
       }
 
@@ -46,7 +46,7 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
     };
 
     const handleBlur = () => {
-      // Format the display value on blur
+      // Format the display value on blur only if there's a value
       if (displayValue && !isNaN(parseFloat(displayValue))) {
         const numericValue = parseFloat(displayValue);
         if (allowDecimals) {
@@ -54,6 +54,9 @@ const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(
         } else {
           setDisplayValue(numericValue.toString());
         }
+        onChange(numericValue);
+      } else if (displayValue === "") {
+        onChange(undefined);
       }
     };
 
