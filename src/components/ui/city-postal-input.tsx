@@ -82,6 +82,7 @@ export function CityPostalInput({
   }, [citySearch, searchCities]);
 
   const handlePostalSelect = (city: CityData, postalCode?: string) => {
+    // Toujours remplir les deux champs
     onCityChange(city.nom);
     
     if (postalCode) {
@@ -96,6 +97,7 @@ export function CityPostalInput({
   };
 
   const handleCitySelect = (city: CityData, postalCode?: string) => {
+    // Toujours remplir les deux champs
     onCityChange(city.nom);
     
     if (postalCode) {
