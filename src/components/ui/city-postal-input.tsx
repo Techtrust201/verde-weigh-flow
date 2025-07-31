@@ -92,6 +92,7 @@ export function CityPostalInput({
     
     setPostalOpen(false);
     setPostalSearch("");
+    setCities([]); // Clear search results
   };
 
   const handleCitySelect = (city: CityData, postalCode?: string) => {
@@ -105,6 +106,7 @@ export function CityPostalInput({
     
     setCityOpen(false);
     setCitySearch("");
+    setCities([]); // Clear search results
   };
 
   const displayValue = cityValue || postalValue || "";
