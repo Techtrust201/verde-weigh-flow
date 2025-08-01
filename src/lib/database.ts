@@ -77,6 +77,8 @@ export interface Pesee {
   transporteurId?: number;
   typeClient: 'particulier' | 'professionnel' | 'micro-entreprise';
   synchronized: boolean;
+  version: number; // Version pour détecter les conflits
+  lastSyncHash?: string; // Hash de la dernière version synchronisée
   createdAt: Date;
   updatedAt: Date;
 }
@@ -123,6 +125,17 @@ export interface SyncLog {
   createdAt: Date;
 }
 
+export interface ConflictLog {
+  id?: number;
+  peseeId: number;
+  localVersion: number;
+  serverVersion: number;
+  localData: any;
+  serverData: any;
+  resolution: 'local-wins' | 'server-wins' | 'manual';
+  createdAt: Date;
+}
+
 class AppDatabase extends Dexie {
   clients!: Table<Client>;
   transporteurs!: Table<Transporteur>;
@@ -132,6 +145,7 @@ class AppDatabase extends Dexie {
   userSettings!: Table<UserSettings>;
   config!: Table<Config>;
   syncLogs!: Table<SyncLog>;
+  conflictLogs!: Table<ConflictLog>;
 
   constructor() {
     super('AppDatabase');
@@ -139,11 +153,12 @@ class AppDatabase extends Dexie {
       clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
       transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
       products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
-      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, synchronized, createdAt, updatedAt',
+      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, synchronized, version, createdAt, updatedAt',
       users: '++id, nom, prenom, email, role, createdAt, updatedAt',
       userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
       config: '++id, key, createdAt, updatedAt',
-      syncLogs: '++id, type, status, synchronized, createdAt'
+      syncLogs: '++id, type, status, synchronized, createdAt',
+      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt'
     });
   }
 }

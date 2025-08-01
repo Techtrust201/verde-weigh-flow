@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { setupAutoSync, stopAutoSync } from '@/utils/syncScheduler';
 import { backgroundSyncManager } from '@/utils/backgroundSync';
 import { SyncMonitor } from '@/components/ui/sync-monitor';
+import { conflictResolver } from '@/utils/conflictResolver';
 
 export default function ComptabiliteSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
@@ -20,6 +21,7 @@ export default function ComptabiliteSpace() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [conflictCount, setConflictCount] = useState(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,13 +54,15 @@ export default function ComptabiliteSpace() {
 
   const loadData = async () => {
     try {
-      const [peseesData, settingsData] = await Promise.all([
+      const [peseesData, settingsData, conflicts] = await Promise.all([
         db.pesees.toArray(),
-        db.userSettings.toCollection().first()
+        db.userSettings.toCollection().first(),
+        conflictResolver.getConflictCount()
       ]);
       
       setPesees(peseesData);
       setUserSettings(settingsData || null);
+      setConflictCount(conflicts);
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -127,6 +131,12 @@ export default function ComptabiliteSpace() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Comptabilité</h1>
         <div className="flex items-center space-x-2">
+          {conflictCount > 0 && (
+            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              {conflictCount} conflit(s)
+            </Badge>
+          )}
           {isOnline ? (
             <Badge variant="default" className="bg-green-500">
               <Wifi className="h-3 w-3 mr-1" />
@@ -285,6 +295,28 @@ export default function ComptabiliteSpace() {
 
       {/* Nouveau système de monitoring de synchronisation */}
       <SyncMonitor onManualSync={handleSyncToSage} />
+
+      {/* Affichage des conflits s'il y en a */}
+      {conflictCount > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-600">
+              <AlertCircle className="h-5 w-5" />
+              Conflits de synchronisation détectés
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {conflictCount} conflit(s) de données ont été détectés et résolus automatiquement. 
+                Les versions locales ont été conservées. Si vous souhaitez forcer une resynchronisation 
+                complète, utilisez le bouton de synchronisation manuelle.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sync Log */}
       {pendingPesees.length > 0 && (

@@ -1,5 +1,6 @@
 import { db } from '@/lib/database';
 import { SyncQueueManager } from '@/lib/syncQueue';
+import { conflictResolver } from '@/utils/conflictResolver';
 
 export class BackgroundSyncManager {
   private static instance: BackgroundSyncManager;
@@ -124,11 +125,24 @@ export class BackgroundSyncManager {
       }
 
       // Simulation de l'API Sage (à remplacer par l'implémentation réelle)
-      await this.callSageAPI(syncData, userSettings.cleAPISage);
+      const apiResponse = await this.callSageAPI(syncData, userSettings.cleAPISage);
 
-      // Marquer les données comme synchronisées
+      // Détecter et résoudre les conflits si l'API retourne des données mises à jour
+      if (apiResponse && apiResponse.updatedData) {
+        const conflicts = await conflictResolver.detectConflicts(apiResponse.updatedData);
+        if (conflicts.length > 0) {
+          console.log(`⚠️ ${conflicts.length} conflit(s) détecté(s), résolution automatique...`);
+          await conflictResolver.resolveConflicts(conflicts);
+        }
+      }
+
+      // Marquer les données comme synchronisées avec version mise à jour
       for (const pesee of syncData) {
-        await db.pesees.update(pesee.id!, { synchronized: true });
+        await db.pesees.update(pesee.id!, { 
+          synchronized: true,
+          version: (pesee.version || 1) + 1,
+          lastSyncHash: this.calculatePeseeHash(pesee)
+        });
       }
 
       const duration = Date.now() - startTime;
@@ -173,7 +187,7 @@ export class BackgroundSyncManager {
   }
 
   // Appel à l'API Sage (simulation)
-  private async callSageAPI(data: any[], apiKey: string): Promise<void> {
+  private async callSageAPI(data: any[], apiKey: string): Promise<any> {
     // Simulation - à remplacer par l'implémentation réelle
     console.log(`🔄 Envoi vers Sage de ${data.length} pesée(s) avec clé ${apiKey.substring(0, 8)}...`);
     
@@ -184,6 +198,36 @@ export class BackgroundSyncManager {
     if (Math.random() < 0.05) {
       throw new Error('Erreur de l\'API Sage (simulation)');
     }
+
+    // Simulation : parfois l'API retourne des données mises à jour (conflit possible)
+    if (Math.random() < 0.1) { // 10% de chance de conflit simulé
+      return {
+        success: true,
+        updatedData: data.map(pesee => ({
+          ...pesee,
+          version: (pesee.version || 1) + 1,
+          // Simuler une modification côté serveur
+          moyenPaiement: pesee.moyenPaiement + ' (modifié serveur)'
+        }))
+      };
+    }
+
+    return { success: true };
+  }
+
+  // Calculer un hash pour une pesée
+  private calculatePeseeHash(pesee: any): string {
+    const importantFields = {
+      numeroBon: pesee.numeroBon,
+      poidsEntree: pesee.poidsEntree,
+      poidsSortie: pesee.poidsSortie,
+      net: pesee.net,
+      prixHT: pesee.prixHT,
+      prixTTC: pesee.prixTTC,
+      moyenPaiement: pesee.moyenPaiement
+    };
+    
+    return btoa(JSON.stringify(importantFields));
   }
 
   // Notifier l'utilisateur
@@ -201,10 +245,12 @@ export class BackgroundSyncManager {
   async getStats(): Promise<any> {
     const queueStats = await this.queueManager.getStats();
     const pendingData = await this.getPendingData();
+    const conflictCount = await conflictResolver.getConflictCount();
     
     return {
       ...queueStats,
       pendingPesees: pendingData.length,
+      conflictCount,
       periodicSyncSupported: this.isPeriodicSyncSupported,
       lastSyncCheck: localStorage.getItem('lastSyncCheck')
     };
@@ -213,6 +259,7 @@ export class BackgroundSyncManager {
   // Nettoyer les données anciennes
   async cleanup(): Promise<void> {
     await this.queueManager.cleanupOldEvents();
+    await conflictResolver.cleanupOldConflicts();
   }
 }
 

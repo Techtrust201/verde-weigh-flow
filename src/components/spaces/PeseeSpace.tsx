@@ -340,6 +340,7 @@ export default function PeseeSpace() {
         transporteurId: currentData.transporteurId || undefined,
         typeClient: currentData.typeClient || 'particulier',
         synchronized: false,
+        version: 1, // Version initiale
         createdAt: new Date(),
         updatedAt: new Date()
       };
