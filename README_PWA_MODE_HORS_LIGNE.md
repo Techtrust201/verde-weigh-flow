@@ -16,6 +16,17 @@
 
 ---
 
+### **EXEMPLE D'UTILISATION :**
+
+2. Scénario type
+
+Étape   |  	Connexion   |	Ce qui se passe
+08 h 30 : tu fais 5 pesées hors ligne  |  ❌  |  Elles entrent dans la queue IndexedDB
+10 h 12 : retour de la 4G  |  ✅  |  Événement sync → envoi immédiat (notification discrète bas-droite)
+17 h 55 : PC allumé mais réseau KO  |  ❌  |  periodicsync planifié, mais reporté
+18 h 20 : Wi-Fi revient  |  ✅  |  Chrome exécute le periodicsync différé → re-vérifie qu’il n’y a plus rien en file
+  
+  
 ## 🏠 **OÙ SONT STOCKÉES VOS DONNÉES ?**
 
 ### **Sur votre appareil uniquement** (comme un fichier Word)
@@ -138,7 +149,7 @@
 
 **Méthode 1 : Depuis Chrome**
 ```
-1. 🌐 Ouvrir votre-app.lovable.app dans Chrome
+1. 🌐 Ouvrir votre-app.app dans Chrome
 2. ⚙️ Menu Chrome (3 points) > "Installer [Nom App]..."
 3. ✅ Confirmer l'installation
 4. 🖥️ Icône créée sur bureau + menu démarrer
