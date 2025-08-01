@@ -274,32 +274,129 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Background Sync pour les données en attente
+// Background Sync robuste pour les données en attente
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'background-sync-pesees') {
-    console.log('Service Worker: Background sync triggered for pesees');
-    event.waitUntil(syncPendingData());
+  console.log(`Service Worker: Background sync triggered for tag: ${event.tag}`);
+  
+  // Gérer tous les tags de sync (one-off et retry)
+  if (event.tag.startsWith('pesees-sync-') || event.tag.includes('-retry-')) {
+    event.waitUntil(handleBackgroundSync(event.tag, event.lastChance));
   }
 });
 
-// Sync des données en attente
-async function syncPendingData() {
+// Periodic Background Sync (quotidien)
+self.addEventListener('periodicsync', (event) => {
+  console.log(`Service Worker: Periodic sync triggered for tag: ${event.tag}`);
+  
+  if (event.tag === 'daily-sync') {
+    event.waitUntil(handlePeriodicSync());
+  }
+});
+
+// Gestionnaire principal de Background Sync
+async function handleBackgroundSync(tag, isLastChance = false) {
+  const startTime = Date.now();
+  
   try {
-    // Cette fonction sera appelée par le système quand la connexion revient
-    console.log('Service Worker: Attempting to sync pending data');
+    console.log(`🔄 SW: Début sync ${tag}${isLastChance ? ' (dernière chance)' : ''}`);
     
-    // Notifier le client principal que la sync est disponible
-    const clients = await self.clients.matchAll();
+    // Notifier le client de démarrer la sync
+    const result = await notifyClientForSync(tag, isLastChance);
+    
+    if (!result.success) {
+      console.error(`❌ SW: Échec sync ${tag}:`, result.error);
+      throw new Error(result.error);
+    }
+    
+    const duration = Date.now() - startTime;
+    console.log(`✅ SW: Succès sync ${tag} en ${duration}ms`);
+    
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`❌ SW: Erreur sync ${tag} après ${duration}ms:`, error);
+    
+    // Si c'est la dernière chance, notifier le client pour gérer le ré-enregistrement
+    if (isLastChance) {
+      await notifyClientForReregister(tag, error.message);
+    }
+    
+    throw error;
+  }
+}
+
+// Gestionnaire de Periodic Sync quotidien
+async function handlePeriodicSync() {
+  const startTime = Date.now();
+  
+  try {
+    console.log('📅 SW: Début periodic sync quotidien');
+    
+    const result = await notifyClientForSync('daily-sync', false);
+    
+    if (!result.success) {
+      console.error('❌ SW: Échec periodic sync:', result.error);
+      throw new Error(result.error);
+    }
+    
+    const duration = Date.now() - startTime;
+    console.log(`✅ SW: Succès periodic sync en ${duration}ms`);
+    
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`❌ SW: Erreur periodic sync après ${duration}ms:`, error);
+    throw error;
+  }
+}
+
+// Notifier le client pour exécuter la synchronisation
+async function notifyClientForSync(tag, isLastChance) {
+  const clients = await self.clients.matchAll();
+  
+  if (clients.length === 0) {
+    return { success: false, error: 'Aucun client actif disponible' };
+  }
+  
+  // Promesse pour attendre la réponse du client
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      resolve({ success: false, error: 'Timeout de synchronisation (30s)' });
+    }, 30000);
+    
+    // Handler pour la réponse
+    const messageHandler = (event) => {
+      if (event.data?.type === 'SYNC_RESPONSE' && event.data.tag === tag) {
+        clearTimeout(timeout);
+        self.removeEventListener('message', messageHandler);
+        resolve(event.data.result);
+      }
+    };
+    
+    self.addEventListener('message', messageHandler);
+    
+    // Envoyer la demande à tous les clients
     clients.forEach(client => {
       client.postMessage({
-        type: 'BACKGROUND_SYNC_AVAILABLE',
+        type: 'BACKGROUND_SYNC_REQUEST',
+        tag,
+        isLastChance,
         timestamp: Date.now()
       });
     });
-  } catch (error) {
-    console.error('Service Worker: Background sync failed', error);
-    throw error;
-  }
+  });
+}
+
+// Notifier le client pour ré-enregistrer un sync abandonné
+async function notifyClientForReregister(tag, error) {
+  const clients = await self.clients.matchAll();
+  
+  clients.forEach(client => {
+    client.postMessage({
+      type: 'SYNC_REREGISTER_REQUEST',
+      originalTag: tag,
+      error,
+      timestamp: Date.now()
+    });
+  });
 }
 
 // Écouter les messages du client avec commandes étendues

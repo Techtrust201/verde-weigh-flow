@@ -10,6 +10,8 @@ import { Upload, CheckCircle, AlertCircle, Wifi, WifiOff, Clock, Settings } from
 import { db, Pesee, UserSettings } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
 import { setupAutoSync, stopAutoSync } from '@/utils/syncScheduler';
+import { backgroundSyncManager } from '@/utils/backgroundSync';
+import { SyncMonitor } from '@/components/ui/sync-monitor';
 
 export default function ComptabiliteSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
@@ -81,50 +83,36 @@ export default function ComptabiliteSpace() {
   };
 
   const handleSyncToSage = async () => {
-    if (!userSettings?.cleAPISage) {
-      toast({
-        title: "Configuration manquante",
-        description: "Veuillez configurer votre clé API Sage dans les paramètres utilisateur.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!isOnline) {
-      toast({
-        title: "Connexion requise",
-        description: "Une connexion internet est nécessaire pour synchroniser avec Sage.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsSyncing(true);
-
+    
     try {
-      // Simulation de l'envoi vers Sage
-      // Dans un vrai projet, ici vous feriez l'appel API vers Sage
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Utiliser le nouveau système de Background Sync robuste
+      const success = await backgroundSyncManager.performManualSync();
+      
+      if (success) {
+        // Recharger les données
+        await loadData();
+        setLastSync(new Date());
 
-      // Marquer les pesées comme synchronisées
-      const pendingPesees = pesees.filter(pesee => !pesee.synchronized);
-      for (const pesee of pendingPesees) {
-        await db.pesees.update(pesee.id!, { synchronized: true });
+        toast({
+          title: "Synchronisation réussie",
+          description: "Les données ont été synchronisées avec Sage.",
+        });
+      } else {
+        toast({
+          title: "Erreur de synchronisation",
+          description: "La synchronisation a échoué. Vérifiez votre configuration et votre connexion.",
+          variant: "destructive",
+        });
       }
-      
-      setLastSync(new Date());
-      loadData(); // Recharger les données
-      
-      toast({
-        title: "Synchronisation réussie",
-        description: `${pendingPesees.length} pesée(s) envoyée(s) vers Sage.`
-      });
+
     } catch (error) {
-      console.error('Error syncing to Sage:', error);
+      console.error('❌ Erreur lors de la synchronisation:', error);
+      
       toast({
         title: "Erreur de synchronisation",
-        description: "Impossible d'envoyer les données vers Sage. Veuillez réessayer.",
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "Une erreur inconnue est survenue.",
+        variant: "destructive",
       });
     } finally {
       setIsSyncing(false);
@@ -294,6 +282,9 @@ export default function ComptabiliteSpace() {
           )}
         </CardContent>
       </Card>
+
+      {/* Nouveau système de monitoring de synchronisation */}
+      <SyncMonitor onManualSync={handleSyncToSage} />
 
       {/* Sync Log */}
       {pendingPesees.length > 0 && (

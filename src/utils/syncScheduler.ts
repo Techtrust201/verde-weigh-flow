@@ -1,28 +1,32 @@
 
 import { db, UserSettings } from '@/lib/database';
+import { backgroundSyncManager } from './backgroundSync';
 
 let syncInterval: NodeJS.Timeout | null = null;
 
-export const setupAutoSync = () => {
+export const setupAutoSync = async () => {
   // Nettoyer l'intervalle existant
   if (syncInterval) {
     clearInterval(syncInterval);
   }
 
-  // Vérifier toutes les minutes si c'est l'heure de synchroniser
+  console.log('🔄 Migration vers le nouveau système de Background Sync');
+  
+  // Le nouveau système utilise Periodic Background Sync natif
+  // Fallback sur vérification horaire si Periodic Sync non supporté
   syncInterval = setInterval(async () => {
     const now = new Date();
     const hours = now.getHours();
     const minutes = now.getMinutes();
 
-    // Synchronisation quotidienne à 17h55
+    // Synchronisation quotidienne à 17h55 (fallback)
     if (hours === 17 && minutes === 55) {
-      console.log('🔄 Déclenchement de la synchronisation automatique quotidienne');
-      await performAutoSync();
+      console.log('🔄 Fallback: Déclenchement de la synchronisation quotidienne');
+      await backgroundSyncManager.performDailySync();
     }
   }, 60000); // Vérifier chaque minute
 
-  console.log('📅 Planificateur de synchronisation automatique activé (17h55 quotidien)');
+  console.log('📅 Système de synchronisation robuste initialisé');
 };
 
 export const stopAutoSync = () => {
