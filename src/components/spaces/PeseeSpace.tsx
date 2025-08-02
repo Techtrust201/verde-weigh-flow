@@ -13,10 +13,17 @@ import { ProductWeightSection } from '@/components/pesee/ProductWeightSection';
 import { RecentPeseesTab } from '@/components/pesee/RecentPeseesTab';
 import { SaveConfirmDialog } from '@/components/pesee/SaveConfirmDialog';
 import { handlePrint, handlePrintBothBonAndInvoice } from '@/utils/peseeUtils';
-
 export default function PeseeSpace() {
-  const { pesees, clients, products, loadData } = usePeseeData();
-  const { transporteurs, loadTransporteurs } = useTransporteurData();
+  const {
+    pesees,
+    clients,
+    products,
+    loadData
+  } = usePeseeData();
+  const {
+    transporteurs,
+    loadTransporteurs
+  } = useTransporteurData();
   const {
     tabs,
     activeTabId,
@@ -28,7 +35,6 @@ export default function PeseeSpace() {
     generateBonNumber,
     getTabLabel
   } = usePeseeTabs();
-
   const [showRecentTab, setShowRecentTab] = useState(false);
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   const [isAddChantierDialogOpen, setIsAddChantierDialogOpen] = useState(false);
@@ -58,9 +64,9 @@ export default function PeseeSpace() {
     telephone: '',
     plaque: ''
   });
-
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const prepareNewClientForm = () => {
     const currentData = getCurrentTabData();
     if (currentData) {
@@ -79,7 +85,6 @@ export default function PeseeSpace() {
     }
     setIsAddClientDialogOpen(true);
   };
-
   const handleAddChantier = async () => {
     const currentData = getCurrentTabData();
     if (!currentData?.clientId || !newChantier.trim()) {
@@ -90,29 +95,28 @@ export default function PeseeSpace() {
       });
       return;
     }
-
     try {
       const client = clients.find(c => c.id === currentData.clientId);
       if (client) {
         const updatedChantiers = [...(client.chantiers || []), newChantier.trim()];
-        await db.clients.update(client.id!, { chantiers: updatedChantiers });
-        
-        updateCurrentTab({ chantier: newChantier.trim() });
+        await db.clients.update(client.id!, {
+          chantiers: updatedChantiers
+        });
+        updateCurrentTab({
+          chantier: newChantier.trim()
+        });
         setNewChantier('');
         setIsAddChantierDialogOpen(false);
-        
         toast({
           title: "Chantier ajouté",
           description: "Le nouveau chantier a été ajouté au client."
         });
-        
         loadData();
       }
     } catch (error) {
       console.error('Error adding chantier:', error);
     }
   };
-
   const handleAddNewClient = async () => {
     try {
       if (newClientForm.typeClient === 'particulier') {
@@ -134,12 +138,9 @@ export default function PeseeSpace() {
           return;
         }
       }
-
       const clientData = {
         ...newClientForm,
-        raisonSociale: newClientForm.typeClient === 'particulier' 
-          ? `${newClientForm.prenom} ${newClientForm.nom}` 
-          : newClientForm.raisonSociale,
+        raisonSociale: newClientForm.typeClient === 'particulier' ? `${newClientForm.prenom} ${newClientForm.nom}` : newClientForm.raisonSociale,
         telephone: newClientForm.telephone || '',
         plaques: newClientForm.plaques || [],
         chantiers: newClientForm.chantiers || [],
@@ -148,9 +149,7 @@ export default function PeseeSpace() {
         createdAt: new Date(),
         updatedAt: new Date()
       } as Client;
-
       const newClientId = await db.clients.add(clientData);
-      
       updateCurrentTab({
         nomEntreprise: clientData.raisonSociale,
         clientId: newClientId as number,
@@ -159,7 +158,6 @@ export default function PeseeSpace() {
         chantier: clientData.chantiers?.[0] || '',
         transporteurId: clientData.transporteurId || 0
       });
-
       setIsAddClientDialogOpen(false);
       setNewClientForm({
         typeClient: 'particulier',
@@ -173,12 +171,10 @@ export default function PeseeSpace() {
         transporteurId: 0,
         tarifsPreferentiels: {}
       });
-      
       toast({
         title: "Client ajouté",
         description: "Le nouveau client a été créé et sélectionné."
       });
-
       loadData();
     } catch (error) {
       console.error('Error adding client:', error);
@@ -189,7 +185,6 @@ export default function PeseeSpace() {
       });
     }
   };
-
   const validateNewClient = (): boolean => {
     if (newClientForm.typeClient === 'particulier') {
       return Boolean(newClientForm.prenom && newClientForm.nom);
@@ -199,14 +194,11 @@ export default function PeseeSpace() {
       return true;
     }
   };
-
   const validateNewTransporteur = (): boolean => {
     return Boolean(newTransporteurForm.prenom && newTransporteurForm.nom);
   };
-
   const handleAddNewTransporteur = async () => {
     if (!validateNewTransporteur()) return;
-
     try {
       const transporteurData = {
         ...newTransporteurForm,
@@ -215,19 +207,18 @@ export default function PeseeSpace() {
         createdAt: new Date(),
         updatedAt: new Date()
       } as Transporteur;
-
       const id = await db.transporteurs.add(transporteurData);
       await loadData();
       await loadTransporteurs();
-      
+
       // Sélectionner le nouveau transporteur
-      updateCurrentTab({ transporteurId: id as number });
-      
+      updateCurrentTab({
+        transporteurId: id as number
+      });
       toast({
         title: "Transporteur créé",
         description: "Le transporteur a été créé et sélectionné avec succès."
       });
-      
       setIsAddTransporteurDialogOpen(false);
       setNewTransporteurForm({
         prenom: '',
@@ -248,12 +239,10 @@ export default function PeseeSpace() {
       });
     }
   };
-
   const handleSaveOnly = async () => {
     await savePesee();
     setIsSaveDialogOpen(false);
   };
-
   const handleSaveAndPrint = async () => {
     const success = await savePesee();
     if (success) {
@@ -264,7 +253,6 @@ export default function PeseeSpace() {
     }
     setIsSaveDialogOpen(false);
   };
-
   const handleSavePrintBonAndInvoice = async () => {
     const success = await savePesee();
     if (success) {
@@ -275,10 +263,8 @@ export default function PeseeSpace() {
     }
     setIsSaveDialogOpen(false);
   };
-
   const savePesee = async (): Promise<boolean> => {
     const currentData = getCurrentTabData();
-    
     try {
       if (!currentData?.numeroBon || !currentData?.plaque || !currentData?.nomEntreprise || !currentData?.produitId) {
         toast({
@@ -288,7 +274,6 @@ export default function PeseeSpace() {
         });
         return false;
       }
-
       const selectedProduct = products.find(p => p.id === currentData.produitId);
       if (!selectedProduct) {
         toast({
@@ -315,10 +300,7 @@ export default function PeseeSpace() {
       // 4. Ce client a un tarif préférentiel pour ce produit spécifique
       if (currentData.clientId) {
         const client = clients.find(c => c.id === currentData.clientId);
-        if (client && 
-            client.tarifsPreferentiels && 
-            client.tarifsPreferentiels[currentData.produitId]) {
-          
+        if (client && client.tarifsPreferentiels && client.tarifsPreferentiels[currentData.produitId]) {
           const tarifPref = client.tarifsPreferentiels[currentData.produitId];
           if (tarifPref.prixHT && tarifPref.prixTTC) {
             prixHT = tarifPref.prixHT;
@@ -327,30 +309,30 @@ export default function PeseeSpace() {
           }
         }
       }
-
       const peseeData: Pesee = {
         ...currentData,
         dateHeure: new Date(),
-        poidsEntree, // déjà en tonnes
-        poidsSortie, // déjà en tonnes
-        net, // déjà en tonnes
+        poidsEntree,
+        // déjà en tonnes
+        poidsSortie,
+        // déjà en tonnes
+        net,
+        // déjà en tonnes
         prixHT: net * prixHT,
         prixTTC: net * prixTTC,
         transporteurId: currentData.transporteurId || undefined,
         typeClient: currentData.typeClient || 'particulier',
         synchronized: false,
-        version: 1, // Version initiale
+        version: 1,
+        // Version initiale
         createdAt: new Date(),
         updatedAt: new Date()
       };
-
       await db.pesees.add(peseeData);
-      
       toast({
         title: "Pesée enregistrée",
         description: `Bon n°${currentData.numeroBon} créé avec succès.`
       });
-
       updateCurrentTab({
         numeroBon: generateBonNumber(),
         moyenPaiement: 'Direct',
@@ -364,7 +346,6 @@ export default function PeseeSpace() {
         transporteurId: 0,
         typeClient: 'particulier'
       });
-
       loadData();
       return true;
     } catch (error) {
@@ -377,13 +358,10 @@ export default function PeseeSpace() {
       return false;
     }
   };
-
   const currentData = getCurrentTabData();
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="fixed top-0 left-64 right-0 bg-white z-50 shadow-lg border-b">
-        <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 bg-white">
           <h1 className="text-2xl font-bold flex items-center text-gray-800">
             <Scale className="h-6 w-6 mr-3 text-blue-600" />
             Station de Pesée
@@ -391,51 +369,30 @@ export default function PeseeSpace() {
         </div>
 
         <div className="px-6 py-3 bg-white">
-          <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
-            if (value === 'recentes') {
-              setShowRecentTab(true);
-            } else {
-              setShowRecentTab(false);
-              setActiveTabId(value);
-            }
-          }}>
+          <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={value => {
+          if (value === 'recentes') {
+            setShowRecentTab(true);
+          } else {
+            setShowRecentTab(false);
+            setActiveTabId(value);
+          }
+        }}>
             <div className="flex items-center justify-between">
               <TabsList className="flex-1 bg-gray-50 h-12">
-                {tabs.map((tab) => (
-                  <TabsTrigger 
-                    key={tab.id} 
-                    value={tab.id} 
-                    className="relative group px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                  >
+                {tabs.map(tab => <TabsTrigger key={tab.id} value={tab.id} className="relative group px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
                     <span className="truncate max-w-32">{getTabLabel(tab.id)}</span>
-                    {tabs.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          closeTab(tab.id);
-                        }}
-                      >
+                    {tabs.length > 1 && <Button variant="ghost" size="sm" className="ml-2 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100" onClick={e => {
+                  e.stopPropagation();
+                  closeTab(tab.id);
+                }}>
                         <X className="h-3 w-3 text-red-500" />
-                      </Button>
-                    )}
-                  </TabsTrigger>
-                ))}
-                <TabsTrigger 
-                  value="recentes"
-                  className="px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                >
+                      </Button>}
+                  </TabsTrigger>)}
+                <TabsTrigger value="recentes" className="px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm">
                   📊 Pesées Récentes
                 </TabsTrigger>
               </TabsList>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={createNewTab}
-                className="ml-4 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
-              >
+              <Button variant="outline" size="sm" onClick={createNewTab} className="ml-4 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200">
                 <Plus className="h-4 w-4 mr-2" />
                 Nouvel onglet
               </Button>
@@ -446,16 +403,15 @@ export default function PeseeSpace() {
 
       <div className="h-32"></div>
 
-      <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
-        if (value === 'recentes') {
-          setShowRecentTab(true);
-        } else {
-          setShowRecentTab(false);
-          setActiveTabId(value);
-        }
-      }}>
-        {tabs.map((tab) => (
-          <TabsContent key={tab.id} value={tab.id}>
+      <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={value => {
+      if (value === 'recentes') {
+        setShowRecentTab(true);
+      } else {
+        setShowRecentTab(false);
+        setActiveTabId(value);
+      }
+    }}>
+        {tabs.map(tab => <TabsContent key={tab.id} value={tab.id}>
             <Card className="shadow-lg">
               <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50">
                 <CardTitle className="text-lg text-gray-800">
@@ -463,76 +419,33 @@ export default function PeseeSpace() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6 p-6">
-                <PeseeFormSection
-                  currentData={tab.formData}
-                  clients={clients}
-                  transporteurs={transporteurs}
-                  updateCurrentTab={updateCurrentTab}
-                  onAddClient={prepareNewClientForm}
-                  isAddClientDialogOpen={isAddClientDialogOpen}
-                  setIsAddClientDialogOpen={setIsAddClientDialogOpen}
-                  newClientForm={newClientForm}
-                  setNewClientForm={setNewClientForm}
-                  handleAddNewClient={handleAddNewClient}
-                  validateNewClient={validateNewClient}
-                  isAddChantierDialogOpen={isAddChantierDialogOpen}
-                  setIsAddChantierDialogOpen={setIsAddChantierDialogOpen}
-                  newChantier={newChantier}
-                  setNewChantier={setNewChantier}
-                  handleAddChantier={handleAddChantier}
-                  isAddTransporteurDialogOpen={isAddTransporteurDialogOpen}
-                  setIsAddTransporteurDialogOpen={setIsAddTransporteurDialogOpen}
-                  newTransporteurForm={newTransporteurForm}
-                  setNewTransporteurForm={setNewTransporteurForm}
-                  handleAddNewTransporteur={handleAddNewTransporteur}
-                  validateNewTransporteur={validateNewTransporteur}
-                />
+                <PeseeFormSection currentData={tab.formData} clients={clients} transporteurs={transporteurs} updateCurrentTab={updateCurrentTab} onAddClient={prepareNewClientForm} isAddClientDialogOpen={isAddClientDialogOpen} setIsAddClientDialogOpen={setIsAddClientDialogOpen} newClientForm={newClientForm} setNewClientForm={setNewClientForm} handleAddNewClient={handleAddNewClient} validateNewClient={validateNewClient} isAddChantierDialogOpen={isAddChantierDialogOpen} setIsAddChantierDialogOpen={setIsAddChantierDialogOpen} newChantier={newChantier} setNewChantier={setNewChantier} handleAddChantier={handleAddChantier} isAddTransporteurDialogOpen={isAddTransporteurDialogOpen} setIsAddTransporteurDialogOpen={setIsAddTransporteurDialogOpen} newTransporteurForm={newTransporteurForm} setNewTransporteurForm={setNewTransporteurForm} handleAddNewTransporteur={handleAddNewTransporteur} validateNewTransporteur={validateNewTransporteur} />
 
-                <ProductWeightSection
-                  currentData={tab.formData}
-                  products={products}
-                  updateCurrentTab={updateCurrentTab}
-                />
+                <ProductWeightSection currentData={tab.formData} products={products} updateCurrentTab={updateCurrentTab} />
 
                 <div className="flex justify-end space-x-3 pt-4 border-t">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      if (tab.formData) {
-                        handlePrint(tab.formData, products, transporteurs, false);
-                      }
-                    }}
-                    className="hover:bg-blue-50"
-                  >
+                  <Button variant="outline" onClick={() => {
+                if (tab.formData) {
+                  handlePrint(tab.formData, products, transporteurs, false);
+                }
+              }} className="hover:bg-blue-50">
                     <Printer className="h-4 w-4 mr-2" />
                     Imprimer
                   </Button>
-                  <Button 
-                    onClick={() => setIsSaveDialogOpen(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
+                  <Button onClick={() => setIsSaveDialogOpen(true)} className="bg-green-600 hover:bg-green-700">
                     <Save className="h-4 w-4 mr-2" />
                     Enregistrer
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        ))}
+          </TabsContent>)}
 
         <TabsContent value="recentes">
           <RecentPeseesTab pesees={pesees} />
         </TabsContent>
       </Tabs>
 
-      <SaveConfirmDialog
-        isOpen={isSaveDialogOpen}
-        onClose={() => setIsSaveDialogOpen(false)}
-        onConfirm={handleSaveOnly}
-        onConfirmAndPrint={handleSaveAndPrint}
-        onConfirmPrintAndInvoice={handleSavePrintBonAndInvoice}
-        moyenPaiement={currentData?.moyenPaiement || 'Direct'}
-      />
-    </div>
-  );
+      <SaveConfirmDialog isOpen={isSaveDialogOpen} onClose={() => setIsSaveDialogOpen(false)} onConfirm={handleSaveOnly} onConfirmAndPrint={handleSaveAndPrint} onConfirmPrintAndInvoice={handleSavePrintBonAndInvoice} moyenPaiement={currentData?.moyenPaiement || 'Direct'} />
+    </div>;
 }
