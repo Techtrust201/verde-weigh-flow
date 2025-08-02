@@ -23,58 +23,72 @@ export const generatePrintContent = (
   const dateStr = now.toLocaleDateString('fr-FR');
   const timeStr = now.toLocaleTimeString('fr-FR');
   
-  const bonContent = `
+  const bonContent = (copyType: string) => `
     <div class="bon">
       <div class="header">
-        <h2>${documentTitle}</h2>
-        <p>N° ${formData.numeroBon}</p>
-        <p>Le ${dateStr} à ${timeStr}</p>
+        <div class="company-info">
+          <div class="company-name">BDV</div>
+          <div class="address">600, chemin de la Levade</div>
+          <div class="address">Les Iscles</div>
+          <div class="address">06550 LA ROQUETTE-SUR-SIAGNE</div>
+          <div class="phone">Tél : 07 85 99 19 99</div>
+        </div>
+        <div class="document-title">
+          <h2>${documentTitle}</h2>
+          <p>N° ${formData.numeroBon}</p>
+          <p>Le ${dateStr} à ${timeStr}</p>
+        </div>
       </div>
-      <div class="row">
-        <span class="label">${clientLabel}:</span>
-        <span>${formData.nomEntreprise}</span>
+      
+      <div class="content">
+        <div class="row">
+          <span class="label">${clientLabel}:</span>
+          <span>${formData.nomEntreprise}</span>
+        </div>
+        <div class="row">
+          <span class="label">Plaque:</span>
+          <span>${formData.plaque}</span>
+        </div>
+        ${selectedTransporteur ? `
+        <div class="row">
+          <span class="label">Transporteur:</span>
+          <span>${selectedTransporteur.prenom} ${selectedTransporteur.nom}</span>
+        </div>
+        ` : ''}
+        ${formData.chantier ? `
+        <div class="row">
+          <span class="label">Chantier:</span>
+          <span>${formData.chantier}</span>
+        </div>
+        ` : ''}
+        <div class="row">
+          <span class="label">Produit:</span>
+          <span>${selectedProduct?.nom || 'Non défini'}</span>
+        </div>
+        <div class="row">
+          <span class="label">Poids Entrée:</span>
+          <span>${poidsEntree.toFixed(3)} tonnes</span>
+        </div>
+        <div class="row">
+          <span class="label">Poids Sortie:</span>
+          <span>${poidsSortie.toFixed(3)} tonnes</span>
+        </div>
+        <div class="row">
+          <span class="label">Poids Net:</span>
+          <span>${net.toFixed(3)} tonnes</span>
+        </div>
+        <div class="row">
+          <span class="label">Paiement:</span>
+          <span>${formData.moyenPaiement}</span>
+        </div>
       </div>
-      <div class="row">
-        <span class="label">Plaque:</span>
-        <span>${formData.plaque}</span>
-      </div>
-      ${selectedTransporteur ? `
-      <div class="row">
-        <span class="label">Transporteur:</span>
-        <span>${selectedTransporteur.prenom} ${selectedTransporteur.nom}</span>
-      </div>
-      ` : ''}
-      ${formData.chantier ? `
-      <div class="row">
-        <span class="label">Chantier:</span>
-        <span>${formData.chantier}</span>
-      </div>
-      ` : ''}
-      <div class="row">
-        <span class="label">Produit:</span>
-        <span>${selectedProduct?.nom || 'Non défini'}</span>
-      </div>
-      <div class="row">
-        <span class="label">Poids Entrée:</span>
-        <span>${poidsEntree.toFixed(3)} tonnes</span>
-      </div>
-      <div class="row">
-        <span class="label">Poids Sortie:</span>
-        <span>${poidsSortie.toFixed(3)} tonnes</span>
-      </div>
-      <div class="row">
-        <span class="label">Poids Net:</span>
-        <span>${net.toFixed(3)} tonnes</span>
-      </div>
-      <div class="row">
-        <span class="label">Paiement:</span>
-        <span>${formData.moyenPaiement}</span>
-      </div>
+      
       <div class="mention-legale">
         <p><strong>Important:</strong> Tous les chauffeurs prenant livraison de matériaux sont tenus de vérifier au passage de la bascule, le poids de leur chargement et de faire le nécessaire en cas de surcharge.</p>
       </div>
+      
       <div class="copy-type">
-        <p>Copie Chauffeur</p>
+        <p>${copyType}</p>
       </div>
     </div>
   `;
@@ -85,40 +99,129 @@ export const generatePrintContent = (
     <head>
       <title>${isInvoice ? 'Facture' : 'Bon de pesée'}</title>
       <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        body { 
+          font-family: Arial, sans-serif; 
+          margin: 0; 
+          padding: 10mm; 
+          background: white;
+        }
+        
         .bon { 
           border: 2px solid #000; 
-          padding: 20px; 
-          margin-bottom: 20px; 
-          width: calc(50% - 40px); 
-          float: left; 
+          padding: 15mm; 
+          margin-bottom: 15mm; 
+          width: calc(100% - 30mm); 
           box-sizing: border-box; 
+          background: white;
+          page-break-after: always;
         }
-        .header { text-align: center; margin-bottom: 20px; }
-        .row { display: flex; justify-content: space-between; margin: 8px 0; }
-        .label { font-weight: bold; }
-        .mention-legale { 
-          background: #f0f0f0; 
-          padding: 10px; 
-          margin-top: 15px; 
-          font-size: 10px; 
+        
+        .bon:last-child {
+          page-break-after: avoid;
+        }
+        
+        .header { 
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px; 
+          border-bottom: 1px solid #ccc;
+          padding-bottom: 15px;
+        }
+        
+        .company-info {
+          text-align: left;
+          font-size: 12px;
+          line-height: 1.4;
+        }
+        
+        .company-name {
+          font-size: 18px;
+          font-weight: bold;
+          margin-bottom: 5px;
+        }
+        
+        .address, .phone {
+          margin-bottom: 2px;
+        }
+        
+        .document-title { 
           text-align: center; 
+          flex-grow: 1;
         }
+        
+        .document-title h2 {
+          font-size: 24px;
+          margin: 0 0 10px 0;
+          font-weight: bold;
+        }
+        
+        .document-title p {
+          margin: 5px 0;
+          font-size: 14px;
+        }
+        
+        .content {
+          margin: 20px 0;
+        }
+        
+        .row { 
+          display: flex; 
+          justify-content: space-between; 
+          margin: 10px 0; 
+          padding: 8px 0;
+          border-bottom: 1px dotted #ccc;
+        }
+        
+        .label { 
+          font-weight: bold; 
+          width: 40%;
+        }
+        
+        .row span:last-child {
+          width: 55%;
+          text-align: right;
+        }
+        
+        .mention-legale { 
+          background: #f8f8f8; 
+          border: 1px solid #ddd;
+          padding: 12px; 
+          margin-top: 20px; 
+          font-size: 10px; 
+          text-align: justify; 
+          line-height: 1.3;
+        }
+        
         .copy-type { 
           text-align: center; 
-          margin-top: 10px; 
+          margin-top: 15px; 
           font-weight: bold; 
-          font-size: 12px; 
+          font-size: 14px;
+          border: 2px solid #000;
+          padding: 8px;
+          background: #f0f0f0;
         }
+        
         @media print { 
-          @page { size: A5 landscape; margin: 10mm; } 
-          body { margin: 0; }
+          @page { 
+            size: A4 portrait; 
+            margin: 10mm; 
+          } 
+          body { 
+            margin: 0; 
+            padding: 0;
+          }
+          .bon {
+            margin-bottom: 10mm;
+            padding: 10mm;
+          }
         }
       </style>
     </head>
     <body>
-      ${bonContent}
-      ${bonContent}
+      ${bonContent('Copie Client')}
+      ${bonContent('Copie BDV')}
     </body>
     </html>
   `;
