@@ -382,51 +382,69 @@ export default function PeseeSpace() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold flex items-center">
-        <Scale className="h-8 w-8 mr-3" />
-        Station de Pesée
-      </h1>
+      <div className="fixed top-0 left-64 right-0 bg-white z-50 shadow-lg border-b">
+        <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+          <h1 className="text-2xl font-bold flex items-center text-gray-800">
+            <Scale className="h-6 w-6 mr-3 text-blue-600" />
+            Station de Pesée
+          </h1>
+        </div>
 
-      <div className="fixed top-0 left-0 right-0 bg-white z-50 shadow-md border-b pb-4 pt-4 px-6">
-        <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
-          if (value === 'recentes') {
-            setShowRecentTab(true);
-          } else {
-            setShowRecentTab(false);
-            setActiveTabId(value);
-          }
-        }}>
-          <div className="flex items-center justify-between">
-            <TabsList className="flex-1">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.id} value={tab.id} className="relative group">
-                  {getTabLabel(tab.id)}
-                  {tabs.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-2 h-4 w-4 p-0 opacity-0 group-hover:opacity-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        closeTab(tab.id);
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
+        <div className="px-6 py-3 bg-white">
+          <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
+            if (value === 'recentes') {
+              setShowRecentTab(true);
+            } else {
+              setShowRecentTab(false);
+              setActiveTabId(value);
+            }
+          }}>
+            <div className="flex items-center justify-between">
+              <TabsList className="flex-1 bg-gray-50 h-12">
+                {tabs.map((tab) => (
+                  <TabsTrigger 
+                    key={tab.id} 
+                    value={tab.id} 
+                    className="relative group px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    <span className="truncate max-w-32">{getTabLabel(tab.id)}</span>
+                    {tabs.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          closeTab(tab.id);
+                        }}
+                      >
+                        <X className="h-3 w-3 text-red-500" />
+                      </Button>
+                    )}
+                  </TabsTrigger>
+                ))}
+                <TabsTrigger 
+                  value="recentes"
+                  className="px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  📊 Pesées Récentes
                 </TabsTrigger>
-              ))}
-              <TabsTrigger value="recentes">Pesées Récentes</TabsTrigger>
-            </TabsList>
-            <Button variant="outline" size="sm" onClick={createNewTab}>
-              <Plus className="h-4 w-4 mr-1" />
-              Nouvel onglet
-            </Button>
-          </div>
-        </Tabs>
+              </TabsList>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={createNewTab}
+                className="ml-4 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvel onglet
+              </Button>
+            </div>
+          </Tabs>
+        </div>
       </div>
 
-      <div className="h-20"></div>
+      <div className="h-32"></div>
 
       <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
         if (value === 'recentes') {
@@ -438,11 +456,13 @@ export default function PeseeSpace() {
       }}>
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Nouvelle Pesée - {tab.label}</CardTitle>
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50">
+                <CardTitle className="text-lg text-gray-800">
+                  Nouvelle Pesée - {getTabLabel(tab.id)}
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 p-6">
                 <PeseeFormSection
                   currentData={tab.formData}
                   clients={clients}
@@ -474,7 +494,7 @@ export default function PeseeSpace() {
                   updateCurrentTab={updateCurrentTab}
                 />
 
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-3 pt-4 border-t">
                   <Button 
                     variant="outline" 
                     onClick={() => {
@@ -482,11 +502,15 @@ export default function PeseeSpace() {
                         handlePrint(tab.formData, products, transporteurs, false);
                       }
                     }}
+                    className="hover:bg-blue-50"
                   >
                     <Printer className="h-4 w-4 mr-2" />
                     Imprimer
                   </Button>
-                  <Button onClick={() => setIsSaveDialogOpen(true)}>
+                  <Button 
+                    onClick={() => setIsSaveDialogOpen(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
                     <Save className="h-4 w-4 mr-2" />
                     Enregistrer
                   </Button>
