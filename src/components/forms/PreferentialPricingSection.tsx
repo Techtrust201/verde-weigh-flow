@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { NumericInput } from '@/components/ui/numeric-input';
@@ -13,8 +12,6 @@ interface PreferentialPricingSectionProps {
   onFormDataChange: (data: Partial<Client>) => void;
   products: Product[];
 }
-
-const TVA_RATE = 0.20; // 20% TVA par défaut
 
 export default function PreferentialPricingSection({ 
   formData, 
@@ -49,13 +46,20 @@ export default function PreferentialPricingSection({
       newTarifs[productId] = {};
     }
 
-    // Calculer automatiquement l'autre prix
+    // Récupérer le produit pour obtenir son taux de TVA spécifique
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    // Utiliser le taux de TVA spécifique au produit
+    const tvaRate = product.tauxTVA / 100; // Convertir le pourcentage en décimal
+
+    // Calculer automatiquement l'autre prix en utilisant le bon taux de TVA
     if (field === 'prixHT') {
       newTarifs[productId].prixHT = value;
-      newTarifs[productId].prixTTC = value * (1 + TVA_RATE);
+      newTarifs[productId].prixTTC = value * (1 + tvaRate);
     } else {
       newTarifs[productId].prixTTC = value;
-      newTarifs[productId].prixHT = value / (1 + TVA_RATE);
+      newTarifs[productId].prixHT = value / (1 + tvaRate);
     }
 
     // Validation
@@ -117,7 +121,7 @@ export default function PreferentialPricingSection({
             <SelectContent>
               {availableProducts.map((product) => (
                 <SelectItem key={product.id} value={product.id!.toString()}>
-                  {product.nom} (Tarif normal: {product.prixTTC.toFixed(2)}€ TTC)
+                  {product.nom} (Tarif normal: {product.prixTTC.toFixed(2)}€ TTC - TVA {product.tauxTVA}%)
                 </SelectItem>
               ))}
             </SelectContent>
@@ -145,7 +149,7 @@ export default function PreferentialPricingSection({
               return (
                 <div key={productId} className={`border rounded-lg p-3 space-y-2 ${hasError ? 'border-red-200 bg-red-50' : ''}`}>
                   <div className="flex justify-between items-center">
-                    <h4 className="font-medium">{product.nom}</h4>
+                    <h4 className="font-medium">{product.nom} (TVA {product.tauxTVA}%)</h4>
                     <Button
                       type="button"
                       variant="outline"
@@ -187,7 +191,7 @@ export default function PreferentialPricingSection({
                         min={0}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Calculé automatiquement (TVA {(TVA_RATE * 100).toFixed(0)}%)
+                        Calculé automatiquement (TVA {product.tauxTVA}%)
                       </p>
                     </div>
                   </div>
