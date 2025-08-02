@@ -173,7 +173,7 @@ export const ProductWeightSection = ({
                   {products.map((product) => (
                     <SelectItem key={product.id} value={product.id!.toString()}>
                       <div className="flex flex-col">
-                        <span>{product.nom}</span>
+                        <span className="text-start">{product.nom}</span>
                         <span className="text-xs text-muted-foreground">
                           {getProductDisplayPrice(product)}
                         </span>
