@@ -363,7 +363,7 @@ export default function PeseeSpace() {
       <div className="fixed top-0 left-64 right-0 bg-white z-50 shadow-lg border-b">
         <div className="px-6 py-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50 bg-white">
           <h1 className="text-2xl font-bold flex items-center text-gray-800">
-            <Scale className="h-6 w-6 mr-3 text-blue-600" />
+            <Scale className="h-6 w-6 mr-3 text-black" />
             Station de Pesée
           </h1>
         </div>
