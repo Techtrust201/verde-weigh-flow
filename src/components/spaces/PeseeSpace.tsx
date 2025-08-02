@@ -387,7 +387,8 @@ export default function PeseeSpace() {
         Station de Pesée
       </h1>
 
-      <div className="sticky top-0 bg-white z-50 shadow-md border-b pb-4">
+      {/* Barre d'onglets sticky */}
+      <div className="sticky top-0 bg-white z-50 shadow-md border-b border-gray-200">
         <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
           if (value === 'recentes') {
             setShowRecentTab(true);
@@ -396,8 +397,8 @@ export default function PeseeSpace() {
             setActiveTabId(value);
           }
         }}>
-          <div className="flex items-center justify-between">
-            <TabsList className="flex-1">
+          <div className="flex items-center justify-between p-4">
+            <TabsList className="flex-1 bg-gray-100">
               {tabs.map((tab) => (
                 <TabsTrigger key={tab.id} value={tab.id} className="relative group">
                   {getTabLabel(tab.id)}
@@ -418,7 +419,7 @@ export default function PeseeSpace() {
               ))}
               <TabsTrigger value="recentes">Pesées Récentes</TabsTrigger>
             </TabsList>
-            <Button variant="outline" size="sm" onClick={createNewTab}>
+            <Button variant="outline" size="sm" onClick={createNewTab} className="ml-4">
               <Plus className="h-4 w-4 mr-1" />
               Nouvel onglet
             </Button>
@@ -426,6 +427,7 @@ export default function PeseeSpace() {
         </Tabs>
       </div>
 
+      {/* Contenu des onglets */}
       <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
         if (value === 'recentes') {
           setShowRecentTab(true);
