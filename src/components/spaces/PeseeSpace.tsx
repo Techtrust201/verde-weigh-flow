@@ -392,7 +392,7 @@ export default function PeseeSpace() {
                   📊 Pesées Récentes
                 </TabsTrigger>
               </TabsList>
-              <Button variant="outline" size="sm" onClick={createNewTab} className="ml-4 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200">
+              <Button variant="outline" size="sm" onClick={createNewTab} className="ml-4 border-blue-200 text-black bg-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Nouvel onglet
               </Button>
