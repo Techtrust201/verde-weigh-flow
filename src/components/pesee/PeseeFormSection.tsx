@@ -499,6 +499,22 @@ export const PeseeFormSection = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         <div>
+          <Label htmlFor="nomEntreprise">{getEntrepriseLabel()}</Label>
+          <Input
+            id="nomEntreprise"
+            className=" placeholder:text-black"
+            value={currentData?.nomEntreprise || ""}
+            onChange={(e) =>
+              updateCurrentTab({ nomEntreprise: e.target.value })
+            }
+            placeholder={
+              currentData?.typeClient === "particulier"
+                ? "Nom du particulier..."
+                : "Nom de l'entreprise..."
+            }
+          />
+        </div>
+        <div>
           <Label htmlFor="plaque">Plaque *</Label>
           <Combobox
             options={(() => {
@@ -522,24 +538,6 @@ export const PeseeFormSection = ({
             emptyText="Aucune plaque trouvée. Vous pouvez saisir directement."
           />
         </div>
-
-        <div>
-          <Label htmlFor="nomEntreprise">{getEntrepriseLabel()}</Label>
-          <Input
-            id="nomEntreprise"
-            className=" placeholder:text-black"
-            value={currentData?.nomEntreprise || ""}
-            onChange={(e) =>
-              updateCurrentTab({ nomEntreprise: e.target.value })
-            }
-            placeholder={
-              currentData?.typeClient === "particulier"
-                ? "Nom du particulier..."
-                : "Nom de l'entreprise..."
-            }
-          />
-        </div>
-
         <div>
           <Label htmlFor="chantier">Chantier</Label>
           <div className="flex gap-2">
