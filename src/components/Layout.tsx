@@ -65,9 +65,9 @@ export default function Layout({ children, currentSpace, onSpaceChange }: Layout
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
+      {/* Sidebar - Now sticky */}
       <div className={cn(
-        "bg-white shadow-lg transition-all duration-300 flex flex-col shrink-0",
+        "bg-white shadow-lg transition-all duration-300 flex flex-col shrink-0 sticky top-0 h-screen",
         sidebarOpen ? "w-64" : "w-16"
       )}>
         <div className="p-4 border-b min-h-[73px] flex items-center">
@@ -89,7 +89,7 @@ export default function Layout({ children, currentSpace, onSpaceChange }: Layout
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {spaces.map((space) => {
             const Icon = space.icon;
             return (
@@ -128,8 +128,8 @@ export default function Layout({ children, currentSpace, onSpaceChange }: Layout
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <main className="flex-1 p-6">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 p-6 overflow-y-auto">
           {children}
         </main>
       </div>

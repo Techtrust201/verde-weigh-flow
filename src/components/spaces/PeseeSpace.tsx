@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -388,6 +387,45 @@ export default function PeseeSpace() {
         Station de Pesée
       </h1>
 
+      <div className="sticky top-0 bg-gray-50 z-10 pb-4">
+        <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
+          if (value === 'recentes') {
+            setShowRecentTab(true);
+          } else {
+            setShowRecentTab(false);
+            setActiveTabId(value);
+          }
+        }}>
+          <div className="flex items-center justify-between">
+            <TabsList className="flex-1">
+              {tabs.map((tab) => (
+                <TabsTrigger key={tab.id} value={tab.id} className="relative group">
+                  {getTabLabel(tab.id)}
+                  {tabs.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 h-4 w-4 p-0 opacity-0 group-hover:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeTab(tab.id);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value="recentes">Pesées Récentes</TabsTrigger>
+            </TabsList>
+            <Button variant="outline" size="sm" onClick={createNewTab}>
+              <Plus className="h-4 w-4 mr-1" />
+              Nouvel onglet
+            </Button>
+          </div>
+        </Tabs>
+      </div>
+
       <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
         if (value === 'recentes') {
           setShowRecentTab(true);
@@ -396,34 +434,6 @@ export default function PeseeSpace() {
           setActiveTabId(value);
         }
       }}>
-        <div className="flex items-center justify-between">
-          <TabsList className="flex-1">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className="relative group">
-                {getTabLabel(tab.id)}
-                {tabs.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-2 h-4 w-4 p-0 opacity-0 group-hover:opacity-100"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      closeTab(tab.id);
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </TabsTrigger>
-            ))}
-            <TabsTrigger value="recentes">Pesées Récentes</TabsTrigger>
-          </TabsList>
-          <Button variant="outline" size="sm" onClick={createNewTab}>
-            <Plus className="h-4 w-4 mr-1" />
-            Nouvel onglet
-          </Button>
-        </div>
-
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id}>
             <Card>
