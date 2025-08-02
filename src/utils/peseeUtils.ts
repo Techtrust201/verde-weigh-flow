@@ -119,29 +119,29 @@ export const generatePrintContent = (
           flex-direction: column;
           align-items: center;
           justify-content: space-around;
-          padding: 5mm 0;
+          padding: 3mm 0;
           box-sizing: border-box;
         }
         
         .bon { 
           border: 2px solid #000; 
-          padding: 8mm; 
-          width: 140mm;
-          height: 125mm;
+          padding: 5mm; 
+          width: 120mm;
+          height: 115mm;
           box-sizing: border-box; 
           background: white;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          margin: 2.5mm 0;
+          margin: 1mm 0;
         }
         
         /* Ligne de coupe en pointillés entre les deux bons */
         .cut-line {
-          width: 180mm;
+          width: 160mm;
           height: 1px;
           border-top: 2px dashed #999;
-          margin: 5mm 0;
+          margin: 3mm 0;
           position: relative;
         }
         
@@ -149,11 +149,11 @@ export const generatePrintContent = (
           content: "✂ DÉCOUPER ICI ✂";
           position: absolute;
           left: 50%;
-          top: -8px;
+          top: -7px;
           transform: translateX(-50%);
           background: white;
-          padding: 0 10px;
-          font-size: 10px;
+          padding: 0 8px;
+          font-size: 9px;
           color: #666;
           font-weight: bold;
         }
@@ -162,26 +162,26 @@ export const generatePrintContent = (
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 8mm; 
+          margin-bottom: 5mm; 
           border-bottom: 1px solid #ccc;
-          padding-bottom: 6mm;
+          padding-bottom: 4mm;
         }
         
         .company-info {
           text-align: left;
-          font-size: 11px;
-          line-height: 1.3;
-          width: 60mm;
+          font-size: 9px;
+          line-height: 1.2;
+          width: 50mm;
         }
         
         .company-name {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: bold;
-          margin-bottom: 3mm;
+          margin-bottom: 2mm;
         }
         
         .address, .phone {
-          margin-bottom: 1mm;
+          margin-bottom: 0.5mm;
         }
         
         .document-title { 
@@ -190,28 +190,28 @@ export const generatePrintContent = (
         }
         
         .document-title h2 {
-          font-size: 18px;
-          margin: 0 0 4mm 0;
+          font-size: 14px;
+          margin: 0 0 3mm 0;
           font-weight: bold;
         }
         
         .document-title p {
-          margin: 2mm 0;
-          font-size: 12px;
+          margin: 1mm 0;
+          font-size: 10px;
         }
         
         .content {
           flex-grow: 1;
-          margin: 6mm 0;
+          margin: 4mm 0;
         }
         
         .row { 
           display: flex; 
           justify-content: space-between; 
-          margin: 3mm 0; 
-          padding: 2mm 0;
+          margin: 2mm 0; 
+          padding: 1mm 0;
           border-bottom: 1px dotted #ccc;
-          font-size: 11px;
+          font-size: 9px;
         }
         
         .label { 
@@ -227,20 +227,20 @@ export const generatePrintContent = (
         .mention-legale { 
           background: #f8f8f8; 
           border: 1px solid #ddd;
-          padding: 4mm; 
-          margin: 4mm 0; 
-          font-size: 9px; 
+          padding: 3mm; 
+          margin: 3mm 0; 
+          font-size: 7px; 
           text-align: justify; 
-          line-height: 1.2;
+          line-height: 1.1;
         }
         
         .copy-type { 
           text-align: center; 
-          margin-top: 4mm; 
+          margin-top: 3mm; 
           font-weight: bold; 
-          font-size: 12px;
+          font-size: 10px;
           border: 2px solid #000;
-          padding: 3mm;
+          padding: 2mm;
           background: #f0f0f0;
         }
         
