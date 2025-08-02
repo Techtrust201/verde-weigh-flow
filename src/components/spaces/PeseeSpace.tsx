@@ -387,7 +387,7 @@ export default function PeseeSpace() {
         Station de Pesée
       </h1>
 
-      <div className="sticky top-0 bg-gray-50 z-10 pb-4">
+      <div className="fixed top-0 left-0 right-0 bg-white z-50 shadow-md border-b pb-4 pt-4 px-6">
         <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
           if (value === 'recentes') {
             setShowRecentTab(true);
@@ -425,6 +425,8 @@ export default function PeseeSpace() {
           </div>
         </Tabs>
       </div>
+
+      <div className="h-20"></div>
 
       <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={(value) => {
         if (value === 'recentes') {
