@@ -401,7 +401,7 @@ export default function PeseeSpace() {
         </div>
       </div>
 
-      <div className="h-32"></div>
+      <div className="h-32 bg-transparent"></div>
 
       <Tabs value={showRecentTab ? 'recentes' : activeTabId} onValueChange={value => {
       if (value === 'recentes') {
