@@ -1,4 +1,3 @@
-
 import { Product, Transporteur } from '@/lib/database';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 
@@ -109,7 +108,7 @@ export const generatePrintContent = (
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
         }
         
         .print-container {
@@ -118,8 +117,8 @@ export const generatePrintContent = (
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: space-around;
-          padding: 3mm 0;
+          justify-content: flex-start;
+          padding: 10mm 0;
           box-sizing: border-box;
         }
         
@@ -133,29 +132,7 @@ export const generatePrintContent = (
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          margin: 1mm 0;
-        }
-        
-        /* Ligne de coupe en pointillés entre les deux bons */
-        .cut-line {
-          width: 160mm;
-          height: 1px;
-          border-top: 2px dashed #999;
-          margin: 3mm 0;
-          position: relative;
-        }
-        
-        .cut-line::before {
-          content: "✂ DÉCOUPER ICI ✂";
-          position: absolute;
-          left: 50%;
-          top: -7px;
-          transform: translateX(-50%);
-          background: white;
-          padding: 0 8px;
-          font-size: 9px;
-          color: #666;
-          font-weight: bold;
+          margin: 5mm 0;
         }
         
         .header { 
@@ -258,17 +235,12 @@ export const generatePrintContent = (
           .print-container {
             page-break-inside: avoid;
           }
-          .cut-line {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
         }
       </style>
     </head>
     <body>
       <div class="print-container">
         ${bonContent('Copie Client')}
-        <div class="cut-line"></div>
         ${bonContent('Copie BDV')}
       </div>
     </body>
