@@ -102,47 +102,86 @@ export const generatePrintContent = (
         body { 
           font-family: Arial, sans-serif; 
           margin: 0; 
-          padding: 10mm; 
+          padding: 0; 
           background: white;
+          width: 210mm;
+          height: 297mm;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .print-container {
+          width: 210mm;
+          height: 297mm;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-around;
+          padding: 5mm 0;
+          box-sizing: border-box;
         }
         
         .bon { 
           border: 2px solid #000; 
-          padding: 15mm; 
-          margin-bottom: 15mm; 
-          width: calc(100% - 30mm); 
+          padding: 8mm; 
+          width: 140mm;
+          height: 125mm;
           box-sizing: border-box; 
           background: white;
-          page-break-after: always;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          margin: 2.5mm 0;
         }
         
-        .bon:last-child {
-          page-break-after: avoid;
+        /* Ligne de coupe en pointillés entre les deux bons */
+        .cut-line {
+          width: 180mm;
+          height: 1px;
+          border-top: 2px dashed #999;
+          margin: 5mm 0;
+          position: relative;
+        }
+        
+        .cut-line::before {
+          content: "✂ DÉCOUPER ICI ✂";
+          position: absolute;
+          left: 50%;
+          top: -8px;
+          transform: translateX(-50%);
+          background: white;
+          padding: 0 10px;
+          font-size: 10px;
+          color: #666;
+          font-weight: bold;
         }
         
         .header { 
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 20px; 
+          margin-bottom: 8mm; 
           border-bottom: 1px solid #ccc;
-          padding-bottom: 15px;
+          padding-bottom: 6mm;
         }
         
         .company-info {
           text-align: left;
-          font-size: 12px;
-          line-height: 1.4;
+          font-size: 11px;
+          line-height: 1.3;
+          width: 60mm;
         }
         
         .company-name {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: bold;
-          margin-bottom: 5px;
+          margin-bottom: 3mm;
         }
         
         .address, .phone {
-          margin-bottom: 2px;
+          margin-bottom: 1mm;
         }
         
         .document-title { 
@@ -151,77 +190,87 @@ export const generatePrintContent = (
         }
         
         .document-title h2 {
-          font-size: 24px;
-          margin: 0 0 10px 0;
+          font-size: 18px;
+          margin: 0 0 4mm 0;
           font-weight: bold;
         }
         
         .document-title p {
-          margin: 5px 0;
-          font-size: 14px;
+          margin: 2mm 0;
+          font-size: 12px;
         }
         
         .content {
-          margin: 20px 0;
+          flex-grow: 1;
+          margin: 6mm 0;
         }
         
         .row { 
           display: flex; 
           justify-content: space-between; 
-          margin: 10px 0; 
-          padding: 8px 0;
+          margin: 3mm 0; 
+          padding: 2mm 0;
           border-bottom: 1px dotted #ccc;
+          font-size: 11px;
         }
         
         .label { 
           font-weight: bold; 
-          width: 40%;
+          width: 45%;
         }
         
         .row span:last-child {
-          width: 55%;
+          width: 50%;
           text-align: right;
         }
         
         .mention-legale { 
           background: #f8f8f8; 
           border: 1px solid #ddd;
-          padding: 12px; 
-          margin-top: 20px; 
-          font-size: 10px; 
+          padding: 4mm; 
+          margin: 4mm 0; 
+          font-size: 9px; 
           text-align: justify; 
-          line-height: 1.3;
+          line-height: 1.2;
         }
         
         .copy-type { 
           text-align: center; 
-          margin-top: 15px; 
+          margin-top: 4mm; 
           font-weight: bold; 
-          font-size: 14px;
+          font-size: 12px;
           border: 2px solid #000;
-          padding: 8px;
+          padding: 3mm;
           background: #f0f0f0;
         }
         
         @media print { 
           @page { 
             size: A4 portrait; 
-            margin: 10mm; 
+            margin: 0; 
           } 
           body { 
             margin: 0; 
             padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          .bon {
-            margin-bottom: 10mm;
-            padding: 10mm;
+          .print-container {
+            page-break-inside: avoid;
+          }
+          .cut-line {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
           }
         }
       </style>
     </head>
     <body>
-      ${bonContent('Copie Client')}
-      ${bonContent('Copie BDV')}
+      <div class="print-container">
+        ${bonContent('Copie Client')}
+        <div class="cut-line"></div>
+        ${bonContent('Copie BDV')}
+      </div>
     </body>
     </html>
   `;
