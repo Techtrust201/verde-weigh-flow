@@ -1,27 +1,30 @@
-import { Product, Transporteur } from '@/lib/database';
-import { PeseeTab } from '@/hooks/usePeseeTabs';
+import { Product, Transporteur } from "@/lib/database";
+import { PeseeTab } from "@/hooks/usePeseeTabs";
 
 export const generatePrintContent = (
-  formData: PeseeTab['formData'], 
-  products: Product[], 
-  transporteurs: Transporteur[], 
+  formData: PeseeTab["formData"],
+  products: Product[],
+  transporteurs: Transporteur[],
   isInvoice = false
 ) => {
-  const selectedProduct = products.find(p => p.id === formData.produitId);
-  const selectedTransporteur = transporteurs.find(t => t.id === formData.transporteurId);
-  
+  const selectedProduct = products.find((p) => p.id === formData.produitId);
+  const selectedTransporteur = transporteurs.find(
+    (t) => t.id === formData.transporteurId
+  );
+
   // Les poids sont déjà en tonnes
-  const poidsEntree = parseFloat(formData.poidsEntree.replace(',', '.')) || 0;
-  const poidsSortie = parseFloat(formData.poidsSortie.replace(',', '.')) || 0;
+  const poidsEntree = parseFloat(formData.poidsEntree.replace(",", ".")) || 0;
+  const poidsSortie = parseFloat(formData.poidsSortie.replace(",", ".")) || 0;
   const net = Math.abs(poidsEntree - poidsSortie);
-  
-  const clientLabel = formData.typeClient === 'particulier' ? 'Client' : 'Entreprise';
-  const documentTitle = isInvoice ? 'FACTURE' : 'BON DE PESÉE';
-  
+
+  const clientLabel =
+    formData.typeClient === "particulier" ? "Client" : "Entreprise";
+  const documentTitle = isInvoice ? "FACTURE" : "BON DE PESÉE";
+
   const now = new Date();
-  const dateStr = now.toLocaleDateString('fr-FR');
-  const timeStr = now.toLocaleTimeString('fr-FR');
-  
+  const dateStr = now.toLocaleDateString("fr-FR");
+  const timeStr = now.toLocaleTimeString("fr-FR");
+
   const bonContent = (copyType: string) => `
     <div class="bon">
       <div class="header">
@@ -48,21 +51,29 @@ export const generatePrintContent = (
           <span class="label">Plaque:</span>
           <span>${formData.plaque}</span>
         </div>
-        ${selectedTransporteur ? `
+        ${
+          selectedTransporteur
+            ? `
         <div class="row">
           <span class="label">Transporteur:</span>
           <span>${selectedTransporteur.prenom} ${selectedTransporteur.nom}</span>
         </div>
-        ` : ''}
-        ${formData.chantier ? `
+        `
+            : ""
+        }
+        ${
+          formData.chantier
+            ? `
         <div class="row">
           <span class="label">Chantier:</span>
           <span>${formData.chantier}</span>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
         <div class="row">
           <span class="label">Produit:</span>
-          <span>${selectedProduct?.nom || 'Non défini'}</span>
+          <span>${selectedProduct?.nom || "Non défini"}</span>
         </div>
         <div class="row">
           <span class="label">Poids Entrée:</span>
@@ -91,12 +102,12 @@ export const generatePrintContent = (
       </div>
     </div>
   `;
-  
+
   return `
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${isInvoice ? 'Facture' : 'Bon de pesée'}</title>
+      <title>${isInvoice ? "Facture" : "Bon de pesée"}</title>
       <style>
         body { 
           font-family: Arial, sans-serif; 
@@ -118,7 +129,6 @@ export const generatePrintContent = (
           flex-direction: column;
           align-items: center;
           justify-content: flex-start;
-          padding: 10mm 0;
           box-sizing: border-box;
         }
         
@@ -126,13 +136,13 @@ export const generatePrintContent = (
           border: 2px solid #000; 
           padding: 5mm; 
           width: 120mm;
-          height: 115mm;
+          height: 140mm;
           box-sizing: border-box; 
           background: white;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          margin: 5mm 0;
+          margin: 3mm 0 5mm 0;
         }
         
         .header { 
@@ -240,8 +250,8 @@ export const generatePrintContent = (
     </head>
     <body>
       <div class="print-container">
-        ${bonContent('Copie Client')}
-        ${bonContent('Copie BDV')}
+        ${bonContent("Copie Client")}
+        ${bonContent("Copie BDV")}
       </div>
     </body>
     </html>
@@ -249,14 +259,19 @@ export const generatePrintContent = (
 };
 
 export const handlePrint = (
-  formData: PeseeTab['formData'], 
-  products: Product[], 
-  transporteurs: Transporteur[], 
+  formData: PeseeTab["formData"],
+  products: Product[],
+  transporteurs: Transporteur[],
   isInvoice = false
 ) => {
-  const printContent = generatePrintContent(formData, products, transporteurs, isInvoice);
-  
-  const printWindow = window.open('', '_blank');
+  const printContent = generatePrintContent(
+    formData,
+    products,
+    transporteurs,
+    isInvoice
+  );
+
+  const printWindow = window.open("", "_blank");
   if (printWindow) {
     printWindow.document.write(printContent);
     printWindow.document.close();
@@ -265,13 +280,13 @@ export const handlePrint = (
 };
 
 export const handlePrintBothBonAndInvoice = (
-  formData: PeseeTab['formData'], 
-  products: Product[], 
+  formData: PeseeTab["formData"],
+  products: Product[],
   transporteurs: Transporteur[]
 ) => {
   // Imprimer le bon
   handlePrint(formData, products, transporteurs, false);
-  
+
   // Attendre un peu puis imprimer la facture
   setTimeout(() => {
     handlePrint(formData, products, transporteurs, true);
