@@ -25,11 +25,15 @@ export default function PreferentialPricingSection({
     if (!selectedProductId) return;
     
     const productId = parseInt(selectedProductId);
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    // Initialiser avec les prix normaux du produit pour éviter les erreurs d'affichage
     const newTarifs = {
       ...formData.tarifsPreferentiels,
       [productId]: {
-        prixHT: 0,
-        prixTTC: 0
+        prixHT: product.prixHT,
+        prixTTC: product.prixTTC
       }
     };
 
