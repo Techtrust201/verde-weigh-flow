@@ -29,11 +29,12 @@ export default function PreferentialPricingSection({
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
+    const tvaRate = product.tauxTVA / 100;
     const newTarifs = {
       ...formData.tarifsPreferentiels,
       [productId]: {
-        prixHT: product.prixHT, // Initialiser avec le prix normal du produit
-        prixTTC: product.prixTTC // Initialiser avec le prix TTC normal
+        prixHT: product.prixHT,
+        prixTTC: product.prixHT * (1 + tvaRate) // Calculer le TTC avec le bon taux de TVA
       }
     };
 
