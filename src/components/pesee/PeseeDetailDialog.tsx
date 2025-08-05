@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -43,8 +42,6 @@ export const PeseeDetailDialog = ({
     poidsSortie: pesee.poidsSortie.toString(),
     moyenPaiement: pesee.moyenPaiement as 'Direct' | 'En compte',
     typeClient: pesee.typeClient,
-    prixHT: pesee.prixHT,
-    prixTTC: pesee.prixTTC,
     clientId: pesee.clientId || 0
   };
 
