@@ -1,20 +1,24 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Download, FileText, Calendar } from 'lucide-react';
-import { db, Pesee } from '@/lib/database';
+import { Download, FileText, Calendar, Eye } from 'lucide-react';
+import { db, Pesee, Product, Transporteur } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
+import { PeseeDetailDialog } from '@/components/pesee/PeseeDetailDialog';
 
 export default function HistoriqueSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [transporteurs, setTransporteurs] = useState<Transporteur[]>([]);
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
+  const [selectedPesee, setSelectedPesee] = useState<Pesee | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -24,12 +28,26 @@ export default function HistoriqueSpace() {
     setDateDebut(lastMonth.toISOString().split('T')[0]);
     setDateFin(now.toISOString().split('T')[0]);
     
-    loadPesees();
+    loadData();
   }, []);
 
   useEffect(() => {
     loadPesees();
   }, [dateDebut, dateFin]);
+
+  const loadData = async () => {
+    try {
+      const [productsData, transporteursData] = await Promise.all([
+        db.products.toArray(),
+        db.transporteurs.toArray()
+      ]);
+      setProducts(productsData);
+      setTransporteurs(transporteursData);
+      loadPesees();
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  };
 
   const loadPesees = async () => {
     try {
@@ -50,6 +68,11 @@ export default function HistoriqueSpace() {
     } catch (error) {
       console.error('Error loading pesees:', error);
     }
+  };
+
+  const handleViewDetails = (pesee: Pesee) => {
+    setSelectedPesee(pesee);
+    setIsDetailDialogOpen(true);
   };
 
   const exportToCSV = async () => {
@@ -170,7 +193,7 @@ export default function HistoriqueSpace() {
         {currentPesees.map((pesee) => (
           <Card key={pesee.id}>
             <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                 <div>
                   <div className="font-semibold">{pesee.numeroBon}</div>
                   <div className="text-sm text-gray-600">
@@ -190,7 +213,7 @@ export default function HistoriqueSpace() {
                     {pesee.moyenPaiement}
                   </div>
                 </div>
-                <div className="text-right">
+                <div>
                   {pesee.prixHT && (
                     <div className="font-medium text-green-600">
                       {pesee.prixHT.toFixed(2)}€ HT
@@ -201,6 +224,16 @@ export default function HistoriqueSpace() {
                       {pesee.prixTTC.toFixed(2)}€ TTC
                     </div>
                   )}
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    onClick={() => handleViewDetails(pesee)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Détails
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -230,6 +263,15 @@ export default function HistoriqueSpace() {
           </Button>
         </div>
       )}
+
+      {/* Dialog des détails */}
+      <PeseeDetailDialog
+        isOpen={isDetailDialogOpen}
+        onClose={() => setIsDetailDialogOpen(false)}
+        pesee={selectedPesee}
+        products={products}
+        transporteurs={transporteurs}
+      />
     </div>
   );
 }
