@@ -34,12 +34,14 @@ export const SaveConfirmDialog = ({
               <Printer className="h-4 w-4 mr-2" />
               Imprimer le bon de pesée
             </Button>
-            <Button onClick={onConfirm} variant="outline">
-              <Save className="h-4 w-4 mr-2" />
-              <FileText className="h-4 w-4 mr-2" />
-              Imprimer la facture
-            </Button>
-            {onConfirmPrintAndInvoice && (
+            {moyenPaiement === 'Direct' && (
+              <Button onClick={onConfirm} variant="outline">
+                <Save className="h-4 w-4 mr-2" />
+                <FileText className="h-4 w-4 mr-2" />
+                Imprimer la facture
+              </Button>
+            )}
+            {moyenPaiement === 'Direct' && onConfirmPrintAndInvoice && (
               <Button onClick={onConfirmPrintAndInvoice} variant="secondary">
                 <Save className="h-4 w-4 mr-2" />
                 <Printer className="h-4 w-4 mr-2" />
