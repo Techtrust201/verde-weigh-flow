@@ -41,10 +41,11 @@ export const PeseeDetailDialog = ({
     transporteurId: pesee.transporteurId,
     poidsEntree: pesee.poidsEntree.toString(),
     poidsSortie: pesee.poidsSortie.toString(),
-    moyenPaiement: pesee.moyenPaiement,
+    moyenPaiement: pesee.moyenPaiement as 'Direct' | 'En compte',
     typeClient: pesee.typeClient,
     prixHT: pesee.prixHT,
-    prixTTC: pesee.prixTTC
+    prixTTC: pesee.prixTTC,
+    clientId: pesee.clientId || 0
   };
 
   const handlePrintBon = async () => {
