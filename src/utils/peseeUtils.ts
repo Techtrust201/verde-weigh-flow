@@ -1,12 +1,21 @@
-import { Product, Transporteur } from "@/lib/database";
+
+import { Product, Transporteur, Client } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
+import { generateInvoiceContent } from "./invoiceUtils";
 
 export const generatePrintContent = (
   formData: PeseeTab["formData"],
   products: Product[],
   transporteurs: Transporteur[],
-  isInvoice = false
+  isInvoice = false,
+  client: Client | null = null
 ) => {
+  // Si c'est une facture, utiliser la nouvelle fonction
+  if (isInvoice) {
+    return generateInvoiceContent(formData, products, transporteurs, client);
+  }
+
+  // Garder le code existant pour les bons de pesée
   const selectedProduct = products.find((p) => p.id === formData.produitId);
   const selectedTransporteur = transporteurs.find(
     (t) => t.id === formData.transporteurId
@@ -19,7 +28,7 @@ export const generatePrintContent = (
 
   const clientLabel =
     formData.typeClient === "particulier" ? "Client" : "Entreprise";
-  const documentTitle = isInvoice ? "FACTURE" : "BON DE PESÉE";
+  const documentTitle = "BON DE PESÉE";
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR");
@@ -107,7 +116,7 @@ export const generatePrintContent = (
     <!DOCTYPE html>
     <html>
     <head>
-      <title>${isInvoice ? "Facture" : "Bon de pesée"}</title>
+      <title>Bon de pesée</title>
       <style>
         body { 
           font-family: Arial, sans-serif; 
@@ -262,13 +271,15 @@ export const handlePrint = (
   formData: PeseeTab["formData"],
   products: Product[],
   transporteurs: Transporteur[],
-  isInvoice = false
+  isInvoice = false,
+  client: Client | null = null
 ) => {
   const printContent = generatePrintContent(
     formData,
     products,
     transporteurs,
-    isInvoice
+    isInvoice,
+    client
   );
 
   const printWindow = window.open("", "_blank");
@@ -282,13 +293,14 @@ export const handlePrint = (
 export const handlePrintBothBonAndInvoice = (
   formData: PeseeTab["formData"],
   products: Product[],
-  transporteurs: Transporteur[]
+  transporteurs: Transporteur[],
+  client: Client | null = null
 ) => {
   // Imprimer le bon
-  handlePrint(formData, products, transporteurs, false);
+  handlePrint(formData, products, transporteurs, false, client);
 
   // Attendre un peu puis imprimer la facture
   setTimeout(() => {
-    handlePrint(formData, products, transporteurs, true);
+    handlePrint(formData, products, transporteurs, true, client);
   }, 1000);
 };

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Printer, FileText, Calendar, User, Truck, Package, Weight } from 'lucide-react';
-import { Pesee, Product, Transporteur } from '@/lib/database';
+import { Pesee, Product, Transporteur, Client, db } from '@/lib/database';
 import { handlePrint, handlePrintBothBonAndInvoice } from '@/utils/peseeUtils';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 
@@ -24,6 +25,28 @@ export const PeseeDetailDialog = ({
   transporteurs
 }: PeseeDetailDialogProps) => {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [client, setClient] = useState<Client | null>(null);
+
+  // Charger les données du client quand la pesée change
+  useEffect(() => {
+    const loadClient = async () => {
+      if (pesee?.clientId) {
+        try {
+          const clientData = await db.clients.get(pesee.clientId);
+          setClient(clientData || null);
+        } catch (error) {
+          console.error('Error loading client:', error);
+          setClient(null);
+        }
+      } else {
+        setClient(null);
+      }
+    };
+
+    if (isOpen && pesee) {
+      loadClient();
+    }
+  }, [pesee, isOpen]);
 
   if (!pesee) return null;
 
@@ -48,7 +71,7 @@ export const PeseeDetailDialog = ({
   const handlePrintBon = async () => {
     setIsPrinting(true);
     try {
-      await handlePrint(formDataForPrint, products, transporteurs, false);
+      await handlePrint(formDataForPrint, products, transporteurs, false, client);
     } finally {
       setIsPrinting(false);
     }
@@ -57,7 +80,7 @@ export const PeseeDetailDialog = ({
   const handlePrintFacture = async () => {
     setIsPrinting(true);
     try {
-      await handlePrint(formDataForPrint, products, transporteurs, true);
+      await handlePrint(formDataForPrint, products, transporteurs, true, client);
     } finally {
       setIsPrinting(false);
     }
@@ -66,7 +89,7 @@ export const PeseeDetailDialog = ({
   const handlePrintBoth = async () => {
     setIsPrinting(true);
     try {
-      await handlePrintBothBonAndInvoice(formDataForPrint, products, transporteurs);
+      await handlePrintBothBonAndInvoice(formDataForPrint, products, transporteurs, client);
     } finally {
       setIsPrinting(false);
     }
@@ -113,7 +136,7 @@ export const PeseeDetailDialog = ({
             </CardContent>
           </Card>
 
-          {/* Client/Entreprise */}
+          {/* Client/Entreprise avec données complètes */}
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-3 flex items-center">
@@ -123,12 +146,33 @@ export const PeseeDetailDialog = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="text-sm text-gray-600">Nom:</span>
-                  <p className="font-medium">{pesee.nomEntreprise}</p>
+                  <p className="font-medium">
+                    {client ? (
+                      client.typeClient === 'particulier' && client.prenom && client.nom
+                        ? `${client.prenom} ${client.nom}`
+                        : client.raisonSociale
+                    ) : pesee.nomEntreprise}
+                  </p>
                 </div>
                 <div>
                   <span className="text-sm text-gray-600">Plaque:</span>
                   <p className="font-medium">{pesee.plaque}</p>
                 </div>
+                {client?.siret && (
+                  <div>
+                    <span className="text-sm text-gray-600">SIRET:</span>
+                    <p className="font-medium">{client.siret}</p>
+                  </div>
+                )}
+                {client?.adresse && (
+                  <div className="col-span-2">
+                    <span className="text-sm text-gray-600">Adresse:</span>
+                    <p className="font-medium">
+                      {client.adresse}
+                      {client.codePostal && client.ville && `, ${client.codePostal} ${client.ville}`}
+                    </p>
+                  </div>
+                )}
                 {pesee.chantier && (
                   <div className="col-span-2">
                     <span className="text-sm text-gray-600">Chantier:</span>
@@ -163,7 +207,6 @@ export const PeseeDetailDialog = ({
             </CardContent>
           </Card>
 
-          {/* Poids */}
           <Card>
             <CardContent className="p-4">
               <h3 className="font-semibold mb-3 flex items-center">
@@ -189,7 +232,6 @@ export const PeseeDetailDialog = ({
             </CardContent>
           </Card>
 
-          {/* Prix */}
           {(pesee.prixHT || pesee.prixTTC) && (
             <Card>
               <CardContent className="p-4">
