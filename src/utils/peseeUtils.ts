@@ -290,17 +290,30 @@ export const handlePrint = (
   }
 };
 
-export const handlePrintBothBonAndInvoice = (
+export const handlePrintBothBonAndInvoice = async (
   formData: PeseeTab["formData"],
   products: Product[],
   transporteurs: Transporteur[],
-  client: Client | null = null
+  client?: Client | null
 ) => {
-  // Imprimer le bon
-  handlePrint(formData, products, transporteurs, false, client);
+  if (!formData) return;
 
-  // Attendre un peu puis imprimer la facture
-  setTimeout(() => {
-    handlePrint(formData, products, transporteurs, true, client);
+  // Print bon de pesée first
+  handlePrint(formData, products, transporteurs, false);
+
+  // Wait a bit then print invoice
+  setTimeout(async () => {
+    const { generateInvoiceContent } = await import('@/utils/invoiceUtils');
+    const invoiceContent = generateInvoiceContent(formData, products, transporteurs, client || null);
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(invoiceContent);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 100);
+    }
   }, 1000);
 };

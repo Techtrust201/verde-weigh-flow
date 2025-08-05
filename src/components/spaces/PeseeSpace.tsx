@@ -247,6 +247,7 @@ export default function PeseeSpace() {
     await savePesee();
     setIsSaveDialogOpen(false);
   };
+  
   const handleSaveAndPrint = async () => {
     const success = await savePesee();
     if (success) {
@@ -257,11 +258,45 @@ export default function PeseeSpace() {
     }
     setIsSaveDialogOpen(false);
   };
+
+  const handleSaveAndPrintInvoice = async () => {
+    const success = await savePesee();
+    if (success) {
+      const currentData = getCurrentTabData();
+      if (currentData && currentData.clientId) {
+        // Récupérer les données client depuis la base
+        const client = clients.find(c => c.id === currentData.clientId);
+        if (client) {
+          const { generateInvoiceContent } = await import('@/utils/invoiceUtils');
+          const invoiceContent = generateInvoiceContent(currentData, products, transporteurs, client);
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+            printWindow.document.write(invoiceContent);
+            printWindow.document.close();
+            setTimeout(() => {
+              printWindow.print();
+              printWindow.close();
+            }, 100);
+          }
+        }
+      }
+    }
+    setIsSaveDialogOpen(false);
+  };
+  
   const handleSavePrintBonAndInvoice = async () => {
     const success = await savePesee();
     if (success) {
       const currentData = getCurrentTabData();
-      if (currentData) {
+      if (currentData && currentData.clientId) {
+        // Récupérer les données client depuis la base
+        const client = clients.find(c => c.id === currentData.clientId);
+        if (client) {
+          handlePrintBothBonAndInvoice(currentData, products, transporteurs, client);
+        } else {
+          handlePrintBothBonAndInvoice(currentData, products, transporteurs);
+        }
+      } else {
         handlePrintBothBonAndInvoice(currentData, products, transporteurs);
       }
     }
@@ -541,7 +576,7 @@ export default function PeseeSpace() {
       <SaveConfirmDialog
         isOpen={isSaveDialogOpen}
         onClose={() => setIsSaveDialogOpen(false)}
-        onConfirm={handleSaveOnly}
+        onConfirm={handleSaveAndPrintInvoice}
         onConfirmAndPrint={handleSaveAndPrint}
         onConfirmPrintAndInvoice={handleSavePrintBonAndInvoice}
         moyenPaiement={currentData?.moyenPaiement || "Direct"}
