@@ -1,5 +1,5 @@
+
 import { useState, useCallback } from "react";
-import { v4 as uuidv4 } from "uuid";
 
 export interface PeseeTab {
   id: string;
@@ -25,13 +25,15 @@ export interface PeseeTabFormData {
 export const usePeseeTabs = () => {
   const [tabs, setTabs] = useState<PeseeTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  
   const generateBonNumber = () => {
     const now = Date.now().toString(); // Timestamp actuel
     const random = Math.floor(Math.random() * 1000).toString(); // Nombre aléatoire à 3 chiffres
     return now + random;
   };
+  
   const createNewTab = useCallback(() => {
-    const newTabId = uuidv4();
+    const newTabId = crypto.randomUUID(); // Utiliser crypto.randomUUID() au lieu d'uuid
     const newBonNumber = generateBonNumber();
     const newTab: PeseeTab = {
       id: newTabId,

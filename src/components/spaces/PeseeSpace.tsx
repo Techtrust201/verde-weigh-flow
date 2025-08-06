@@ -13,6 +13,7 @@ import { ProductWeightSection } from "@/components/pesee/ProductWeightSection";
 import { RecentPeseesTab } from "@/components/pesee/RecentPeseesTab";
 import { SaveConfirmDialog } from "@/components/pesee/SaveConfirmDialog";
 import { handlePrint, handlePrintBothBonAndInvoice } from "@/utils/peseeUtils";
+
 export default function PeseeSpace() {
   const { pesees, clients, products, loadData } = usePeseeData();
   const { transporteurs, loadTransporteurs } = useTransporteurData();
@@ -60,6 +61,7 @@ export default function PeseeSpace() {
     plaque: "",
   });
   const { toast } = useToast();
+
   const prepareNewClientForm = () => {
     const currentData = getCurrentTabData();
     if (currentData) {
@@ -81,6 +83,7 @@ export default function PeseeSpace() {
     }
     setIsAddClientDialogOpen(true);
   };
+
   const handleAddChantier = async () => {
     const currentData = getCurrentTabData();
     if (!currentData?.clientId || !newChantier.trim()) {
@@ -117,6 +120,7 @@ export default function PeseeSpace() {
       console.error("Error adding chantier:", error);
     }
   };
+
   const handleAddNewClient = async () => {
     try {
       if (newClientForm.typeClient === "particulier") {
@@ -188,6 +192,7 @@ export default function PeseeSpace() {
       });
     }
   };
+
   const validateNewClient = (): boolean => {
     if (newClientForm.typeClient === "particulier") {
       return Boolean(newClientForm.prenom && newClientForm.nom);
@@ -198,9 +203,11 @@ export default function PeseeSpace() {
       return true;
     }
   };
+
   const validateNewTransporteur = (): boolean => {
     return Boolean(newTransporteurForm.prenom && newTransporteurForm.nom);
   };
+
   const handleAddNewTransporteur = async () => {
     if (!validateNewTransporteur()) return;
     try {
@@ -243,11 +250,12 @@ export default function PeseeSpace() {
       });
     }
   };
+
   const handleSaveOnly = async () => {
     await savePesee();
     setIsSaveDialogOpen(false);
   };
-  
+
   const handleSaveAndPrint = async () => {
     const success = await savePesee();
     if (success) {
@@ -283,7 +291,7 @@ export default function PeseeSpace() {
     }
     setIsSaveDialogOpen(false);
   };
-  
+
   const handleSavePrintBonAndInvoice = async () => {
     const success = await savePesee();
     if (success) {
@@ -302,6 +310,7 @@ export default function PeseeSpace() {
     }
     setIsSaveDialogOpen(false);
   };
+
   const savePesee = async (): Promise<boolean> => {
     const currentData = getCurrentTabData();
     try {
@@ -363,6 +372,7 @@ export default function PeseeSpace() {
           }
         }
       }
+
       const peseeData: Pesee = {
         ...currentData,
         dateHeure: new Date(),
@@ -383,6 +393,7 @@ export default function PeseeSpace() {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
       await db.pesees.add(peseeData);
       toast({
         title: "Pesée enregistrée",
@@ -414,6 +425,7 @@ export default function PeseeSpace() {
       return false;
     }
   };
+
   const currentData = getCurrentTabData();
   return (
     <div className="space-y-6">
@@ -571,7 +583,11 @@ export default function PeseeSpace() {
         ))}
 
         <TabsContent value="recentes">
-          <RecentPeseesTab pesees={pesees} />
+          <RecentPeseesTab 
+            pesees={pesees} 
+            products={products} 
+            transporteurs={transporteurs}
+          />
         </TabsContent>
       </Tabs>
 

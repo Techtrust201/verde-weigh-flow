@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -138,48 +139,48 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({ pesees, produc
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map(pesee => {
+              table.getRowModel().rows.map(row => {
                   return (
-                  <DataTable.Row key={pesee.id}>
-                    <DataTable.Cell>
+                  <TableRow key={row.id}>
+                    <TableCell>
                       <Button 
                         variant="ghost" 
                         className="p-0 h-auto text-blue-600 hover:text-blue-800"
-                        onClick={() => setSelectedPesee(pesee.original)}
+                        onClick={() => setSelectedPesee(row.original)}
                       >
-                        {pesee.original.numeroBon}
+                        {row.original.numeroBon}
                       </Button>
-                    </DataTable.Cell>
-                    <DataTable.Cell className="text-sm">
-                      {pesee.original.dateHeure.toLocaleDateString()} {pesee.original.dateHeure.toLocaleTimeString()}
-                    </DataTable.Cell>
-                    <DataTable.Cell className="text-sm">
-                      {pesee.original.nomEntreprise}
-                    </DataTable.Cell>
-                    <DataTable.Cell className="text-sm">
-                      {pesee.original.plaque}
-                    </DataTable.Cell>
-                    <DataTable.Cell className="text-sm">
-                      {products.find(p => p.id === pesee.original.produitId)?.nom || 'N/A'}
-                    </DataTable.Cell>
-                    <DataTable.Cell className="text-sm">
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {row.original.dateHeure.toLocaleDateString()} {row.original.dateHeure.toLocaleTimeString()}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {row.original.nomEntreprise}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {row.original.plaque}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {products.find(p => p.id === row.original.produitId)?.nom || 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-sm">
                       {/* Afficher le transporteur libre en priorité, sinon le transporteur officiel, sinon le client */}
-                      {pesee.original.transporteurLibre?.trim() ? 
-                        pesee.original.transporteurLibre.trim() : 
-                        transporteurs.find(t => t.id === pesee.original.transporteurId) ? 
-                          `${transporteurs.find(t => t.id === pesee.original.transporteurId)?.prenom} ${transporteurs.find(t => t.id === pesee.original.transporteurId)?.nom}` :
-                          pesee.original.nomEntreprise
+                      {row.original.transporteurLibre?.trim() ? 
+                        row.original.transporteurLibre.trim() : 
+                        transporteurs.find(t => t.id === row.original.transporteurId) ? 
+                          `${transporteurs.find(t => t.id === row.original.transporteurId)?.prenom} ${transporteurs.find(t => t.id === row.original.transporteurId)?.nom}` :
+                          row.original.nomEntreprise
                       }
-                    </DataTable.Cell>
-                    <DataTable.Cell className="text-sm font-medium">
-                      {pesee.original.net.toFixed(3)} T
-                    </DataTable.Cell>
-                    <DataTable.Cell>
-                      <Badge variant={pesee.original.moyenPaiement === 'Direct' ? 'default' : 'secondary'} className="text-xs">
-                        {pesee.original.moyenPaiement}
+                    </TableCell>
+                    <TableCell className="text-sm font-medium">
+                      {row.original.net.toFixed(3)} T
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={row.original.moyenPaiement === 'Direct' ? 'default' : 'secondary'} className="text-xs">
+                        {row.original.moyenPaiement}
                       </Badge>
-                    </DataTable.Cell>
-                  </DataTable.Row>
+                    </TableCell>
+                  </TableRow>
                 )
               })
             ) : (
@@ -203,6 +204,3 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({ pesees, produc
     </div>
   )
 }
-
-import * as React from "react"
-import * as DataTable from "@/components/ui/data-table"
