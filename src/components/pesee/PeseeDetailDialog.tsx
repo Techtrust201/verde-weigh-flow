@@ -86,6 +86,7 @@ export const PeseeDetailDialog = ({
     chantier: pesee.chantier,
     produitId: pesee.produitId,
     transporteurId: pesee.transporteurId,
+    transporteurLibre: pesee.transporteurLibre, // ⚠️ CRITIQUE: Ajouter le transporteurLibre
     poidsEntree: pesee.poidsEntree.toString(),
     poidsSortie: pesee.poidsSortie.toString(),
     moyenPaiement: pesee.moyenPaiement as 'Direct' | 'En compte',
