@@ -1,3 +1,4 @@
+
 import { Product, Transporteur, Client } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
 import { generateInvoiceContent } from "./invoiceUtils";
@@ -19,15 +20,6 @@ export const generatePrintContent = (
   const selectedTransporteur = transporteurs.find(
     (t) => t.id === formData.transporteurId
   );
-
-  // Obtenir le nom du transporteur (sélectionné ou auto-généré)
-  const getTransporteurName = () => {
-    if (selectedTransporteur) {
-      return `${selectedTransporteur.prenom} ${selectedTransporteur.nom}`;
-    }
-    // Si aucun transporteur sélectionné, utiliser le nom auto-généré
-    return formData.nomEntreprise || "";
-  };
 
   // Les poids sont déjà en tonnes
   const poidsEntree = parseFloat(formData.poidsEntree.replace(",", ".")) || 0;
@@ -69,11 +61,11 @@ export const generatePrintContent = (
           <span>${formData.plaque}</span>
         </div>
         ${
-          getTransporteurName()
+          selectedTransporteur
             ? `
         <div class="row">
           <span class="label">Transporteur:</span>
-          <span>${getTransporteurName()}</span>
+          <span>${selectedTransporteur.prenom} ${selectedTransporteur.nom}</span>
         </div>
         `
             : ""
