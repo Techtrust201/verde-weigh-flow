@@ -100,9 +100,9 @@ export const PeseeFormSection = ({
 
   const selectedClient = clients.find((c) => c.id === currentData?.clientId);
 
-  // Fonction pour obtenir le nom de transporteur automatique
-  const getAutoTransporteurName = () => {
-    if (!currentData?.nomEntreprise) return "";
+  // Fonction pour obtenir le placeholder automatique du transporteur
+  const getAutoTransporteurPlaceholder = () => {
+    if (!currentData?.nomEntreprise) return "Nom du transporteur...";
     
     if (currentData.typeClient === "particulier") {
       return currentData.nomEntreprise;
@@ -110,7 +110,7 @@ export const PeseeFormSection = ({
       return currentData.nomEntreprise;
     }
     
-    return "";
+    return "Nom du transporteur...";
   };
 
   // Recherche simplifiée pour les clients
@@ -134,21 +134,16 @@ export const PeseeFormSection = ({
   const handleClientSelect = (client: Client) => {
     // Vérifier d'abord si le client a déjà un transporteur assigné
     let transporteurId = 0;
-    let transporteurNom = "";
     
     if (client.transporteurId && client.transporteurId > 0) {
       // Le client a déjà un transporteur assigné, on le garde
       transporteurId = client.transporteurId;
+      // Vider le transporteur libre car on utilise un transporteur officiel
+      setTransporteurLibre("");
     } else {
-      // Aucun transporteur assigné, on utilise le remplissage automatique
-      const autoNom = client.typeClient === "particulier" 
-        ? client.raisonSociale 
-        : client.raisonSociale;
-      
-      if (autoNom) {
-        transporteurNom = autoNom;
-        setTransporteurLibre(autoNom);
-      }
+      // Aucun transporteur assigné, on vide aussi le transporteur libre
+      // L'auto-remplissage se fera via le placeholder
+      setTransporteurLibre("");
     }
 
     updateCurrentTab({
@@ -164,17 +159,10 @@ export const PeseeFormSection = ({
     setClientSearchValue("");
   };
 
-  // Gestion du remplissage automatique quand on tape le nom d'entreprise
+  // Gestion du remplissage du nom d'entreprise (sans affecter le transporteur)
   const handleNomEntrepriseChange = (value: string) => {
     updateCurrentTab({ nomEntreprise: value });
-    
-    // Si aucun transporteur n'est sélectionné et aucun transporteur libre n'est défini
-    if ((!currentData?.transporteurId || currentData.transporteurId === 0) && !transporteurLibre) {
-      const autoNom = getAutoTransporteurName();
-      if (autoNom !== value && value) {
-        setTransporteurLibre(value);
-      }
-    }
+    // Plus de modification automatique du transporteurLibre ici
   };
 
   const getClientInfo = (client: Client) => {
@@ -205,18 +193,16 @@ export const PeseeFormSection = ({
     setTransporteurLibre("");
   };
 
-  // Obtenir le nom du transporteur à afficher
-  const getTransporteurDisplayValue = () => {
+  // Obtenir la valeur réelle affichée dans l'input transporteur
+  const getTransporteurInputValue = () => {
+    // Si un transporteur officiel est sélectionné, afficher son nom
     if (currentData?.transporteurId && currentData.transporteurId > 0) {
       const selectedTransporteur = transporteurs.find(t => t.id === currentData.transporteurId);
       return selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
     }
     
-    if (transporteurLibre) {
-      return transporteurLibre;
-    }
-    
-    return getAutoTransporteurName();
+    // Sinon afficher ce que l'utilisateur a tapé dans transporteurLibre
+    return transporteurLibre;
   };
 
   return (
@@ -678,10 +664,7 @@ export const PeseeFormSection = ({
                     const transporteurId = parseInt(value) || 0;
                     updateCurrentTab({ transporteurId });
                     if (transporteurId === 0) {
-                      // Si on désélectionne le transporteur, on remet le remplissage auto
-                      setTransporteurLibre(getAutoTransporteurName());
-                    } else {
-                      // Si on sélectionne un transporteur, on vide le transporteur libre
+                      // Si on désélectionne le transporteur, on vide le transporteur libre
                       setTransporteurLibre("");
                     }
                   }}
@@ -703,8 +686,8 @@ export const PeseeFormSection = ({
                 </Select>
               ) : (
                 <Input
-                  placeholder="Nom du transporteur..."
-                  value={getTransporteurDisplayValue()}
+                  placeholder={getAutoTransporteurPlaceholder()}
+                  value={getTransporteurInputValue()}
                   onChange={(e) => {
                     setTransporteurLibre(e.target.value);
                     // S'assurer qu'aucun transporteur officiel n'est sélectionné
@@ -712,11 +695,6 @@ export const PeseeFormSection = ({
                       updateCurrentTab({ transporteurId: 0 });
                     }
                   }}
-                  className={cn(
-                    !transporteurLibre && !currentData?.transporteurId && getAutoTransporteurName() 
-                      ? "italic text-gray-500" 
-                      : ""
-                  )}
                 />
               )}
             </div>

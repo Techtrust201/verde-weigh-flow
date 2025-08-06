@@ -330,3 +330,32 @@ export const handlePrintBothBonAndInvoice = async (
     }
   }, 1000);
 };
+
+// Fonction pour obtenir le nom du transporteur pour la sauvegarde
+export const getTransporteurNameForSave = (
+  currentData: any,
+  transporteurs: any[],
+  transporteurLibre: string = ""
+): string => {
+  // Si un transporteur officiel est sélectionné
+  if (currentData?.transporteurId && currentData.transporteurId > 0) {
+    const selectedTransporteur = transporteurs.find(t => t.id === currentData.transporteurId);
+    return selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
+  }
+  
+  // Si l'utilisateur a saisi un transporteur libre
+  if (transporteurLibre && transporteurLibre.trim()) {
+    return transporteurLibre.trim();
+  }
+  
+  // Auto-remplissage basé sur le nom d'entreprise/client si aucun transporteur n'est défini
+  if (currentData?.nomEntreprise && currentData.nomEntreprise.trim()) {
+    if (currentData.typeClient === "particulier") {
+      return currentData.nomEntreprise.trim();
+    } else if (currentData.typeClient === "professionnel" || currentData.typeClient === "micro-entreprise") {
+      return currentData.nomEntreprise.trim();
+    }
+  }
+  
+  return "";
+};
