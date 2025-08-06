@@ -22,16 +22,7 @@ export const generatePrintContent = (
 
   // Obtenir le nom du transporteur à afficher
   const getTransporteurName = () => {
-    if (selectedTransporteur) {
-      return `${selectedTransporteur.prenom} ${selectedTransporteur.nom}`;
-    }
-    
-    // Si pas de transporteur sélectionné, utiliser le nom du client/entreprise
-    if (formData.nomEntreprise) {
-      return formData.nomEntreprise;
-    }
-    
-    return "";
+    return getTransporteurNameForSave(formData, transporteurs, formData.transporteurLibre);
   };
 
   // Les poids sont déjà en tonnes
