@@ -87,10 +87,17 @@ export function PeseeFormSection({
 
     const selectedClient = clients.find((c) => c.id === parseInt(clientId));
     if (selectedClient) {
+      // Vérifier que le typeClient correspond au type attendu
+      const validTypeClient = (selectedClient.typeClient === 'particulier' || 
+                              selectedClient.typeClient === 'professionnel' || 
+                              selectedClient.typeClient === 'micro-entreprise') 
+                              ? selectedClient.typeClient 
+                              : 'particulier' as const;
+
       updateCurrentTab({
         nomEntreprise: selectedClient.raisonSociale,
         clientId: selectedClient.id,
-        typeClient: selectedClient.typeClient,
+        typeClient: validTypeClient,
         // Prioriser le transporteur existant du client, sinon laisser à 0 pour l'auto-remplissage
         transporteurId: selectedClient.transporteurId || 0,
         plaque: "",
