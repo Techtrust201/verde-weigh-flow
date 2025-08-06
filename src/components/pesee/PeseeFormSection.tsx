@@ -690,6 +690,8 @@ export const PeseeFormSection = ({
                   value={getTransporteurInputValue()}
                   onChange={(e) => {
                     setTransporteurLibre(e.target.value);
+                    // ⚠️ CRITIQUE: Mettre à jour le state de l'onglet
+                    updateCurrentTab({ transporteurLibre: e.target.value });
                     // S'assurer qu'aucun transporteur officiel n'est sélectionné
                     if (currentData?.transporteurId && currentData.transporteurId > 0) {
                       updateCurrentTab({ transporteurId: 0 });
