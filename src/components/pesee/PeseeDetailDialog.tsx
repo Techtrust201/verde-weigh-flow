@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Printer, FileText, Calendar, User, Truck, Package, Weight } from 'lucide-react';
 import { Pesee, Product, Transporteur, Client, db } from '@/lib/database';
-import { handlePrint, handlePrintBothBonAndInvoice } from '@/utils/peseeUtils';
+import { handlePrint, handlePrintBothBonAndInvoice, getTransporteurNameForSave } from '@/utils/peseeUtils';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 
 interface PeseeDetailDialogProps {
@@ -52,6 +51,26 @@ export const PeseeDetailDialog = ({
 
   const selectedProduct = products.find(p => p.id === pesee.produitId);
   const selectedTransporteur = transporteurs.find(t => t.id === pesee.transporteurId);
+
+  // Obtenir le nom du transporteur à afficher
+  const getDisplayedTransporteurName = () => {
+    // Si un transporteur officiel est sélectionné
+    if (selectedTransporteur) {
+      return `${selectedTransporteur.prenom} ${selectedTransporteur.nom}`;
+    }
+    
+    // Utiliser la même logique que pour la sauvegarde pour obtenir le nom du transporteur
+    const formDataForTransporteur = {
+      transporteurId: pesee.transporteurId,
+      nomEntreprise: pesee.nomEntreprise,
+      typeClient: pesee.typeClient
+    };
+    
+    const transporteurName = getTransporteurNameForSave(formDataForTransporteur, transporteurs, '');
+    return transporteurName || pesee.nomEntreprise;
+  };
+
+  const displayedTransporteurName = getDisplayedTransporteurName();
 
   // Convertir la pesée en format pour l'impression
   const formDataForPrint: PeseeTab['formData'] = {
@@ -195,12 +214,10 @@ export const PeseeDetailDialog = ({
                   <span className="text-sm text-gray-600">Produit:</span>
                   <p className="font-medium">{selectedProduct?.nom || 'Non défini'}</p>
                 </div>
-                {selectedTransporteur && (
+                {displayedTransporteurName && (
                   <div>
                     <span className="text-sm text-gray-600">Transporteur:</span>
-                    <p className="font-medium">
-                      {selectedTransporteur.prenom} {selectedTransporteur.nom}
-                    </p>
+                    <p className="font-medium">{displayedTransporteurName}</p>
                   </div>
                 )}
               </div>
