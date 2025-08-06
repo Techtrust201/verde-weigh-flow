@@ -153,7 +153,12 @@ export function PeseeFormSection({
           </Label>
           <RadioGroup
             defaultValue={currentData.typeClient || "particulier"}
-            onValueChange={(value) => updateCurrentTab({ typeClient: value })}
+            onValueChange={(value) => {
+              const validTypeClient = (value === 'particulier' || value === 'professionnel' || value === 'micro-entreprise') 
+                ? value as 'particulier' | 'professionnel' | 'micro-entreprise'
+                : 'particulier' as const;
+              updateCurrentTab({ typeClient: validTypeClient });
+            }}
             className="flex gap-4"
           >
             <div className="flex items-center space-x-2">
@@ -313,9 +318,12 @@ export function PeseeFormSection({
               </Label>
               <RadioGroup
                 defaultValue={newClientForm.typeClient || "particulier"}
-                onValueChange={(value) =>
-                  setNewClientForm({ ...newClientForm, typeClient: value })
-                }
+                onValueChange={(value) => {
+                  const validTypeClient = (value === 'particulier' || value === 'professionnel' || value === 'micro-entreprise') 
+                    ? value as 'particulier' | 'professionnel' | 'micro-entreprise'
+                    : 'particulier' as const;
+                  setNewClientForm({ ...newClientForm, typeClient: validTypeClient });
+                }}
                 className="col-span-3 flex gap-4"
               >
                 <div className="flex items-center space-x-2">
