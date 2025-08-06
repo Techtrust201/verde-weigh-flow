@@ -328,30 +328,43 @@ export const getTransporteurNameForSave = (
   transporteurs: any[],
   transporteurLibre: string = ""
 ): string => {
+  console.log("🚛 getTransporteurNameForSave - Données reçues:", {
+    currentData,
+    transporteurLibre,
+    transporteurLibreFromData: currentData?.transporteurLibre
+  });
+
   // Si l'utilisateur a saisi un transporteur libre (priorité absolue)
   if (transporteurLibre && transporteurLibre.trim()) {
+    console.log("🚛 Utilisation transporteurLibre paramètre:", transporteurLibre.trim());
     return transporteurLibre.trim();
   }
 
   // Si un transporteur libre est stocké dans currentData
   if (currentData?.transporteurLibre && currentData.transporteurLibre.trim()) {
+    console.log("🚛 Utilisation transporteurLibre depuis currentData:", currentData.transporteurLibre.trim());
     return currentData.transporteurLibre.trim();
   }
 
   // Si un transporteur officiel est sélectionné
   if (currentData?.transporteurId && currentData.transporteurId > 0) {
     const selectedTransporteur = transporteurs.find(t => t.id === currentData.transporteurId);
-    return selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
+    const result = selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
+    console.log("🚛 Utilisation transporteur officiel:", result);
+    return result;
   }
   
   // Auto-remplissage basé sur le nom d'entreprise/client si aucun transporteur n'est défini
   if (currentData?.nomEntreprise && currentData.nomEntreprise.trim()) {
     if (currentData.typeClient === "particulier") {
+      console.log("🚛 Utilisation nom entreprise (particulier):", currentData.nomEntreprise.trim());
       return currentData.nomEntreprise.trim();
     } else if (currentData.typeClient === "professionnel" || currentData.typeClient === "micro-entreprise") {
+      console.log("🚛 Utilisation nom entreprise (professionnel):", currentData.nomEntreprise.trim());
       return currentData.nomEntreprise.trim();
     }
   }
   
+  console.log("🚛 Aucun transporteur trouvé, retour chaîne vide");
   return "";
 };
