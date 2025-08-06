@@ -54,14 +54,20 @@ export const PeseeDetailDialog = ({
 
   // Obtenir le nom du transporteur à afficher
   const getDisplayedTransporteurName = () => {
-    // Si un transporteur officiel est sélectionné
+    // Priorité 1 : Si un transporteur libre a été saisi et sauvegardé
+    if (pesee.transporteurLibre && pesee.transporteurLibre.trim()) {
+      return pesee.transporteurLibre.trim();
+    }
+
+    // Priorité 2 : Si un transporteur officiel est sélectionné
     if (selectedTransporteur) {
       return `${selectedTransporteur.prenom} ${selectedTransporteur.nom}`;
     }
     
-    // Utiliser la même logique que pour la sauvegarde pour obtenir le nom du transporteur
+    // Priorité 3 : Utiliser la même logique que pour la sauvegarde pour obtenir le nom du transporteur
     const formDataForTransporteur = {
       transporteurId: pesee.transporteurId,
+      transporteurLibre: pesee.transporteurLibre,
       nomEntreprise: pesee.nomEntreprise,
       typeClient: pesee.typeClient
     };

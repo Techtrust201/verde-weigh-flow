@@ -1,133 +1,86 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 export interface PeseeTab {
   id: string;
   label: string;
-  formData: {
-    numeroBon: string;
-    moyenPaiement: 'Direct' | 'En compte';
-    plaque: string;
-    nomEntreprise: string;
-    chantier: string;
-    produitId: number;
-    poidsEntree: string;
-    poidsSortie: string;
-    clientId: number;
-    transporteurId: number;
-    typeClient?: 'particulier' | 'professionnel' | 'micro-entreprise';
-  };
+  formData: PeseeTabFormData;
+}
+
+export interface PeseeTabFormData {
+  numeroBon: string;
+  nomEntreprise: string;
+  plaque: string;
+  chantier: string;
+  produitId: number;
+  transporteurId: number;
+  transporteurLibre?: string; // Nouveau champ
+  poidsEntree: string;
+  poidsSortie: string;
+  moyenPaiement: 'Direct' | 'En compte';
+  typeClient: 'particulier' | 'professionnel' | 'micro-entreprise';
+  clientId: number;
 }
 
 export const usePeseeTabs = () => {
   const [tabs, setTabs] = useState<PeseeTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string>('');
-
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const generateBonNumber = () => {
-    const now = new Date();
-    const year = now.getFullYear().toString().slice(-2);
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    const time = now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0');
-    return `${year}${month}${day}-${time}`;
+    const now = Date.now().toString(); // Timestamp actuel
+    const random = Math.floor(Math.random() * 1000).toString(); // Nombre aléatoire à 3 chiffres
+    return now + random;
   };
-
-  const getDefaultPaymentMethod = (typeClient?: 'particulier' | 'professionnel' | 'micro-entreprise'): 'Direct' | 'En compte' => {
-    return typeClient === 'professionnel' ? 'En compte' : 'Direct';
-  };
-
-  const createNewTab = () => {
-    const newTabId = Date.now().toString();
+  const createNewTab = useCallback(() => {
+    const newTabId = uuidv4();
+    const newBonNumber = generateBonNumber();
     const newTab: PeseeTab = {
       id: newTabId,
-      label: '', // Le label sera calculé dynamiquement
+      label: `Pesée ${tabs.length + 1}`,
       formData: {
-        numeroBon: generateBonNumber(),
-        moyenPaiement: 'Direct',
-        plaque: '',
-        nomEntreprise: '',
-        chantier: '',
+        numeroBon: newBonNumber,
+        nomEntreprise: "",
+        plaque: "",
+        chantier: "",
         produitId: 0,
-        poidsEntree: '',
-        poidsSortie: '',
-        clientId: 0,
         transporteurId: 0,
-        typeClient: 'particulier'
-      }
+        transporteurLibre: "",
+        poidsEntree: "",
+        poidsSortie: "",
+        moyenPaiement: "Direct",
+        typeClient: "particulier",
+        clientId: 0,
+      },
     };
-    
     setTabs([...tabs, newTab]);
     setActiveTabId(newTabId);
-  };
-
-  const getTabLabel = (tabId: string) => {
-    const index = tabs.findIndex(tab => tab.id === tabId);
-    const tab = tabs[index];
-    
-    if (tab?.formData.nomEntreprise && tab?.formData.plaque) {
-      return `${tab.formData.nomEntreprise.slice(0, 8)}... (${tab.formData.plaque})`;
-    }
-    
-    return `Pesée ${index + 1}`;
-  };
+  }, [tabs]);
 
   const closeTab = (tabId: string) => {
-    const newTabs = tabs.filter(tab => tab.id !== tabId);
-    setTabs(newTabs);
-    
+    const updatedTabs = tabs.filter((tab) => tab.id !== tabId);
+    setTabs(updatedTabs);
     if (activeTabId === tabId) {
-      if (newTabs.length > 0) {
-        setActiveTabId(newTabs[0].id);
-      } else {
-        createNewTab();
-      }
+      setActiveTabId(updatedTabs.length > 0 ? updatedTabs[0].id : null);
     }
   };
 
-  const updateCurrentTab = (updates: Partial<PeseeTab['formData']>) => {
-    setTabs(tabs.map(tab => {
-      if (tab.id === activeTabId) {
-        const newFormData = { ...tab.formData, ...updates };
-        
-        // Mettre à jour automatiquement le moyen de paiement selon le type de client
-        if (updates.typeClient) {
-          newFormData.moyenPaiement = getDefaultPaymentMethod(updates.typeClient);
-        }
-        
-        return { ...tab, formData: newFormData };
-      }
-      return tab;
-    }));
+  const updateCurrentTab = (newData: Partial<PeseeTabFormData>) => {
+    setTabs((prevTabs) =>
+      prevTabs.map((tab) =>
+        tab.id === activeTabId ? { ...tab, formData: { ...tab.formData, ...newData } } : tab
+      )
+    );
   };
 
-  const getCurrentTabData = () => {
-    return tabs.find(tab => tab.id === activeTabId)?.formData || tabs[0]?.formData;
+  const getCurrentTabData = (): PeseeTabFormData | undefined => {
+    if (!activeTabId) return undefined;
+    const currentTab = tabs.find((tab) => tab.id === activeTabId);
+    return currentTab?.formData;
   };
 
-  const saveTabsToStorage = () => {
-    localStorage.setItem('pesee-tabs', JSON.stringify({ tabs, activeTabId }));
+  const getTabLabel = (tabId: string): string => {
+    const tab = tabs.find((t) => t.id === tabId);
+    return tab ? tab.label : "Nouvelle Pesée";
   };
-
-  const loadTabsFromStorage = () => {
-    const stored = localStorage.getItem('pesee-tabs');
-    if (stored) {
-      const { tabs: storedTabs, activeTabId: storedActiveId } = JSON.parse(stored);
-      if (storedTabs.length > 0) {
-        setTabs(storedTabs);
-        setActiveTabId(storedActiveId || storedTabs[0].id);
-        return;
-      }
-    }
-    createNewTab();
-  };
-
-  useEffect(() => {
-    loadTabsFromStorage();
-  }, []);
-
-  useEffect(() => {
-    saveTabsToStorage();
-  }, [tabs, activeTabId]);
 
   return {
     tabs,
@@ -138,6 +91,6 @@ export const usePeseeTabs = () => {
     updateCurrentTab,
     getCurrentTabData,
     generateBonNumber,
-    getTabLabel
+    getTabLabel,
   };
 };

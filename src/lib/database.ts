@@ -75,6 +75,7 @@ export interface Pesee {
   moyenPaiement: string;
   clientId?: number;
   transporteurId?: number;
+  transporteurLibre?: string; // Nouveau champ pour le transporteur saisi manuellement
   typeClient: 'particulier' | 'professionnel' | 'micro-entreprise';
   synchronized: boolean;
   version: number; // Version pour détecter les conflits
@@ -149,11 +150,11 @@ class AppDatabase extends Dexie {
 
   constructor() {
     super('AppDatabase');
-    this.version(1).stores({
+    this.version(2).stores({
       clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
       transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
       products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
-      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, synchronized, version, createdAt, updatedAt',
+      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt',
       users: '++id, nom, prenom, email, role, createdAt, updatedAt',
       userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
       config: '++id, key, createdAt, updatedAt',

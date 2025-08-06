@@ -337,15 +337,20 @@ export const getTransporteurNameForSave = (
   transporteurs: any[],
   transporteurLibre: string = ""
 ): string => {
+  // Si l'utilisateur a saisi un transporteur libre (priorité absolue)
+  if (transporteurLibre && transporteurLibre.trim()) {
+    return transporteurLibre.trim();
+  }
+
+  // Si un transporteur libre est stocké dans currentData
+  if (currentData?.transporteurLibre && currentData.transporteurLibre.trim()) {
+    return currentData.transporteurLibre.trim();
+  }
+
   // Si un transporteur officiel est sélectionné
   if (currentData?.transporteurId && currentData.transporteurId > 0) {
     const selectedTransporteur = transporteurs.find(t => t.id === currentData.transporteurId);
     return selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
-  }
-  
-  // Si l'utilisateur a saisi un transporteur libre
-  if (transporteurLibre && transporteurLibre.trim()) {
-    return transporteurLibre.trim();
   }
   
   // Auto-remplissage basé sur le nom d'entreprise/client si aucun transporteur n'est défini

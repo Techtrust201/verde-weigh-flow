@@ -375,6 +375,7 @@ export default function PeseeSpace() {
         prixHT: net * prixHT,
         prixTTC: net * prixTTC,
         transporteurId: currentData.transporteurId || undefined,
+        transporteurLibre: currentData.transporteurLibre || undefined, // Sauvegarder le transporteur libre
         typeClient: currentData.typeClient || "particulier",
         synchronized: false,
         version: 1,
@@ -398,6 +399,7 @@ export default function PeseeSpace() {
         poidsSortie: "",
         clientId: 0,
         transporteurId: 0,
+        transporteurLibre: "",
         typeClient: "particulier",
       });
       loadData();
