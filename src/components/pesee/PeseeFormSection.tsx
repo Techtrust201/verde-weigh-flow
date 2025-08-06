@@ -96,8 +96,22 @@ export const PeseeFormSection = ({
 }: PeseeFormSectionProps) => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [clientSearchValue, setClientSearchValue] = useState("");
+  const [transporteurLibre, setTransporteurLibre] = useState("");
 
   const selectedClient = clients.find((c) => c.id === currentData?.clientId);
+
+  // Fonction pour obtenir le nom de transporteur automatique
+  const getAutoTransporteurName = () => {
+    if (!currentData?.nomEntreprise) return "";
+    
+    if (currentData.typeClient === "particulier") {
+      return currentData.nomEntreprise;
+    } else if (currentData.typeClient === "professionnel" || currentData.typeClient === "micro-entreprise") {
+      return currentData.nomEntreprise;
+    }
+    
+    return "";
+  };
 
   // Recherche simplifiée pour les clients
   const filteredClients = useMemo(() => {
@@ -118,15 +132,49 @@ export const PeseeFormSection = ({
   }, [clients, clientSearchValue]);
 
   const handleClientSelect = (client: Client) => {
+    // Vérifier d'abord si le client a déjà un transporteur assigné
+    let transporteurId = 0;
+    let transporteurNom = "";
+    
+    if (client.transporteurId && client.transporteurId > 0) {
+      // Le client a déjà un transporteur assigné, on le garde
+      transporteurId = client.transporteurId;
+    } else {
+      // Aucun transporteur assigné, on utilise le remplissage automatique
+      const autoNom = client.typeClient === "particulier" 
+        ? client.raisonSociale 
+        : client.raisonSociale;
+      
+      if (autoNom) {
+        transporteurNom = autoNom;
+        setTransporteurLibre(autoNom);
+      }
+    }
+
     updateCurrentTab({
       clientId: client.id!,
       nomEntreprise: client.raisonSociale,
-      typeClient: client.typeClient,
+      typeClient: client.typeClient as "particulier" | "professionnel" | "micro-entreprise",
       plaque: client.plaques?.[0] || "",
       chantier: client.chantiers?.[0] || "",
+      transporteurId: transporteurId,
     });
+    
     setClientSelectorOpen(false);
     setClientSearchValue("");
+  };
+
+  // Gestion du remplissage automatique quand on tape le nom d'entreprise
+  const handleNomEntrepriseChange = (value: string) => {
+    updateCurrentTab({ nomEntreprise: value });
+    
+    // Si aucun transporteur n'est sélectionné et aucun transporteur libre n'est défini
+    if ((!currentData?.transporteurId || currentData.transporteurId === 0) && !transporteurLibre) {
+      const autoNom = getAutoTransporteurName();
+      if (autoNom !== value && value) {
+        setTransporteurLibre(value);
+      }
+    }
   };
 
   const getClientInfo = (client: Client) => {
@@ -154,6 +202,21 @@ export const PeseeFormSection = ({
       chantier: "",
       moyenPaiement: "Direct",
     });
+    setTransporteurLibre("");
+  };
+
+  // Obtenir le nom du transporteur à afficher
+  const getTransporteurDisplayValue = () => {
+    if (currentData?.transporteurId && currentData.transporteurId > 0) {
+      const selectedTransporteur = transporteurs.find(t => t.id === currentData.transporteurId);
+      return selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
+    }
+    
+    if (transporteurLibre) {
+      return transporteurLibre;
+    }
+    
+    return getAutoTransporteurName();
   };
 
   return (
@@ -185,6 +248,7 @@ export const PeseeFormSection = ({
           </Select>
         </div>
       </div>
+      
       {/* Si pas de client sélectionné, afficher le sélecteur de type */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         {!currentData?.clientId ? (
@@ -504,9 +568,7 @@ export const PeseeFormSection = ({
             id="nomEntreprise"
             className=" placeholder:text-black"
             value={currentData?.nomEntreprise || ""}
-            onChange={(e) =>
-              updateCurrentTab({ nomEntreprise: e.target.value })
-            }
+            onChange={(e) => handleNomEntrepriseChange(e.target.value)}
             placeholder={
               currentData?.typeClient === "particulier"
                 ? "Nom du particulier..."
@@ -608,27 +670,56 @@ export const PeseeFormSection = ({
         <div>
           <Label htmlFor="transporteur">Transporteur</Label>
           <div className="flex gap-2">
-            <Select
-              value={currentData?.transporteurId?.toString() || ""}
-              onValueChange={(value) =>
-                updateCurrentTab({ transporteurId: parseInt(value) || 0 })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un transporteur" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">Aucun transporteur</SelectItem>
-                {transporteurs.map((transporteur) => (
-                  <SelectItem
-                    key={transporteur.id}
-                    value={transporteur.id!.toString()}
-                  >
-                    {transporteur.prenom} {transporteur.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex-1">
+              {currentData?.transporteurId && currentData.transporteurId > 0 ? (
+                <Select
+                  value={currentData.transporteurId.toString()}
+                  onValueChange={(value) => {
+                    const transporteurId = parseInt(value) || 0;
+                    updateCurrentTab({ transporteurId });
+                    if (transporteurId === 0) {
+                      // Si on désélectionne le transporteur, on remet le remplissage auto
+                      setTransporteurLibre(getAutoTransporteurName());
+                    } else {
+                      // Si on sélectionne un transporteur, on vide le transporteur libre
+                      setTransporteurLibre("");
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un transporteur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Aucun transporteur</SelectItem>
+                    {transporteurs.map((transporteur) => (
+                      <SelectItem
+                        key={transporteur.id}
+                        value={transporteur.id!.toString()}
+                      >
+                        {transporteur.prenom} {transporteur.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  placeholder="Nom du transporteur..."
+                  value={getTransporteurDisplayValue()}
+                  onChange={(e) => {
+                    setTransporteurLibre(e.target.value);
+                    // S'assurer qu'aucun transporteur officiel n'est sélectionné
+                    if (currentData?.transporteurId && currentData.transporteurId > 0) {
+                      updateCurrentTab({ transporteurId: 0 });
+                    }
+                  }}
+                  className={cn(
+                    !transporteurLibre && !currentData?.transporteurId && getAutoTransporteurName() 
+                      ? "italic text-gray-500" 
+                      : ""
+                  )}
+                />
+              )}
+            </div>
             <Dialog
               open={isAddTransporteurDialogOpen}
               onOpenChange={setIsAddTransporteurDialogOpen}
