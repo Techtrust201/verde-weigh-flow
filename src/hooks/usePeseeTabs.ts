@@ -23,8 +23,23 @@ export interface PeseeTabFormData {
 }
 
 export const usePeseeTabs = () => {
-  const [tabs, setTabs] = useState<PeseeTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  // 💾 Charger l'état depuis localStorage
+  const [tabs, setTabs] = useState<PeseeTab[]>(() => {
+    try {
+      const savedTabs = localStorage.getItem('pesee-tabs');
+      return savedTabs ? JSON.parse(savedTabs) : [];
+    } catch {
+      return [];
+    }
+  });
+  
+  const [activeTabId, setActiveTabId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('pesee-active-tab') || null;
+    } catch {
+      return null;
+    }
+  });
   
   const generateBonNumber = () => {
     const now = Date.now().toString(); // Timestamp actuel
@@ -33,7 +48,7 @@ export const usePeseeTabs = () => {
   };
   
   const createNewTab = useCallback(() => {
-    const newTabId = crypto.randomUUID(); // Utiliser crypto.randomUUID() au lieu d'uuid
+    const newTabId = crypto.randomUUID();
     const newBonNumber = generateBonNumber();
     const newTab: PeseeTab = {
       id: newTabId,
@@ -53,24 +68,38 @@ export const usePeseeTabs = () => {
         clientId: 0,
       },
     };
-    setTabs([...tabs, newTab]);
+    const newTabs = [...tabs, newTab];
+    setTabs(newTabs);
     setActiveTabId(newTabId);
+    // 💾 Sauvegarder dans localStorage
+    localStorage.setItem('pesee-tabs', JSON.stringify(newTabs));
+    localStorage.setItem('pesee-active-tab', newTabId);
   }, [tabs]);
 
   const closeTab = (tabId: string) => {
     const updatedTabs = tabs.filter((tab) => tab.id !== tabId);
     setTabs(updatedTabs);
-    if (activeTabId === tabId) {
-      setActiveTabId(updatedTabs.length > 0 ? updatedTabs[0].id : null);
+    const newActiveTabId = activeTabId === tabId ? 
+      (updatedTabs.length > 0 ? updatedTabs[0].id : null) : activeTabId;
+    setActiveTabId(newActiveTabId);
+    // 💾 Sauvegarder dans localStorage
+    localStorage.setItem('pesee-tabs', JSON.stringify(updatedTabs));
+    if (newActiveTabId) {
+      localStorage.setItem('pesee-active-tab', newActiveTabId);
+    } else {
+      localStorage.removeItem('pesee-active-tab');
     }
   };
 
   const updateCurrentTab = (newData: Partial<PeseeTabFormData>) => {
-    setTabs((prevTabs) =>
-      prevTabs.map((tab) =>
+    setTabs((prevTabs) => {
+      const updatedTabs = prevTabs.map((tab) =>
         tab.id === activeTabId ? { ...tab, formData: { ...tab.formData, ...newData } } : tab
-      )
-    );
+      );
+      // 💾 Sauvegarder dans localStorage
+      localStorage.setItem('pesee-tabs', JSON.stringify(updatedTabs));
+      return updatedTabs;
+    });
   };
 
   const getCurrentTabData = (): PeseeTabFormData | undefined => {
@@ -84,10 +113,20 @@ export const usePeseeTabs = () => {
     return tab ? tab.label : "Nouvelle Pesée";
   };
 
+  // Fonction pour changer l'onglet actif avec sauvegarde
+  const setActiveTabIdWithSave = (tabId: string | null) => {
+    setActiveTabId(tabId);
+    if (tabId) {
+      localStorage.setItem('pesee-active-tab', tabId);
+    } else {
+      localStorage.removeItem('pesee-active-tab');
+    }
+  };
+
   return {
     tabs,
     activeTabId,
-    setActiveTabId,
+    setActiveTabId: setActiveTabIdWithSave,
     createNewTab,
     closeTab,
     updateCurrentTab,
