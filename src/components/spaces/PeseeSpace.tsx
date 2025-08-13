@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EnhancedTabs } from "@/components/ui/enhanced-tabs";
 import { Scale, Save, Printer, Plus, X } from "lucide-react";
 import { db, Pesee, Client, Transporteur } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
@@ -450,47 +451,33 @@ export default function PeseeSpace() {
             }}
           >
             <div className="flex items-center justify-between">
-              <TabsList className="flex-1 bg-gray-50 h-12">
-                {tabs.map((tab) => (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    className="relative group px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                  >
-                    <span className="truncate max-w-32">
-                      {getTabLabel(tab.id)}
-                    </span>
-                    {tabs.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-2 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          closeTab(tab.id);
-                        }}
-                      >
-                        <X className="h-3 w-3 text-red-500" />
-                      </Button>
-                    )}
-                  </TabsTrigger>
-                ))}
-                <TabsTrigger
-                  value="recentes"
-                  className="px-4 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm"
-                >
-                  📊 Pesées Récentes
-                </TabsTrigger>
-              </TabsList>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={createNewTab}
-                className="ml-4 text-black bg-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvel onglet
-              </Button>
+              <EnhancedTabs
+                tabs={[
+                  ...tabs.map(tab => ({
+                    id: tab.id,
+                    label: getTabLabel(tab.id),
+                    onClose: () => closeTab(tab.id),
+                    closeable: tabs.length > 1
+                  })),
+                  {
+                    id: "recentes",
+                    label: "📊 Pesées Récentes",
+                    closeable: false
+                  }
+                ]}
+                activeTabId={showRecentTab ? "recentes" : activeTabId}
+                onTabSelect={(tabId) => {
+                  if (tabId === "recentes") {
+                    setShowRecentTab(true);
+                  } else {
+                    setShowRecentTab(false);
+                    setActiveTabId(tabId);
+                  }
+                }}
+                onNewTab={createNewTab}
+                maxVisibleTabs={5}
+                className="flex-1"
+              />
             </div>
           </Tabs>
         </div>
