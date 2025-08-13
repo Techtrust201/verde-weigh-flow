@@ -67,7 +67,7 @@ export const usePeseeTabs = () => {
     const newBonNumber = generateBonNumber();
     const newTab: PeseeTab = {
       id: newTabId,
-      label: `Pesée ${tabs.length + 1}`,
+      label: `Pesée ${tabs.length + 1}`, // Label initial, sera mis à jour dynamiquement
       formData: {
         numeroBon: newBonNumber,
         nomEntreprise: "",
@@ -125,7 +125,42 @@ export const usePeseeTabs = () => {
 
   const getTabLabel = (tabId: string): string => {
     const tab = tabs.find((t) => t.id === tabId);
-    return tab ? tab.label : "Nouvelle Pesée";
+    if (!tab) return "Nouvelle Pesée";
+    
+    // Générer un nom parlant basé sur les données du formulaire
+    const formData = tab.formData;
+    let label = "";
+    
+    // Ajouter les 4 premiers caractères de la plaque si disponible
+    if (formData.plaque && formData.plaque.trim()) {
+      label += formData.plaque.slice(0, 4).toUpperCase();
+    }
+    
+    // Ajouter un tiret si on a une plaque
+    if (label) {
+      label += "-";
+    }
+    
+    // Ajouter 5 caractères du nom/société
+    let nomAffiche = "";
+    if (formData.nomEntreprise && formData.nomEntreprise.trim()) {
+      // Entreprise/société
+      nomAffiche = formData.nomEntreprise.slice(0, 5);
+    } else if (formData.typeClient === "particulier") {
+      // Pour les particuliers, utiliser "Part" comme indicateur
+      nomAffiche = "Part";
+    } else {
+      nomAffiche = "Nvlle"; // Nouvelle pesée
+    }
+    
+    label += nomAffiche;
+    
+    // Si le label est vide ou trop court, utiliser un fallback
+    if (!label || label === "-" || label.length < 2) {
+      return `Pesée ${tabs.findIndex(t => t.id === tabId) + 1}`;
+    }
+    
+    return label;
   };
 
   // Fonction pour changer l'onglet actif avec sauvegarde
