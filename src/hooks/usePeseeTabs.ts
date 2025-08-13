@@ -30,7 +30,7 @@ export const usePeseeTabs = () => {
       if (savedTabs) {
         const parsed = JSON.parse(savedTabs);
         // Validation : s'assurer que c'est un array
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
       }
@@ -40,7 +40,34 @@ export const usePeseeTabs = () => {
       localStorage.removeItem('pesee-tabs');
       localStorage.removeItem('pesee-active-tab');
     }
-    return [];
+    
+    // 🎯 Créer automatiquement un premier onglet si aucun n'existe
+    const firstTabId = crypto.randomUUID();
+    const newBonNumber = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+    const firstTab: PeseeTab = {
+      id: firstTabId,
+      label: `Pesée 1`,
+      formData: {
+        numeroBon: newBonNumber,
+        nomEntreprise: "",
+        plaque: "",
+        chantier: "",
+        produitId: 0,
+        transporteurId: 0,
+        transporteurLibre: "",
+        poidsEntree: "",
+        poidsSortie: "",
+        moyenPaiement: "Direct",
+        typeClient: "particulier",
+        clientId: 0,
+      },
+    };
+    
+    // Sauvegarder le premier onglet dans localStorage
+    localStorage.setItem('pesee-tabs', JSON.stringify([firstTab]));
+    localStorage.setItem('pesee-active-tab', firstTabId);
+    
+    return [firstTab];
   });
   
   const [activeTabId, setActiveTabId] = useState<string | null>(() => {
@@ -50,10 +77,14 @@ export const usePeseeTabs = () => {
       if (savedActiveTab && tabs.find(tab => tab.id === savedActiveTab)) {
         return savedActiveTab;
       }
+      // Si aucun onglet actif ou onglet inexistant, prendre le premier
+      if (tabs.length > 0) {
+        return tabs[0].id;
+      }
     } catch (error) {
       console.warn('Erreur lors du chargement de l\'onglet actif:', error);
     }
-    return null;
+    return tabs.length > 0 ? tabs[0].id : null;
   });
   
   const generateBonNumber = () => {
