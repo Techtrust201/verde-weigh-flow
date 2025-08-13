@@ -23,22 +23,37 @@ export interface PeseeTabFormData {
 }
 
 export const usePeseeTabs = () => {
-  // 💾 Charger l'état depuis localStorage
+  // 💾 Charger l'état depuis localStorage avec validation
   const [tabs, setTabs] = useState<PeseeTab[]>(() => {
     try {
       const savedTabs = localStorage.getItem('pesee-tabs');
-      return savedTabs ? JSON.parse(savedTabs) : [];
-    } catch {
-      return [];
+      if (savedTabs) {
+        const parsed = JSON.parse(savedTabs);
+        // Validation : s'assurer que c'est un array
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (error) {
+      console.warn('Erreur lors du chargement des onglets depuis localStorage:', error);
+      // Nettoyer les données corrompues
+      localStorage.removeItem('pesee-tabs');
+      localStorage.removeItem('pesee-active-tab');
     }
+    return [];
   });
   
   const [activeTabId, setActiveTabId] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('pesee-active-tab') || null;
-    } catch {
-      return null;
+      const savedActiveTab = localStorage.getItem('pesee-active-tab');
+      // Vérifier que l'onglet actif existe dans les onglets chargés
+      if (savedActiveTab && tabs.find(tab => tab.id === savedActiveTab)) {
+        return savedActiveTab;
+      }
+    } catch (error) {
+      console.warn('Erreur lors du chargement de l\'onglet actif:', error);
     }
+    return null;
   });
   
   const generateBonNumber = () => {
