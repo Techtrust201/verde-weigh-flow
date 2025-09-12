@@ -13,7 +13,7 @@ import HistoriqueSpace from './components/spaces/HistoriqueSpace';
 import ExportsSpace from './components/exports/ExportsSpace';
 import UtilisateurSpace from './components/spaces/UtilisateurSpace';
 import ComptabiliteSpace from './components/spaces/ComptabiliteSpace';
-import { initializeSampleData } from './lib/database';
+import { initializeSampleData, checkDataIntegrity } from './lib/database';
 import { setupAutoSync } from './utils/syncScheduler';
 import { connectionManager } from './utils/connectionManager';
 
@@ -21,11 +21,24 @@ const App = () => {
   const [currentSpace, setCurrentSpace] = useState('pesee');
 
   useEffect(() => {
-    // Initialize PWA and database
-    initializeSampleData();
+    const initializeApp = async () => {
+      // Initialize PWA and database
+      await initializeSampleData();
+      
+      // Vérifier périodiquement l'intégrité des données (toutes les 5 minutes)
+      const dataIntegrityCheck = setInterval(() => {
+        checkDataIntegrity();
+      }, 5 * 60 * 1000);
+      
+      // Initialize connection manager and sync scheduler
+      setupAutoSync();
 
-    // Initialize connection manager and sync scheduler
-    setupAutoSync();
+      return () => {
+        clearInterval(dataIntegrityCheck);
+      };
+    };
+
+    initializeApp();
 
     // Register enhanced service worker
     if ('serviceWorker' in navigator) {

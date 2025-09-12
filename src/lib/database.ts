@@ -165,6 +165,35 @@ class AppDatabase extends Dexie {
 
   constructor() {
     super('AppDatabase');
+    
+    // Version 1 - Structure initiale
+    this.version(1).stores({
+      clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
+      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
+      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
+      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt',
+      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
+      userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
+      config: '++id, key, createdAt, updatedAt',
+      syncLogs: '++id, type, status, synchronized, createdAt',
+      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt'
+    });
+
+    // Version 2 - Ajout des exports
+    this.version(2).stores({
+      clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
+      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
+      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
+      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt',
+      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
+      userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
+      config: '++id, key, createdAt, updatedAt',
+      syncLogs: '++id, type, status, synchronized, createdAt',
+      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
+      exportLogs: '++id, fileName, startDate, endDate, exportType, createdAt'
+    });
+
+    // Version 3 - Ajout du champ exportedAt SANS supprimer les données existantes
     this.version(3).stores({
       clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
       transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
@@ -182,9 +211,41 @@ class AppDatabase extends Dexie {
 
 export const db = new AppDatabase();
 
+// Fonction pour vérifier l'intégrité des données et empêcher la suppression accidentelle
+export const checkDataIntegrity = async () => {
+  try {
+    const [clients, products, pesees, transporteurs] = await Promise.all([
+      db.clients.count(),
+      db.products.count(),
+      db.pesees.count(),
+      db.transporteurs.count()
+    ]);
+    
+    console.log(`📊 Vérification des données:`, {
+      clients,
+      products,
+      pesees,
+      transporteurs
+    });
+    
+    // Alerter si des données critiques sont manquantes
+    if (clients === 0 && products === 0) {
+      console.warn('⚠️ ATTENTION: Aucune donnée client ou produit trouvée!');
+    }
+    
+    return { clients, products, pesees, transporteurs };
+  } catch (error) {
+    console.error('❌ Erreur lors de la vérification des données:', error);
+    return null;
+  }
+};
+
 // Fonction d'initialisation des données d'exemple
 export const initializeSampleData = async () => {
   try {
+    // Vérifier l'intégrité des données d'abord
+    await checkDataIntegrity();
+    
     // Vérifier si des données existent déjà
     const existingProducts = await db.products.count();
     if (existingProducts > 0) {

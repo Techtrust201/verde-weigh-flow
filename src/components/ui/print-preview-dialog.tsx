@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
+import { debugPrintContent } from '@/utils/printUtils';
 
 interface PrintPreviewDialogProps {
   isOpen: boolean;
@@ -21,64 +22,114 @@ export const PrintPreviewDialog = ({
   const handlePrint = () => {
     setIsPrinting(true);
     
-    // Créer un style temporaire pour l'impression
-    const printStyles = `
-      <style>
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #print-content, #print-content * {
-            visibility: visible;
-          }
-          #print-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          
-          /* Masquer la dialog pendant l'impression */
-          .print-preview-dialog {
-            display: none !important;
-          }
-        }
-      </style>
-    `;
-
-    // Injecter les styles dans le head
-    const existingStyle = document.getElementById('print-preview-styles');
-    if (existingStyle) {
-      existingStyle.remove();
-    }
+    // Debug le contenu avant impression
+    const debuggedContent = debugPrintContent(content);
     
-    const styleElement = document.createElement('div');
-    styleElement.id = 'print-preview-styles';
-    styleElement.innerHTML = printStyles;
-    document.head.appendChild(styleElement);
-
-    // Créer l'élément de contenu d'impression temporaire
-    const printElement = document.createElement('div');
-    printElement.id = 'print-content';
-    printElement.innerHTML = content;
-    printElement.style.display = 'none';
-    document.body.appendChild(printElement);
-
-    // Déclencher l'impression
-    setTimeout(() => {
-      window.print();
+    // Créer une nouvelle fenêtre pour l'impression avec le contenu complet
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (printWindow) {
+      // Écrire le contenu HTML complet avec les styles
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Impression</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 0; 
+              padding: 20px;
+              background: white;
+            }
+            @media print { 
+              body { 
+                margin: 0; 
+                padding: 0;
+              }
+              .page-break {
+                page-break-before: always;
+              }
+            }
+            /* Copier tous les styles nécessaires */
+            .bon, .invoice-container {
+              width: 100%;
+              max-width: 210mm;
+              margin: 0 auto;
+              background: white;
+              color: black;
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 20px;
+              border-bottom: 2px solid #333;
+              padding-bottom: 10px;
+            }
+            .company-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #333;
+            }
+            .address {
+              color: #666;
+              font-size: 12px;
+            }
+            .document-title {
+              text-align: center;
+              font-size: 20px;
+              font-weight: bold;
+              margin: 20px 0;
+              text-decoration: underline;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th, td {
+              border: 1px solid #333;
+              padding: 8px;
+              text-align: left;
+            }
+            th {
+              background-color: #f5f5f5;
+              font-weight: bold;
+            }
+            .total-section {
+              margin-top: 20px;
+              text-align: right;
+            }
+            .total-line {
+              margin: 5px 0;
+              font-size: 14px;
+            }
+            .total-final {
+              font-weight: bold;
+              font-size: 16px;
+              border-top: 2px solid #333;
+              padding-top: 5px;
+            }
+          </style>
+        </head>
+        <body>
+          ${debuggedContent}
+        </body>
+        </html>
+      `);
       
-      // Nettoyage après impression
-      setTimeout(() => {
-        if (printElement) {
-          document.body.removeChild(printElement);
-        }
-        if (document.getElementById('print-preview-styles')) {
-          document.getElementById('print-preview-styles')?.remove();
-        }
-        setIsPrinting(false);
-      }, 100);
-    }, 100);
+      printWindow.document.close();
+      
+      // Attendre que le contenu soit chargé puis imprimer
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+          setIsPrinting(false);
+        }, 500);
+      };
+    } else {
+      setIsPrinting(false);
+    }
   };
 
   return (
@@ -103,10 +154,17 @@ export const PrintPreviewDialog = ({
           </div>
         </DialogHeader>
         
-        <div className="flex-1 overflow-auto border rounded-lg bg-white">
+        <div className="flex-1 overflow-auto border rounded-lg bg-white max-h-[60vh]">
           <div 
             dangerouslySetInnerHTML={{ __html: content }}
             className="p-4"
+            style={{
+              maxWidth: '210mm',
+              margin: '0 auto',
+              backgroundColor: 'white',
+              color: 'black',
+              fontFamily: 'Arial, sans-serif'
+            }}
           />
         </div>
       </DialogContent>
