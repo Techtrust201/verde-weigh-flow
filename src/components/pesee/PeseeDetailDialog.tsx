@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Printer, FileText, Calendar, User, Truck, Package, Weight } from 'lucide-react';
 import { Pesee, Product, Transporteur, Client, db } from '@/lib/database';
 import { handlePrint, handlePrintBothBonAndInvoice, getTransporteurNameForSave } from '@/utils/peseeUtils';
+import { PrintPreviewDialog } from '@/components/ui/print-preview-dialog';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 
 interface PeseeDetailDialogProps {
@@ -24,6 +25,9 @@ export const PeseeDetailDialog = ({
   transporteurs
 }: PeseeDetailDialogProps) => {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
+  const [printContent, setPrintContent] = useState('');
+  const [printTitle, setPrintTitle] = useState('');
   const [client, setClient] = useState<Client | null>(null);
 
   // Charger les données du client quand la pesée change
@@ -97,7 +101,10 @@ export const PeseeDetailDialog = ({
   const handlePrintBon = async () => {
     setIsPrinting(true);
     try {
-      await handlePrint(formDataForPrint, products, transporteurs, false, client);
+      const content = handlePrint(formDataForPrint, products, transporteurs, false, client);
+      setPrintContent(content);
+      setPrintTitle('Bon de pesée');
+      setPrintPreviewOpen(true);
     } finally {
       setIsPrinting(false);
     }
@@ -106,7 +113,10 @@ export const PeseeDetailDialog = ({
   const handlePrintFacture = async () => {
     setIsPrinting(true);
     try {
-      await handlePrint(formDataForPrint, products, transporteurs, true, client);
+      const content = handlePrint(formDataForPrint, products, transporteurs, true, client);
+      setPrintContent(content);
+      setPrintTitle('Facture');
+      setPrintPreviewOpen(true);
     } finally {
       setIsPrinting(false);
     }
@@ -115,7 +125,10 @@ export const PeseeDetailDialog = ({
   const handlePrintBoth = async () => {
     setIsPrinting(true);
     try {
-      await handlePrintBothBonAndInvoice(formDataForPrint, products, transporteurs, client);
+      const { bonContent, invoiceContent } = await handlePrintBothBonAndInvoice(formDataForPrint, products, transporteurs, client);
+      setPrintContent(bonContent + '<div style="page-break-before: always;"></div>' + invoiceContent);
+      setPrintTitle('Bon de pesée + Facture');
+      setPrintPreviewOpen(true);
     } finally {
       setIsPrinting(false);
     }
@@ -319,5 +332,14 @@ export const PeseeDetailDialog = ({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Print Preview Dialog */}
+    <PrintPreviewDialog
+      isOpen={printPreviewOpen}
+      onClose={() => setPrintPreviewOpen(false)}
+      content={printContent}
+      title={printTitle}
+    />
+  </>
   );
 };

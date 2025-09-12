@@ -286,6 +286,26 @@ export const handlePrint = (
     client
   );
 
+  // Au lieu d'ouvrir un nouvel onglet, retourner le contenu pour l'afficher dans une modal
+  return printContent;
+};
+
+// Nouvelle fonction pour l'impression directe (ancienne fonction)
+export const handlePrintDirect = (
+  formData: PeseeTab["formData"],
+  products: Product[],
+  transporteurs: Transporteur[],
+  isInvoice = false,
+  client: Client | null = null
+) => {
+  const printContent = generatePrintContent(
+    formData,
+    products,
+    transporteurs,
+    isInvoice,
+    client
+  );
+
   const printWindow = window.open("", "_blank");
   if (printWindow) {
     printWindow.document.write(printContent);
@@ -300,26 +320,16 @@ export const handlePrintBothBonAndInvoice = async (
   transporteurs: Transporteur[],
   client?: Client | null
 ) => {
-  if (!formData) return;
+  if (!formData) return { bonContent: '', invoiceContent: '' };
 
-  // Print bon de pesée first
-  handlePrint(formData, products, transporteurs, false);
-
-  // Wait a bit then print invoice
-  setTimeout(async () => {
-    const { generateInvoiceContent } = await import('@/utils/invoiceUtils');
-    const invoiceContent = generateInvoiceContent(formData, products, transporteurs, client || null);
-    
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(invoiceContent);
-      printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 100);
-    }
-  }, 1000);
+  // Générer le contenu du bon de pesée
+  const bonContent = generatePrintContent(formData, products, transporteurs, false);
+  
+  // Générer le contenu de la facture
+  const { generateInvoiceContent } = await import('@/utils/invoiceUtils');
+  const invoiceContent = generateInvoiceContent(formData, products, transporteurs, client || null);
+  
+  return { bonContent, invoiceContent };
 };
 
 // Fonction pour obtenir le nom du transporteur pour la sauvegarde

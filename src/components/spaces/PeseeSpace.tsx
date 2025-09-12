@@ -14,6 +14,7 @@ import { ProductWeightSection } from "@/components/pesee/ProductWeightSection";
 import { RecentPeseesTab } from "@/components/pesee/RecentPeseesTab";
 import { SaveConfirmDialog } from "@/components/pesee/SaveConfirmDialog";
 import { handlePrint, handlePrintBothBonAndInvoice } from "@/utils/peseeUtils";
+import { PrintPreviewDialog } from "@/components/ui/print-preview-dialog";
 
 export default function PeseeSpace() {
   const { pesees, clients, products, loadData } = usePeseeData();
@@ -48,6 +49,9 @@ export default function PeseeSpace() {
     transporteurId: 0,
     tarifsPreferentiels: {},
   });
+  const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
+  const [printContent, setPrintContent] = useState('');
+  const [printTitle, setPrintTitle] = useState('');
   const [newTransporteurForm, setNewTransporteurForm] = useState<
     Partial<Transporteur>
   >({
@@ -262,7 +266,10 @@ export default function PeseeSpace() {
     if (success) {
       const currentData = getCurrentTabData();
       if (currentData) {
-        handlePrint(currentData, products, transporteurs, false);
+        const content = handlePrint(currentData, products, transporteurs, false);
+        setPrintContent(content);
+        setPrintTitle('Bon de pesée');
+        setPrintPreviewOpen(true);
       }
     }
     setIsSaveDialogOpen(false);
@@ -278,15 +285,9 @@ export default function PeseeSpace() {
         if (client) {
           const { generateInvoiceContent } = await import('@/utils/invoiceUtils');
           const invoiceContent = generateInvoiceContent(currentData, products, transporteurs, client);
-          const printWindow = window.open('', '_blank');
-          if (printWindow) {
-            printWindow.document.write(invoiceContent);
-            printWindow.document.close();
-            setTimeout(() => {
-              printWindow.print();
-              printWindow.close();
-            }, 100);
-          }
+          setPrintContent(invoiceContent);
+          setPrintTitle('Facture');
+          setPrintPreviewOpen(true);
         }
       }
     }
@@ -301,12 +302,21 @@ export default function PeseeSpace() {
         // Récupérer les données client depuis la base
         const client = clients.find(c => c.id === currentData.clientId);
         if (client) {
-          handlePrintBothBonAndInvoice(currentData, products, transporteurs, client);
+          const { bonContent, invoiceContent } = await handlePrintBothBonAndInvoice(currentData, products, transporteurs, client);
+          setPrintContent(bonContent + '<div style="page-break-before: always;"></div>' + invoiceContent);
+          setPrintTitle('Bon de pesée + Facture');
+          setPrintPreviewOpen(true);
         } else {
-          handlePrintBothBonAndInvoice(currentData, products, transporteurs);
+          const { bonContent, invoiceContent } = await handlePrintBothBonAndInvoice(currentData, products, transporteurs);
+          setPrintContent(bonContent + '<div style="page-break-before: always;"></div>' + invoiceContent);
+          setPrintTitle('Bon de pesée + Facture');
+          setPrintPreviewOpen(true);
         }
       } else {
-        handlePrintBothBonAndInvoice(currentData, products, transporteurs);
+        const { bonContent, invoiceContent } = await handlePrintBothBonAndInvoice(currentData, products, transporteurs);
+        setPrintContent(bonContent + '<div style="page-break-before: always;"></div>' + invoiceContent);
+        setPrintTitle('Bon de pesée + Facture');
+        setPrintPreviewOpen(true);
       }
     }
     setIsSaveDialogOpen(false);
@@ -543,12 +553,15 @@ export default function PeseeSpace() {
                     variant="outline"
                     onClick={() => {
                       if (tab.formData) {
-                        handlePrint(
+                        const content = handlePrint(
                           tab.formData,
                           products,
                           transporteurs,
                           false
                         );
+                        setPrintContent(content);
+                        setPrintTitle('Bon de pesée');
+                        setPrintPreviewOpen(true);
                       }
                     }}
                     className="hover:bg-blue-50"
@@ -585,6 +598,14 @@ export default function PeseeSpace() {
         onConfirmAndPrint={handleSaveAndPrint}
         onConfirmPrintAndInvoice={handleSavePrintBonAndInvoice}
         moyenPaiement={currentData?.moyenPaiement || "Direct"}
+      />
+
+      {/* Print Preview Dialog */}
+      <PrintPreviewDialog
+        isOpen={printPreviewOpen}
+        onClose={() => setPrintPreviewOpen(false)}
+        content={printContent}
+        title={printTitle}
       />
     </div>
   );
