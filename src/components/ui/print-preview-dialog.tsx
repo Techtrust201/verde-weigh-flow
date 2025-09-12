@@ -3,28 +3,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Printer, X } from 'lucide-react';
 import { debugPrintContent } from '@/utils/printUtils';
-
 interface PrintPreviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
   content: string;
   title?: string;
 }
-
-export const PrintPreviewDialog = ({ 
-  isOpen, 
-  onClose, 
-  content, 
-  title = "Aperçu avant impression" 
+export const PrintPreviewDialog = ({
+  isOpen,
+  onClose,
+  content,
+  title = "Aperçu avant impression"
 }: PrintPreviewDialogProps) => {
   const [isPrinting, setIsPrinting] = useState(false);
-
   const handlePrint = () => {
     setIsPrinting(true);
-    
+
     // Debug le contenu avant impression
     const debuggedContent = debugPrintContent(content);
-    
+
     // Créer une nouvelle fenêtre pour l'impression avec le contenu complet
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (printWindow) {
@@ -116,9 +113,8 @@ export const PrintPreviewDialog = ({
         </body>
         </html>
       `);
-      
       printWindow.document.close();
-      
+
       // Attendre que le contenu soit chargé puis imprimer
       printWindow.onload = () => {
         setTimeout(() => {
@@ -131,43 +127,32 @@ export const PrintPreviewDialog = ({
       setIsPrinting(false);
     }
   };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+  return <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="print-preview-dialog max-w-4xl max-h-[80vh] overflow-hidden">
         <DialogHeader>
           <div className="flex justify-between items-center">
             <DialogTitle>{title}</DialogTitle>
-            <div className="flex space-x-2">
-              <Button 
-                onClick={handlePrint} 
-                disabled={isPrinting}
-                className="flex items-center"
-              >
+            <div className="flex space-x-2 mx-[20px]">
+              <Button onClick={handlePrint} disabled={isPrinting} className="flex items-center">
                 <Printer className="h-4 w-4 mr-2" />
                 {isPrinting ? 'Impression...' : 'Imprimer'}
               </Button>
-              <Button variant="outline" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
+              
             </div>
           </div>
         </DialogHeader>
         
         <div className="flex-1 overflow-auto border rounded-lg bg-white max-h-[60vh]">
-          <div 
-            dangerouslySetInnerHTML={{ __html: content }}
-            className="p-4"
-            style={{
-              maxWidth: '210mm',
-              margin: '0 auto',
-              backgroundColor: 'white',
-              color: 'black',
-              fontFamily: 'Arial, sans-serif'
-            }}
-          />
+          <div dangerouslySetInnerHTML={{
+          __html: content
+        }} className="p-4" style={{
+          maxWidth: '210mm',
+          margin: '0 auto',
+          backgroundColor: 'white',
+          color: 'black',
+          fontFamily: 'Arial, sans-serif'
+        }} />
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };
