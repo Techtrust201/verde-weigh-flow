@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Printer, FileText, Calendar, User, Truck, Package, Weight } from 'lucide-react';
 import { Pesee, Product, Transporteur, Client, db } from '@/lib/database';
 import { handlePrint, handlePrintBothBonAndInvoice, getTransporteurNameForSave } from '@/utils/peseeUtils';
@@ -33,7 +32,7 @@ export const PeseeDetailDialog = ({
   // Charger les données du client quand la pesée change
   useEffect(() => {
     const loadClient = async () => {
-      if (pesee?.clientId) {
+      if (pesee && pesee.clientId) {
         try {
           const clientData = await db.clients.get(pesee.clientId);
           setClient(clientData || null);
@@ -87,15 +86,15 @@ export const PeseeDetailDialog = ({
     numeroBon: pesee.numeroBon,
     nomEntreprise: pesee.nomEntreprise,
     plaque: pesee.plaque,
-    chantier: pesee.chantier,
+    chantier: pesee.chantier || '',
     produitId: pesee.produitId,
-    transporteurId: pesee.transporteurId,
-    transporteurLibre: pesee.transporteurLibre, // ⚠️ CRITIQUE: Ajouter le transporteurLibre
     poidsEntree: pesee.poidsEntree.toString(),
     poidsSortie: pesee.poidsSortie.toString(),
     moyenPaiement: pesee.moyenPaiement as 'Direct' | 'En compte',
-    typeClient: pesee.typeClient,
-    clientId: pesee.clientId || 0
+    clientId: pesee.clientId || 0,
+    transporteurId: pesee.transporteurId || 0,
+    transporteurLibre: pesee.transporteurLibre || '',
+    typeClient: pesee.typeClient
   };
 
   const handlePrintBon = async () => {
@@ -135,211 +134,211 @@ export const PeseeDetailDialog = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center">
-            <FileText className="h-5 w-5 mr-2" />
-            Détails de la pesée - {pesee.numeroBon}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <FileText className="h-5 w-5 mr-2" />
+              Détails de la pesée - {pesee.numeroBon}
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Informations générales */}
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center">
-                <Calendar className="h-4 w-4 mr-2" />
-                Informations générales
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-sm text-gray-600">Date et heure:</span>
-                  <p className="font-medium">
-                    {pesee.dateHeure.toLocaleDateString()} à {pesee.dateHeure.toLocaleTimeString()}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Numéro de bon:</span>
-                  <p className="font-medium">{pesee.numeroBon}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Moyen de paiement:</span>
-                  <Badge variant="outline">{pesee.moyenPaiement}</Badge>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Type de client:</span>
-                  <Badge variant="secondary">{pesee.typeClient}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Client/Entreprise avec données complètes */}
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center">
-                <User className="h-4 w-4 mr-2" />
-                {pesee.typeClient === 'particulier' ? 'Client' : 'Entreprise'}
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-sm text-gray-600">Nom:</span>
-                  <p className="font-medium">
-                    {client ? (
-                      client.typeClient === 'particulier' && client.prenom && client.nom
-                        ? `${client.prenom} ${client.nom}`
-                        : client.raisonSociale
-                    ) : pesee.nomEntreprise}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Plaque:</span>
-                  <p className="font-medium">{pesee.plaque}</p>
-                </div>
-                {client?.siret && (
+          <div className="space-y-6">
+            {/* Informations générales */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Informations générales
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-sm text-gray-600">SIRET:</span>
-                    <p className="font-medium">{client.siret}</p>
-                  </div>
-                )}
-                {client?.adresse && (
-                  <div className="col-span-2">
-                    <span className="text-sm text-gray-600">Adresse:</span>
-                    <p className="font-medium">
-                      {client.adresse}
-                      {client.codePostal && client.ville && `, ${client.codePostal} ${client.ville}`}
+                    <label className="text-sm font-medium text-gray-500">Date et heure</label>
+                    <p className="mt-1">
+                      {pesee.dateHeure.toLocaleDateString()} à {pesee.dateHeure.toLocaleTimeString()}
                     </p>
                   </div>
-                )}
-                {pesee.chantier && (
-                  <div className="col-span-2">
-                    <span className="text-sm text-gray-600">Chantier:</span>
-                    <p className="font-medium">{pesee.chantier}</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Produit et transporteur */}
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center">
-                <Package className="h-4 w-4 mr-2" />
-                Produit et transport
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-sm text-gray-600">Produit:</span>
-                  <p className="font-medium">{selectedProduct?.nom || 'Non défini'}</p>
-                </div>
-                {displayedTransporteurName && (
                   <div>
-                    <span className="text-sm text-gray-600">Transporteur:</span>
-                    <p className="font-medium">{displayedTransporteurName}</p>
+                    <label className="text-sm font-medium text-gray-500">Numéro de bon</label>
+                    <p className="mt-1 font-semibold">{pesee.numeroBon}</p>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Plaque</label>
+                    <p className="mt-1">{pesee.plaque}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Moyen de paiement</label>
+                    <p className="mt-1">{pesee.moyenPaiement}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center">
-                <Weight className="h-4 w-4 mr-2" />
-                Pesée
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <span className="text-sm text-gray-600">Poids entrée:</span>
-                  <p className="font-medium">{pesee.poidsEntree.toFixed(3)} T</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Poids sortie:</span>
-                  <p className="font-medium">{pesee.poidsSortie.toFixed(3)} T</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">Poids net:</span>
-                  <Badge className="text-base font-semibold">
-                    {pesee.net.toFixed(3)} T
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {(pesee.prixHT || pesee.prixTTC) && (
+            {/* Informations client */}
             <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-3">Prix</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {pesee.prixHT && (
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="h-5 w-5 mr-2" />
+                  Informations client
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Nom de l'entreprise</label>
+                    <p className="mt-1">{pesee.nomEntreprise}</p>
+                  </div>
+                  {pesee.chantier && (
                     <div>
-                      <span className="text-sm text-gray-600">Prix HT:</span>
-                      <p className="font-medium text-green-600">{pesee.prixHT.toFixed(2)} €</p>
+                      <label className="text-sm font-medium text-gray-500">Chantier</label>
+                      <p className="mt-1">{pesee.chantier}</p>
                     </div>
                   )}
-                  {pesee.prixTTC && (
-                    <div>
-                      <span className="text-sm text-gray-600">Prix TTC:</span>
-                      <p className="font-medium text-green-600">{pesee.prixTTC.toFixed(2)} €</p>
+                  {client && (
+                    <div className="space-y-2">
+                      {client.siret && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">SIRET</label>
+                          <p className="mt-1">{client.siret}</p>
+                        </div>
+                      )}
+                      {client.email && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Email</label>
+                          <p className="mt-1">{client.email}</p>
+                        </div>
+                      )}
+                      {client.telephone && (
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Téléphone</label>
+                          <p className="mt-1">{client.telephone}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Boutons d'impression */}
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center">
-                <Printer className="h-4 w-4 mr-2" />
-                Options d'impression
-              </h3>
-              <div className="flex flex-col space-y-2">
-                <Button 
-                  onClick={handlePrintBon} 
-                  disabled={isPrinting}
-                  className="justify-start"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  Imprimer le bon de pesée
-                </Button>
-                <Button 
-                  onClick={handlePrintFacture} 
-                  disabled={isPrinting}
-                  variant="outline"
-                  className="justify-start"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Imprimer la facture
-                </Button>
-                <Button 
-                  onClick={handlePrintBoth} 
-                  disabled={isPrinting}
-                  variant="secondary"
-                  className="justify-start"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  <FileText className="h-4 w-4 mr-2" />
-                  Imprimer bon + facture
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </DialogContent>
-    </Dialog>
+            {/* Informations transporteur */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Truck className="h-5 w-5 mr-2" />
+                  Transporteur
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Nom du transporteur</label>
+                  <p className="mt-1">{displayedTransporteurName}</p>
+                </div>
+              </CardContent>
+            </Card>
 
-    {/* Print Preview Dialog */}
-    <PrintPreviewDialog
-      isOpen={printPreviewOpen}
-      onClose={() => setPrintPreviewOpen(false)}
-      content={printContent}
-      title={printTitle}
-    />
-  </>
+            {/* Informations produit et pesée */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Package className="h-5 w-5 mr-2" />
+                  Produit et pesée
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Produit</label>
+                  <p className="mt-1">{selectedProduct?.nom || 'Produit non trouvé'}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Poids d'entrée</label>
+                    <div className="flex items-center mt-1">
+                      <Weight className="h-4 w-4 mr-1 text-gray-400" />
+                      <span>{pesee.poidsEntree} T</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Poids de sortie</label>
+                    <div className="flex items-center mt-1">
+                      <Weight className="h-4 w-4 mr-1 text-gray-400" />
+                      <span>{pesee.poidsSortie} T</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Poids net</label>
+                    <div className="flex items-center mt-1">
+                      <Weight className="h-4 w-4 mr-1 text-green-600" />
+                      <span className="font-semibold text-green-600">{pesee.net} T</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Prix HT</label>
+                    <p className="mt-1 font-semibold text-green-600">{pesee.prixHT.toFixed(2)}€</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Prix TTC</label>
+                    <p className="mt-1 font-semibold text-green-600">{pesee.prixTTC.toFixed(2)}€</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions d'impression */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Printer className="h-5 w-5 mr-2" />
+                  Actions d'impression
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <Button 
+                    onClick={handlePrintBon} 
+                    disabled={isPrinting}
+                    variant="outline"
+                    className="justify-start"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    Imprimer le bon de pesée
+                  </Button>
+                  <Button 
+                    onClick={handlePrintFacture} 
+                    disabled={isPrinting}
+                    variant="outline"
+                    className="justify-start"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Imprimer la facture
+                  </Button>
+                  <Button 
+                    onClick={handlePrintBoth} 
+                    disabled={isPrinting}
+                    variant="secondary"
+                    className="justify-start"
+                  >
+                    <Printer className="h-4 w-4 mr-2" />
+                    <FileText className="h-4 w-4 mr-2" />
+                    Imprimer bon + facture
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <PrintPreviewDialog
+        isOpen={printPreviewOpen}
+        onClose={() => setPrintPreviewOpen(false)}
+        content={printContent}
+        title={printTitle}
+      />
+    </>
   );
 };
