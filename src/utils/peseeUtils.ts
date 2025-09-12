@@ -89,6 +89,20 @@ export const generatePrintContent = (
             <span class="label">Produit:</span>
             <span>${selectedProduct?.nom || "Non défini"}</span>
           </div>
+          
+          <div class="signature-section">
+            <div class="signature-bdv">
+              <p class="signature-label">Signature BDV:</p>
+              <div class="signature-area">
+                <svg class="signature-scribble" viewBox="0 0 120 40" width="120" height="40">
+                  <path d="M10,25 Q20,10 30,25 T50,25 Q60,15 70,25 T90,25 Q100,20 110,25" 
+                        stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/>
+                  <path d="M15,30 Q25,20 35,30 T55,30" 
+                        stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div class="column-right">
@@ -108,22 +122,18 @@ export const generatePrintContent = (
             <span class="label">Paiement:</span>
             <span>${formData.moyenPaiement}</span>
           </div>
+          
+          <div class="signature-section">
+            <div class="signature-client">
+              <p class="signature-label">Signature Client:</p>
+              <div class="signature-line"></div>
+            </div>
+          </div>
         </div>
       </div>
       
       <div class="mention-legale">
         <p><strong>Important:</strong> Tous les chauffeurs prenant livraison de matériaux sont tenus de vérifier au passage de la bascule, le poids de leur chargement et de faire le nécessaire en cas de surcharge.</p>
-      </div>
-      
-      <div class="signatures">
-        <div class="signature-bdv">
-          <p>Signature BDV:</p>
-          <div class="signature-line"></div>
-        </div>
-        <div class="signature-client">
-          <p>Signature Client:</p>
-          <div class="signature-line"></div>
-        </div>
       </div>
       
       <div class="copy-type">
@@ -249,22 +259,38 @@ export const generatePrintContent = (
           color: #000;
         }
         
-        .signatures {
-          display: flex;
-          justify-content: space-between;
-          margin: 4mm 0 2mm 0;
-          font-size: 8px;
-        }
-        
-        .signature-bdv, .signature-client {
-          width: 45%;
-          text-align: center;
-        }
-        
-        .signature-line {
-          border-bottom: 1px solid #000;
+        .signature-section {
           margin-top: 8mm;
-          height: 12mm;
+          padding-top: 4mm;
+          border-top: 1px solid #ddd;
+        }
+        
+        .signature-label {
+          font-size: 8px;
+          font-weight: bold;
+          margin-bottom: 3mm;
+          color: #555;
+        }
+        
+        .signature-bdv .signature-area {
+          height: 15mm;
+          border: 1px solid #ccc;
+          background: #fafafa;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2mm;
+        }
+        
+        .signature-scribble {
+          opacity: 0.8;
+        }
+        
+        .signature-client .signature-line {
+          border-bottom: 1px solid #000;
+          height: 15mm;
+          border: 1px solid #ccc;
+          background: white;
         }
         
         .mention-legale { 
