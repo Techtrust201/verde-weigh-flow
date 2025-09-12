@@ -162,7 +162,7 @@ export const generatePrintContent = (
           margin: 0 auto;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 20px;
           padding: 5px;
         }
         
@@ -262,9 +262,10 @@ export const generatePrintContent = (
         }
         
         .signature-section {
-          margin-top: 10px;
+          margin-top: 15px;
           padding-top: 6px;
           border-top: 1px solid #ddd;
+          height: 60px;
         }
         
         .signature-label {
@@ -275,7 +276,7 @@ export const generatePrintContent = (
         }
         
         .signature-bdv .signature-area {
-          height: 35px;
+          height: 40px;
           border: 1px solid #ccc;
           background: #fafafa;
           display: flex;
@@ -292,7 +293,7 @@ export const generatePrintContent = (
         
         .signature-client .signature-line {
           border-bottom: 1px solid #000;
-          height: 35px;
+          height: 40px;
           border: 1px solid #ccc;
           background: white;
         }
@@ -355,7 +356,7 @@ export const generatePrintContent = (
             max-width: none;
             width: 100%;
             flex-direction: column;
-            gap: 5px;
+            gap: 15px;
             padding: 0;
           }
           .bon {
