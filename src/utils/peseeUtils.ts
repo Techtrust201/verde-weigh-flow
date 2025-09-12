@@ -238,6 +238,8 @@ export const generatePrintContent = (
         .column-left, .column-right {
           flex: 1;
           min-width: 120px;
+          display: flex;
+          flex-direction: column;
         }
         
         .row { 
@@ -262,7 +264,7 @@ export const generatePrintContent = (
         }
         
         .signature-section {
-          margin-top: 15px;
+          margin-top: auto;
           padding-top: 6px;
           border-top: 1px solid #ddd;
           height: 60px;
@@ -356,7 +358,7 @@ export const generatePrintContent = (
             max-width: none;
             width: 100%;
             flex-direction: column;
-            gap: 15px;
+            gap: 20px;
             padding: 0;
           }
           .bon {
@@ -365,6 +367,9 @@ export const generatePrintContent = (
             page-break-inside: avoid;
             min-height: 320px;
             max-height: 380px;
+          }
+          .bon + .bon {
+            margin-top: 16px;
           }
         }
       </style>
