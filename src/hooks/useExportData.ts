@@ -138,31 +138,38 @@ export const useExportData = () => {
   const exportToCSV = async (
     startDate: Date,
     endDate: Date,
-    exportType: 'new' | 'selective' | 'complete' = 'new'
+    exportType: 'new' | 'selective' | 'complete' = 'new',
+    selectedPesees?: Pesee[]
   ): Promise<void> => {
     setIsLoading(true);
     try {
-      // Récupérer les pesées selon le type d'export
-      let query = db.pesees.filter(pesee => 
-        pesee.dateHeure >= startDate && pesee.dateHeure <= endDate
-      );
-
-      const allPesees = await query.toArray();
-      
       let peseesToExport: Pesee[];
-      switch (exportType) {
-        case 'new':
-          peseesToExport = allPesees.filter(pesee => 
-            !pesee.exportedAt || pesee.exportedAt.length === 0
-          );
-          break;
-        case 'complete':
-          peseesToExport = allPesees;
-          break;
-        case 'selective':
-        default:
-          peseesToExport = allPesees;
-          break;
+      
+      // Si des pesées sont déjà sélectionnées, les utiliser
+      if (selectedPesees) {
+        peseesToExport = selectedPesees;
+      } else {
+        // Sinon, récupérer les pesées selon le type d'export
+        let query = db.pesees.filter(pesee => 
+          pesee.dateHeure >= startDate && pesee.dateHeure <= endDate
+        );
+
+        const allPesees = await query.toArray();
+        
+        switch (exportType) {
+          case 'new':
+            peseesToExport = allPesees.filter(pesee => 
+              !pesee.exportedAt || pesee.exportedAt.length === 0
+            );
+            break;
+          case 'complete':
+            peseesToExport = allPesees;
+            break;
+          case 'selective':
+          default:
+            peseesToExport = allPesees;
+            break;
+        }
       }
 
       if (peseesToExport.length === 0) {

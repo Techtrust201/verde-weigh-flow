@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
   Download, 
   FileText, 
@@ -15,15 +17,23 @@ import {
   Trash2,
   RefreshCw,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Eye,
+  Check,
+  X
 } from 'lucide-react';
 import { useExportData, ExportStats } from '@/hooks/useExportData';
+import { db, Pesee, Product } from '@/lib/database';
 
 export default function ExportsSpace() {
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [exportStats, setExportStats] = useState<ExportStats | null>(null);
   const [selectedExportType, setSelectedExportType] = useState<'new' | 'selective' | 'complete'>('new');
+  const [previewPesees, setPreviewPesees] = useState<Pesee[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedPeseeIds, setSelectedPeseeIds] = useState<Set<number>>(new Set());
+  const [showPreview, setShowPreview] = useState(false);
 
   const {
     exportLogs,
@@ -41,13 +51,68 @@ export default function ExportsSpace() {
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
     setDateDebut(lastMonth.toISOString().split('T')[0]);
     setDateFin(now.toISOString().split('T')[0]);
+    
+    // Load products
+    loadProducts();
   }, []);
 
   useEffect(() => {
     if (dateDebut && dateFin) {
       updateStats();
+      loadPreviewData();
     }
-  }, [dateDebut, dateFin]);
+  }, [dateDebut, dateFin, selectedExportType]);
+
+  const loadProducts = async () => {
+    try {
+      const productsData = await db.products.toArray();
+      setProducts(productsData);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    }
+  };
+
+  const loadPreviewData = async () => {
+    if (!dateDebut || !dateFin) return;
+    
+    try {
+      const startDate = new Date(dateDebut);
+      const endDate = new Date(dateFin);
+      endDate.setHours(23, 59, 59, 999);
+      
+      let query = db.pesees.filter(pesee => 
+        pesee.dateHeure >= startDate && pesee.dateHeure <= endDate
+      );
+
+      const allPesees = await query.toArray();
+      
+      let filteredPesees: Pesee[];
+      switch (selectedExportType) {
+        case 'new':
+          filteredPesees = allPesees.filter(pesee => 
+            !pesee.exportedAt || pesee.exportedAt.length === 0
+          );
+          break;
+        case 'complete':
+          filteredPesees = allPesees;
+          break;
+        case 'selective':
+        default:
+          filteredPesees = allPesees;
+          break;
+      }
+      
+      setPreviewPesees(filteredPesees);
+      
+      // Auto-select all pesees by default
+      const allIds = new Set(filteredPesees.map(p => p.id!));
+      setSelectedPeseeIds(allIds);
+      
+      setShowPreview(filteredPesees.length > 0);
+    } catch (error) {
+      console.error('Error loading preview data:', error);
+    }
+  };
 
   const updateStats = async () => {
     if (dateDebut && dateFin) {
@@ -61,15 +126,43 @@ export default function ExportsSpace() {
   };
 
   const handleExport = async () => {
-    if (!dateDebut || !dateFin) {
+    if (!dateDebut || !dateFin || selectedPeseeIds.size === 0) {
       return;
     }
 
+    // Filter pesees to only selected ones
+    const selectedPesees = previewPesees.filter(p => selectedPeseeIds.has(p.id!));
+    
     const startDate = new Date(dateDebut);
     const endDate = new Date(dateFin);
     endDate.setHours(23, 59, 59, 999);
 
-    await exportToCSV(startDate, endDate, selectedExportType);
+    // Call export with selected pesees
+    await exportToCSV(startDate, endDate, selectedExportType, selectedPesees);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(previewPesees.map(p => p.id!));
+      setSelectedPeseeIds(allIds);
+    } else {
+      setSelectedPeseeIds(new Set());
+    }
+  };
+
+  const handleSelectPesee = (peseeId: number, checked: boolean) => {
+    const newSelected = new Set(selectedPeseeIds);
+    if (checked) {
+      newSelected.add(peseeId);
+    } else {
+      newSelected.delete(peseeId);
+    }
+    setSelectedPeseeIds(newSelected);
+  };
+
+  const getProductName = (produitId: number) => {
+    const product = products.find(p => p.id === produitId);
+    return product?.nom || 'Produit inconnu';
   };
 
   const getExportTypeLabel = (type: string) => {
@@ -231,23 +324,180 @@ export default function ExportsSpace() {
                 )}
               </div>
 
-              {/* Bouton d'export */}
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleExport} 
-                  disabled={isLoading || !dateDebut || !dateFin}
-                  className="min-w-32"
-                >
-                  {isLoading ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4 mr-2" />
-                  )}
-                  {isLoading ? 'Export...' : 'Exporter vers Sage 50'}
-                </Button>
-              </div>
+              {/* Bouton d'export - déplacé dans l'aperçu */}
+              {!showPreview && (
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleExport} 
+                    disabled={isLoading || !dateDebut || !dateFin}
+                    className="min-w-32"
+                  >
+                    {isLoading ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {isLoading ? 'Export...' : 'Exporter vers Sage 50'}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Aperçu des données à exporter */}
+          {showPreview && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Eye className="h-5 w-5 mr-2" />
+                    Aperçu des données à exporter
+                  </div>
+                  <Badge variant="outline">
+                    {selectedPeseeIds.size} / {previewPesees.length} sélectionnées
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Contrôles de sélection */}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="select-all"
+                        checked={selectedPeseeIds.size === previewPesees.length && previewPesees.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                      <Label htmlFor="select-all" className="text-sm">
+                        Tout sélectionner
+                      </Label>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedPeseeIds(new Set())}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Tout désélectionner
+                    </Button>
+                  </div>
+
+                  {/* Tableau des pesées */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">
+                            <span className="sr-only">Sélection</span>
+                          </TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>N° Bon</TableHead>
+                          <TableHead>Plaque</TableHead>
+                          <TableHead>Entreprise</TableHead>
+                          <TableHead>Produit</TableHead>
+                          <TableHead>Net (T)</TableHead>
+                          <TableHead>Prix TTC</TableHead>
+                          <TableHead>Statut</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewPesees.map((pesee) => (
+                          <TableRow 
+                            key={pesee.id}
+                            className={selectedPeseeIds.has(pesee.id!) ? 'bg-blue-50' : ''}
+                          >
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedPeseeIds.has(pesee.id!)}
+                                onCheckedChange={(checked) => 
+                                  handleSelectPesee(pesee.id!, checked as boolean)
+                                }
+                              />
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {pesee.dateHeure.toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {pesee.numeroBon}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {pesee.plaque}
+                            </TableCell>
+                            <TableCell className="text-sm max-w-32 truncate">
+                              {pesee.nomEntreprise}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {getProductName(pesee.produitId)}
+                            </TableCell>
+                            <TableCell className="text-sm font-medium">
+                              {pesee.net}
+                            </TableCell>
+                            <TableCell className="text-sm font-medium text-green-600">
+                              {pesee.prixTTC.toFixed(2)}€
+                            </TableCell>
+                            <TableCell>
+                              {pesee.exportedAt && pesee.exportedAt.length > 0 ? (
+                                <Badge variant="secondary" className="text-xs">
+                                  <Check className="h-3 w-3 mr-1" />
+                                  Exporté
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">
+                                  Nouveau
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Statistiques de sélection */}
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="font-bold text-lg text-blue-600">{selectedPeseeIds.size}</div>
+                      <div className="text-sm text-muted-foreground">Sélectionnées</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-lg text-green-600">
+                        {Array.from(selectedPeseeIds).filter(id => {
+                          const pesee = previewPesees.find(p => p.id === id);
+                          return !pesee?.exportedAt || pesee.exportedAt.length === 0;
+                        }).length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Nouvelles</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-lg text-orange-600">
+                        {Array.from(selectedPeseeIds).filter(id => {
+                          const pesee = previewPesees.find(p => p.id === id);
+                          return pesee?.exportedAt && pesee.exportedAt.length > 0;
+                        }).length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Déjà exportées</div>
+                    </div>
+                  </div>
+
+                  {/* Bouton d'export avec sélection */}
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleExport} 
+                      disabled={isLoading || !dateDebut || !dateFin || selectedPeseeIds.size === 0}
+                      className="min-w-32"
+                    >
+                      {isLoading ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-2" />
+                      )}
+                      {isLoading ? 'Export...' : `Exporter ${selectedPeseeIds.size} pesée(s)`}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="history" className="space-y-6">
