@@ -55,59 +55,75 @@ export const generatePrintContent = (
         </div>
       </div>
       
-      <div class="content">
-        <div class="row">
-          <span class="label">${clientLabel}:</span>
-          <span>${formData.nomEntreprise}</span>
+      <div class="content-columns">
+        <div class="column-left">
+          <div class="row">
+            <span class="label">${clientLabel}:</span>
+            <span>${formData.nomEntreprise}</span>
+          </div>
+          <div class="row">
+            <span class="label">Plaque:</span>
+            <span>${formData.plaque}</span>
+          </div>
+          ${
+            getTransporteurName()
+              ? `
+          <div class="row">
+            <span class="label">Transporteur:</span>
+            <span>${getTransporteurName()}</span>
+          </div>
+          `
+              : ""
+          }
+          ${
+            formData.chantier
+              ? `
+          <div class="row">
+            <span class="label">Chantier:</span>
+            <span>${formData.chantier}</span>
+          </div>
+          `
+              : ""
+          }
+          <div class="row">
+            <span class="label">Produit:</span>
+            <span>${selectedProduct?.nom || "Non défini"}</span>
+          </div>
         </div>
-        <div class="row">
-          <span class="label">Plaque:</span>
-          <span>${formData.plaque}</span>
-        </div>
-        ${
-          getTransporteurName()
-            ? `
-        <div class="row">
-          <span class="label">Transporteur:</span>
-          <span>${getTransporteurName()}</span>
-        </div>
-        `
-            : ""
-        }
-        ${
-          formData.chantier
-            ? `
-        <div class="row">
-          <span class="label">Chantier:</span>
-          <span>${formData.chantier}</span>
-        </div>
-        `
-            : ""
-        }
-        <div class="row">
-          <span class="label">Produit:</span>
-          <span>${selectedProduct?.nom || "Non défini"}</span>
-        </div>
-        <div class="row">
-          <span class="label">Poids Entrée:</span>
-          <span>${poidsEntree.toFixed(3)} tonnes</span>
-        </div>
-        <div class="row">
-          <span class="label">Poids Sortie:</span>
-          <span>${poidsSortie.toFixed(3)} tonnes</span>
-        </div>
-        <div class="row">
-          <span class="label">Poids Net:</span>
-          <span>${net.toFixed(3)} tonnes</span>
-        </div>
-        <div class="row">
-          <span class="label">Paiement:</span>
-          <span>${formData.moyenPaiement}</span>
+        
+        <div class="column-right">
+          <div class="row">
+            <span class="label">Poids Entrée:</span>
+            <span>${poidsEntree.toFixed(3)} tonnes</span>
+          </div>
+          <div class="row">
+            <span class="label">Poids Sortie:</span>
+            <span>${poidsSortie.toFixed(3)} tonnes</span>
+          </div>
+          <div class="row">
+            <span class="label">Poids Net:</span>
+            <span>${net.toFixed(3)} tonnes</span>
+          </div>
+          <div class="row">
+            <span class="label">Paiement:</span>
+            <span>${formData.moyenPaiement}</span>
+          </div>
         </div>
       </div>
       
       <div class="mention-legale">
         <p><strong>Important:</strong> Tous les chauffeurs prenant livraison de matériaux sont tenus de vérifier au passage de la bascule, le poids de leur chargement et de faire le nécessaire en cas de surcharge.</p>
+      </div>
+      
+      <div class="signatures">
+        <div class="signature-bdv">
+          <p>Signature BDV:</p>
+          <div class="signature-line"></div>
+        </div>
+        <div class="signature-client">
+          <p>Signature Client:</p>
+          <div class="signature-line"></div>
+        </div>
       </div>
       
       <div class="copy-type">
@@ -148,8 +164,8 @@ export const generatePrintContent = (
         .bon { 
           border: 2px solid #000; 
           padding: 5mm; 
-          width: 120mm;
-          height: 140mm;
+          width: 160mm;
+          height: 120mm;
           box-sizing: border-box; 
           background: white;
           display: flex;
@@ -200,14 +216,21 @@ export const generatePrintContent = (
           font-size: 10px;
         }
         
-        .content {
+        .content-columns {
+          display: flex;
+          justify-content: space-between;
           flex-grow: 1;
           margin: 4mm 0;
+          gap: 8mm;
+        }
+        
+        .column-left, .column-right {
+          width: 48%;
         }
         
         .row { 
           display: flex; 
-          justify-content: space-between; 
+          flex-direction: column;
           margin: 2mm 0; 
           padding: 1mm 0;
           border-bottom: 1px dotted #ccc;
@@ -216,12 +239,32 @@ export const generatePrintContent = (
         
         .label { 
           font-weight: bold; 
-          width: 45%;
+          margin-bottom: 1mm;
+          font-size: 8px;
+          color: #555;
         }
         
         .row span:last-child {
-          width: 50%;
-          text-align: right;
+          font-size: 10px;
+          color: #000;
+        }
+        
+        .signatures {
+          display: flex;
+          justify-content: space-between;
+          margin: 4mm 0 2mm 0;
+          font-size: 8px;
+        }
+        
+        .signature-bdv, .signature-client {
+          width: 45%;
+          text-align: center;
+        }
+        
+        .signature-line {
+          border-bottom: 1px solid #000;
+          margin-top: 8mm;
+          height: 12mm;
         }
         
         .mention-legale { 
