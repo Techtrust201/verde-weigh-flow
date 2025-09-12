@@ -162,30 +162,31 @@ export const generatePrintContent = (
           margin: 0 auto;
           display: flex;
           flex-direction: column;
-          gap: 15px;
-          padding: 10px;
+          gap: 8px;
+          padding: 5px;
         }
         
         .bon { 
           border: 2px solid #000; 
-          padding: 15px; 
+          padding: 12px; 
           width: 100%;
-          min-height: 400px;
+          min-height: 320px;
+          max-height: 380px;
           box-sizing: border-box; 
           background: white;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          font-size: 11px;
+          font-size: 10px;
         }
         
         .header { 
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 15px; 
+          margin-bottom: 10px; 
           border-bottom: 1px solid #ccc;
-          padding-bottom: 10px;
+          padding-bottom: 8px;
           flex-wrap: wrap;
           gap: 5px;
         }
@@ -229,8 +230,8 @@ export const generatePrintContent = (
           display: flex;
           justify-content: space-between;
           flex-grow: 1;
-          margin: 10px 0;
-          gap: 15px;
+          margin: 8px 0;
+          gap: 10px;
           flex-wrap: wrap;
         }
         
@@ -261,8 +262,8 @@ export const generatePrintContent = (
         }
         
         .signature-section {
-          margin-top: 15px;
-          padding-top: 8px;
+          margin-top: 10px;
+          padding-top: 6px;
           border-top: 1px solid #ddd;
         }
         
@@ -299,11 +300,11 @@ export const generatePrintContent = (
         .mention-legale { 
           background: #f8f8f8; 
           border: 1px solid #ddd;
-          padding: 8px; 
-          margin: 10px 0; 
-          font-size: 8px; 
+          padding: 6px; 
+          margin: 6px 0; 
+          font-size: 7px; 
           text-align: justify; 
-          line-height: 1.2;
+          line-height: 1.1;
         }
         
         .copy-type { 
@@ -354,12 +355,15 @@ export const generatePrintContent = (
             max-width: none;
             width: 100%;
             flex-direction: column;
-            gap: 15px;
+            gap: 5px;
+            padding: 0;
           }
           .bon {
             width: 100%;
             margin-bottom: 0;
             page-break-inside: avoid;
+            min-height: 320px;
+            max-height: 380px;
           }
         }
       </style>
