@@ -158,49 +158,50 @@ export const generatePrintContent = (
         
         .print-container {
           width: 100%;
-          max-width: 800px;
+          max-width: none;
           margin: 0 auto;
           display: flex;
-          flex-direction: column;
-          gap: 20px;
+          flex-direction: row;
+          gap: 10px;
+          padding: 10px;
         }
         
         .bon { 
           border: 2px solid #000; 
-          padding: 20px; 
-          width: 100%;
-          min-height: 400px;
+          padding: 15px; 
+          width: 48%;
+          min-height: 500px;
           box-sizing: border-box; 
           background: white;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          margin-bottom: 20px;
+          font-size: 11px;
         }
         
         .header { 
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 20px; 
+          margin-bottom: 15px; 
           border-bottom: 1px solid #ccc;
-          padding-bottom: 15px;
+          padding-bottom: 10px;
           flex-wrap: wrap;
-          gap: 10px;
+          gap: 5px;
         }
         
         .company-info {
           text-align: left;
-          font-size: 12px;
-          line-height: 1.3;
+          font-size: 10px;
+          line-height: 1.2;
           flex: 1;
-          min-width: 200px;
+          min-width: 120px;
         }
         
         .company-name {
-          font-size: 18px;
+          font-size: 14px;
           font-weight: bold;
-          margin-bottom: 8px;
+          margin-bottom: 5px;
         }
         
         .address, .phone {
@@ -210,85 +211,87 @@ export const generatePrintContent = (
         .document-title { 
           text-align: center; 
           flex: 1;
-          min-width: 200px;
+          min-width: 120px;
         }
         
         .document-title h2 {
-          font-size: 18px;
-          margin: 0 0 10px 0;
+          font-size: 14px;
+          margin: 0 0 5px 0;
           font-weight: bold;
         }
         
         .document-title p {
-          margin: 3px 0;
-          font-size: 14px;
+          margin: 2px 0;
+          font-size: 11px;
         }
         
         .content-columns {
           display: flex;
           justify-content: space-between;
           flex-grow: 1;
-          margin: 20px 0;
-          gap: 30px;
+          margin: 10px 0;
+          gap: 15px;
           flex-wrap: wrap;
         }
         
         .column-left, .column-right {
           flex: 1;
-          min-width: 300px;
+          min-width: 120px;
         }
         
         .row { 
           display: flex; 
           flex-direction: column;
-          margin: 8px 0; 
-          padding: 5px 0;
+          margin: 4px 0; 
+          padding: 3px 0;
           border-bottom: 1px dotted #ccc;
-          font-size: 12px;
+          font-size: 10px;
         }
         
         .label { 
           font-weight: bold; 
-          margin-bottom: 4px;
-          font-size: 11px;
+          margin-bottom: 2px;
+          font-size: 9px;
           color: #555;
         }
         
         .row span:last-child {
-          font-size: 14px;
+          font-size: 11px;
           color: #000;
         }
         
         .signature-section {
-          margin-top: 25px;
-          padding-top: 15px;
+          margin-top: 15px;
+          padding-top: 8px;
           border-top: 1px solid #ddd;
         }
         
         .signature-label {
-          font-size: 11px;
+          font-size: 9px;
           font-weight: bold;
-          margin-bottom: 10px;
+          margin-bottom: 5px;
           color: #555;
         }
         
         .signature-bdv .signature-area {
-          height: 50px;
+          height: 35px;
           border: 1px solid #ccc;
           background: #fafafa;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 8px;
+          padding: 5px;
         }
         
         .signature-scribble {
           opacity: 0.8;
+          width: 80px;
+          height: 25px;
         }
         
         .signature-client .signature-line {
           border-bottom: 1px solid #000;
-          height: 50px;
+          height: 35px;
           border: 1px solid #ccc;
           background: white;
         }
@@ -296,20 +299,20 @@ export const generatePrintContent = (
         .mention-legale { 
           background: #f8f8f8; 
           border: 1px solid #ddd;
-          padding: 12px; 
-          margin: 15px 0; 
-          font-size: 10px; 
+          padding: 8px; 
+          margin: 10px 0; 
+          font-size: 8px; 
           text-align: justify; 
-          line-height: 1.3;
+          line-height: 1.2;
         }
         
         .copy-type { 
           text-align: center; 
-          margin-top: 15px; 
+          margin-top: 10px; 
           font-weight: bold; 
-          font-size: 14px;
+          font-size: 11px;
           border: 2px solid #000;
-          padding: 8px;
+          padding: 5px;
           background: #f0f0f0;
         }
         
@@ -337,7 +340,7 @@ export const generatePrintContent = (
         
         @media print { 
           @page { 
-            size: A4 portrait; 
+            size: A4 landscape; 
             margin: 10mm; 
           } 
           body { 
@@ -350,9 +353,12 @@ export const generatePrintContent = (
             page-break-inside: avoid;
             max-width: none;
             width: 100%;
+            flex-direction: row;
+            gap: 10px;
           }
           .bon {
-            margin-bottom: 40px;
+            width: 48%;
+            margin-bottom: 0;
             page-break-inside: avoid;
           }
         }
