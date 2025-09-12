@@ -151,135 +151,135 @@ export const generatePrintContent = (
         body { 
           font-family: Arial, sans-serif; 
           margin: 0; 
-          padding: 0; 
+          padding: 10px; 
           background: white;
-          width: 210mm;
-          height: 297mm;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-start;
+          min-height: 100vh;
         }
         
         .print-container {
-          width: 210mm;
-          height: 297mm;
+          width: 100%;
+          max-width: 800px;
+          margin: 0 auto;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: flex-start;
-          box-sizing: border-box;
+          gap: 20px;
         }
         
         .bon { 
           border: 2px solid #000; 
-          padding: 5mm; 
-          width: 160mm;
-          height: 120mm;
+          padding: 20px; 
+          width: 100%;
+          min-height: 400px;
           box-sizing: border-box; 
           background: white;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          margin: 3mm 0 5mm 0;
+          margin-bottom: 20px;
         }
         
         .header { 
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 5mm; 
+          margin-bottom: 20px; 
           border-bottom: 1px solid #ccc;
-          padding-bottom: 4mm;
+          padding-bottom: 15px;
+          flex-wrap: wrap;
+          gap: 10px;
         }
         
         .company-info {
           text-align: left;
-          font-size: 9px;
-          line-height: 1.2;
-          width: 50mm;
+          font-size: 12px;
+          line-height: 1.3;
+          flex: 1;
+          min-width: 200px;
         }
         
         .company-name {
-          font-size: 14px;
+          font-size: 18px;
           font-weight: bold;
-          margin-bottom: 2mm;
+          margin-bottom: 8px;
         }
         
         .address, .phone {
-          margin-bottom: 0.5mm;
+          margin-bottom: 2px;
         }
         
         .document-title { 
           text-align: center; 
-          flex-grow: 1;
+          flex: 1;
+          min-width: 200px;
         }
         
         .document-title h2 {
-          font-size: 14px;
-          margin: 0 0 3mm 0;
+          font-size: 18px;
+          margin: 0 0 10px 0;
           font-weight: bold;
         }
         
         .document-title p {
-          margin: 1mm 0;
-          font-size: 10px;
+          margin: 3px 0;
+          font-size: 14px;
         }
         
         .content-columns {
           display: flex;
           justify-content: space-between;
           flex-grow: 1;
-          margin: 4mm 0;
-          gap: 8mm;
+          margin: 20px 0;
+          gap: 30px;
+          flex-wrap: wrap;
         }
         
         .column-left, .column-right {
-          width: 48%;
+          flex: 1;
+          min-width: 300px;
         }
         
         .row { 
           display: flex; 
           flex-direction: column;
-          margin: 2mm 0; 
-          padding: 1mm 0;
+          margin: 8px 0; 
+          padding: 5px 0;
           border-bottom: 1px dotted #ccc;
-          font-size: 9px;
+          font-size: 12px;
         }
         
         .label { 
           font-weight: bold; 
-          margin-bottom: 1mm;
-          font-size: 8px;
+          margin-bottom: 4px;
+          font-size: 11px;
           color: #555;
         }
         
         .row span:last-child {
-          font-size: 10px;
+          font-size: 14px;
           color: #000;
         }
         
         .signature-section {
-          margin-top: 8mm;
-          padding-top: 4mm;
+          margin-top: 25px;
+          padding-top: 15px;
           border-top: 1px solid #ddd;
         }
         
         .signature-label {
-          font-size: 8px;
+          font-size: 11px;
           font-weight: bold;
-          margin-bottom: 3mm;
+          margin-bottom: 10px;
           color: #555;
         }
         
         .signature-bdv .signature-area {
-          height: 15mm;
+          height: 50px;
           border: 1px solid #ccc;
           background: #fafafa;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 2mm;
+          padding: 8px;
         }
         
         .signature-scribble {
@@ -288,7 +288,7 @@ export const generatePrintContent = (
         
         .signature-client .signature-line {
           border-bottom: 1px solid #000;
-          height: 15mm;
+          height: 50px;
           border: 1px solid #ccc;
           background: white;
         }
@@ -296,27 +296,49 @@ export const generatePrintContent = (
         .mention-legale { 
           background: #f8f8f8; 
           border: 1px solid #ddd;
-          padding: 3mm; 
-          margin: 3mm 0; 
-          font-size: 7px; 
+          padding: 12px; 
+          margin: 15px 0; 
+          font-size: 10px; 
           text-align: justify; 
-          line-height: 1.1;
+          line-height: 1.3;
         }
         
         .copy-type { 
           text-align: center; 
-          margin-top: 3mm; 
+          margin-top: 15px; 
           font-weight: bold; 
-          font-size: 10px;
+          font-size: 14px;
           border: 2px solid #000;
-          padding: 2mm;
+          padding: 8px;
           background: #f0f0f0;
+        }
+        
+        @media screen and (max-width: 768px) {
+          .content-columns {
+            flex-direction: column;
+            gap: 15px;
+          }
+          
+          .column-left, .column-right {
+            min-width: auto;
+            width: 100%;
+          }
+          
+          .header {
+            flex-direction: column;
+            text-align: center;
+          }
+          
+          .company-info, .document-title {
+            min-width: auto;
+            width: 100%;
+          }
         }
         
         @media print { 
           @page { 
             size: A4 portrait; 
-            margin: 0; 
+            margin: 10mm; 
           } 
           body { 
             margin: 0; 
@@ -325,6 +347,12 @@ export const generatePrintContent = (
             print-color-adjust: exact;
           }
           .print-container {
+            page-break-inside: avoid;
+            max-width: none;
+            width: 100%;
+          }
+          .bon {
+            margin-bottom: 40px;
             page-break-inside: avoid;
           }
         }
