@@ -161,16 +161,16 @@ export const generatePrintContent = (
           max-width: none;
           margin: 0 auto;
           display: flex;
-          flex-direction: row;
-          gap: 10px;
+          flex-direction: column;
+          gap: 15px;
           padding: 10px;
         }
         
         .bon { 
           border: 2px solid #000; 
           padding: 15px; 
-          width: 48%;
-          min-height: 500px;
+          width: 100%;
+          min-height: 400px;
           box-sizing: border-box; 
           background: white;
           display: flex;
@@ -340,7 +340,7 @@ export const generatePrintContent = (
         
         @media print { 
           @page { 
-            size: A4 landscape; 
+            size: A4 portrait; 
             margin: 10mm; 
           } 
           body { 
@@ -353,11 +353,11 @@ export const generatePrintContent = (
             page-break-inside: avoid;
             max-width: none;
             width: 100%;
-            flex-direction: row;
-            gap: 10px;
+            flex-direction: column;
+            gap: 15px;
           }
           .bon {
-            width: 48%;
+            width: 100%;
             margin-bottom: 0;
             page-break-inside: avoid;
           }
