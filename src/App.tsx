@@ -10,6 +10,7 @@ import ProductsSpace from './components/spaces/ProductsSpace';
 import PeseeSpace from './components/spaces/PeseeSpace';
 import TransporteursSpace from './components/spaces/TransporteursSpace';
 import HistoriqueSpace from './components/spaces/HistoriqueSpace';
+import ExportsSpace from './components/exports/ExportsSpace';
 import UtilisateurSpace from './components/spaces/UtilisateurSpace';
 import ComptabiliteSpace from './components/spaces/ComptabiliteSpace';
 import { initializeSampleData } from './lib/database';
@@ -82,6 +83,8 @@ const App = () => {
         return <TransporteursSpace />;
       case 'historique':
         return <HistoriqueSpace />;
+      case 'exports':
+        return <ExportsSpace />;
       case 'utilisateur':
         return <UtilisateurSpace />;
       case 'comptabilite':

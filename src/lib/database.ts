@@ -80,8 +80,22 @@ export interface Pesee {
   synchronized: boolean;
   version: number; // Version pour détecter les conflits
   lastSyncHash?: string; // Hash de la dernière version synchronisée
+  exportedAt?: Date[]; // Dates des exports (support des exports multiples)
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface ExportLog {
+  id?: number;
+  fileName: string;
+  startDate: Date;
+  endDate: Date;
+  totalRecords: number;
+  fileHash: string;
+  fileContent: string; // Stockage du contenu CSV pour re-téléchargement
+  exportType: 'new' | 'selective' | 'complete';
+  peseeIds: number[]; // IDs des pesées incluses dans cet export
+  createdAt: Date;
 }
 
 export interface User {
@@ -147,19 +161,21 @@ class AppDatabase extends Dexie {
   config!: Table<Config>;
   syncLogs!: Table<SyncLog>;
   conflictLogs!: Table<ConflictLog>;
+  exportLogs!: Table<ExportLog>;
 
   constructor() {
     super('AppDatabase');
-    this.version(2).stores({
+    this.version(3).stores({
       clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
       transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
       products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
-      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt',
+      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',
       users: '++id, nom, prenom, email, role, createdAt, updatedAt',
       userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
       config: '++id, key, createdAt, updatedAt',
       syncLogs: '++id, type, status, synchronized, createdAt',
-      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt'
+      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
+      exportLogs: '++id, fileName, startDate, endDate, exportType, createdAt'
     });
   }
 }

@@ -9,6 +9,7 @@ import {
   Calculator,
   Menu,
   X,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,7 @@ const spaces = [
   { id: "transporteurs", name: "Transporteurs", icon: User },
   { id: "produits", name: "Produits", icon: Package },
   { id: "historique", name: "Historique", icon: History },
+  { id: "exports", name: "Exports CSV", icon: Download },
   { id: "utilisateur", name: "Utilisateur", icon: User },
   { id: "comptabilite", name: "Comptabilité", icon: Calculator },
 ];
