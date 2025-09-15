@@ -21,6 +21,7 @@ export default function ProductsSpace() {
     tauxTVA: 20,
     prixTTC: 0,
     codeProduct: '',
+    unite: 'tonne',
     isFavorite: false
   });
   const { toast } = useToast();
@@ -133,6 +134,7 @@ export default function ProductsSpace() {
       tauxTVA: 20,
       prixTTC: 0,
       codeProduct: '',
+      unite: 'tonne',
       isFavorite: false
     });
   };
@@ -176,11 +178,21 @@ export default function ProductsSpace() {
                 />
               </div>
               <div>
-                <Label htmlFor="codeProduct">Code produit *</Label>
+                <Label htmlFor="codeProduct">Code article *</Label>
                 <Input
                   id="codeProduct"
                   value={formData.codeProduct}
                   onChange={(e) => setFormData({...formData, codeProduct: e.target.value})}
+                  placeholder="Code unique pour l'article"
+                />
+              </div>
+              <div>
+                <Label htmlFor="unite">Unité</Label>
+                <Input
+                  id="unite"
+                  value={formData.unite || 'tonne'}
+                  onChange={(e) => setFormData({...formData, unite: e.target.value})}
+                  placeholder="tonne"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -276,6 +288,10 @@ export default function ProductsSpace() {
                     Favori
                   </Badge>
                 )}
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Unité:</span>
+                <span className="text-sm">{product.unite || 'tonne'}</span>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between">
