@@ -273,7 +273,7 @@ export default function ExportsSpace() {
                 </Select>
               </div>
 
-              {/* Type de données - adapté selon le format */}
+              {/* Type de données - toujours disponible sauf pour sage-articles */}
               {selectedFormat !== 'sage-articles' && (
                 <div>
                   <Label>Type de données</Label>
@@ -307,7 +307,7 @@ export default function ExportsSpace() {
               )}
 
               {/* Statistiques */}
-              {exportStats && selectedFormat !== 'sage-articles' && (
+              {exportStats && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -396,7 +396,7 @@ export default function ExportsSpace() {
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Eye className="h-5 w-5 mr-2" />
-                  {selectedFormat === 'sage-articles' ? 'Export Articles Sage 50' : 'Aperçu des données à exporter'}
+                  Aperçu des données à exporter
                 </div>
                 {selectedFormat !== 'sage-articles' && showPreview && (
                   <Badge variant="outline">
@@ -407,7 +407,7 @@ export default function ExportsSpace() {
             </CardHeader>
             <CardContent>
               {selectedFormat === 'sage-articles' ? (
-                // Interface spéciale pour Sage Articles
+                // Interface pour Sage Articles avec aperçu des produits
                 <div className="space-y-4">
                   <Alert>
                     <CheckCircle className="h-4 w-4" />
@@ -428,6 +428,40 @@ export default function ExportsSpace() {
                     </div>
                   </div>
 
+                  {/* Aperçu des produits pour Sage Articles */}
+                  {products.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Aperçu des articles à exporter :</h4>
+                      <div className="max-h-64 overflow-auto border rounded-md">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Code Article</TableHead>
+                              <TableHead>Designation</TableHead>
+                              <TableHead>Prix Unitaire</TableHead>
+                              <TableHead>Unité</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {products.slice(0, 10).map((product) => (
+                              <TableRow key={product.id}>
+                                <TableCell className="font-mono text-sm">ART{String(product.id).padStart(6, '0')}</TableCell>
+                                <TableCell>{product.nom}</TableCell>
+                                <TableCell>{product.prixTTC.toFixed(2)} €</TableCell>
+                                <TableCell>{product.unite}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        {products.length > 10 && (
+                          <div className="p-2 text-sm text-muted-foreground text-center border-t">
+                            ... et {products.length - 10} autres articles
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleExport} 
@@ -443,8 +477,8 @@ export default function ExportsSpace() {
                     </Button>
                   </div>
                 </div>
-              ) : showPreview ? (
-                // Interface pour données de pesée
+              ) : selectedFormat === 'sage-ventes' && showPreview ? (
+                // Interface pour Sage Ventes avec aperçu des pesées formatées
                 <div className="space-y-4">
                   {/* Contrôles de sélection */}
                   <div className="flex items-center space-x-4">
@@ -455,6 +489,84 @@ export default function ExportsSpace() {
                         onCheckedChange={handleSelectAll}
                       />
                       <Label htmlFor="select-all" className="text-sm">
+                        Tout sélectionner ({previewPesees.length} pesées)
+                      </Label>
+                    </div>
+                  </div>
+
+                  {/* Aperçu formaté pour Sage Ventes */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Aperçu format Sage 50 - Ventes :</h4>
+                    <div className="max-h-80 overflow-auto border rounded-md">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>
+                              <Checkbox
+                                checked={selectedPeseeIds.size === previewPesees.length && previewPesees.length > 0}
+                                onCheckedChange={handleSelectAll}
+                              />
+                            </TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Code Article</TableHead>
+                            <TableHead>Produit</TableHead>
+                            <TableHead>Quantité</TableHead>
+                            <TableHead>Montant HT</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {previewPesees.slice(0, 20).map((pesee) => (
+                            <TableRow key={pesee.id}>
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedPeseeIds.has(pesee.id!)}
+                                  onCheckedChange={(checked) => handleSelectPesee(pesee.id!, checked as boolean)}
+                                />
+                              </TableCell>
+                              <TableCell>{pesee.dateHeure.toLocaleDateString('fr-FR')}</TableCell>
+                              <TableCell className="font-mono text-sm">ART{String(pesee.produitId).padStart(6, '0')}</TableCell>
+                              <TableCell>{getProductName(pesee.produitId)}</TableCell>
+                              <TableCell>{pesee.net} t</TableCell>
+                              <TableCell>{pesee.prixTTC.toFixed(2)} €</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {previewPesees.length > 20 && (
+                        <div className="p-2 text-sm text-muted-foreground text-center border-t">
+                          ... et {previewPesees.length - 20} autres pesées (toutes incluses dans l'export)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleExport} 
+                      disabled={isLoading || selectedPeseeIds.size === 0}
+                      className="min-w-32"
+                    >
+                      {isLoading ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-2" />
+                      )}
+                      {isLoading ? 'Export...' : `Exporter ${selectedPeseeIds.size} ventes Sage`}
+                    </Button>
+                  </div>
+                </div>
+              ) : showPreview ? (
+                // Interface standard CSV
+                <div className="space-y-4">
+                  {/* Contrôles de sélection */}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="select-all-csv"
+                        checked={selectedPeseeIds.size === previewPesees.length && previewPesees.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                      <Label htmlFor="select-all-csv" className="text-sm">
                         Tout sélectionner
                       </Label>
                     </div>
@@ -539,37 +651,10 @@ export default function ExportsSpace() {
                     </Table>
                   </div>
 
-                  {/* Statistiques de sélection */}
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-blue-600">{selectedPeseeIds.size}</div>
-                      <div className="text-sm text-muted-foreground">Sélectionnées</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-green-600">
-                        {Array.from(selectedPeseeIds).filter(id => {
-                          const pesee = previewPesees.find(p => p.id === id);
-                          return !pesee?.exportedAt || pesee.exportedAt.length === 0;
-                        }).length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Nouvelles</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold text-lg text-orange-600">
-                        {Array.from(selectedPeseeIds).filter(id => {
-                          const pesee = previewPesees.find(p => p.id === id);
-                          return pesee?.exportedAt && pesee.exportedAt.length > 0;
-                        }).length}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Déjà exportées</div>
-                    </div>
-                  </div>
-
-                  {/* Bouton d'export pour données de pesée */}
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleExport} 
-                      disabled={isLoading || !dateDebut || !dateFin || selectedPeseeIds.size === 0}
+                      disabled={isLoading || selectedPeseeIds.size === 0}
                       className="min-w-32"
                     >
                       {isLoading ? (
@@ -577,16 +662,14 @@ export default function ExportsSpace() {
                       ) : (
                         <Download className="h-4 w-4 mr-2" />
                       )}
-                      {isLoading ? 'Export...' : `Exporter ${selectedPeseeIds.size} pesée(s)`}
+                      {isLoading ? 'Export...' : `Exporter ${selectedPeseeIds.size} pesées`}
                     </Button>
                   </div>
                 </div>
               ) : (
-                // Message quand pas de données à afficher
                 <div className="text-center py-8 text-muted-foreground">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-4" />
-                  <p>Aucune donnée à afficher pour la période sélectionnée.</p>
-                  <p className="text-sm mt-2">Vérifiez vos dates ou changez le type de données.</p>
+                  <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Sélectionnez une période pour voir l'aperçu des données</p>
                 </div>
               )}
             </CardContent>
@@ -604,47 +687,52 @@ export default function ExportsSpace() {
             <CardContent>
               {exportLogs.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4" />
-                  <p>Aucun export trouvé</p>
-                  <p className="text-sm mt-2">Vos exports apparaîtront ici une fois créés.</p>
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Aucun export réalisé</p>
+                  <p className="text-sm">Les exports que vous créerez apparaîtront ici</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {exportLogs.map((log) => (
-                    <div key={log.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3">
-                          <FileText className="h-5 w-5 text-blue-600" />
-                          <div>
-                            <div className="font-medium">{log.fileName}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {getExportTypeLabel(log.exportType)} • {log.totalRecords} enregistrement(s)
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {log.startDate.toLocaleDateString()} - {log.endDate.toLocaleDateString()} • 
+                    <div key={log.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-medium">{log.fileName}</h3>
+                            <Badge variant={getExportTypeBadgeVariant(log.exportType) as any}>
+                              {getExportTypeLabel(log.exportType)}
+                            </Badge>
+                          </div>
+                          <div className="text-sm text-muted-foreground space-y-1">
+                            <p>
+                              <Calendar className="h-4 w-4 inline mr-1" />
+                              {log.startDate.toLocaleDateString()} → {log.endDate.toLocaleDateString()}
+                            </p>
+                            <p>
+                              <Database className="h-4 w-4 inline mr-1" />
+                              {log.totalRecords} enregistrements exportés
+                            </p>
+                            <p className="text-xs">
                               Créé le {log.createdAt.toLocaleDateString()} à {log.createdAt.toLocaleTimeString()}
-                            </div>
+                            </p>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={getExportTypeBadgeVariant(log.exportType)}>
-                          {getExportTypeLabel(log.exportType)}
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => redownloadExport(log)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteExportLog(log.id!)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => redownloadExport(log)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteExportLog(log.id!)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
