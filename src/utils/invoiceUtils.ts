@@ -1,4 +1,3 @@
-
 import { Product, Transporteur, Client } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
 
@@ -17,7 +16,7 @@ export const generateInvoiceContent = (
   const poidsEntree = parseFloat(formData.poidsEntree.replace(",", ".")) || 0;
   const poidsSortie = parseFloat(formData.poidsSortie.replace(",", ".")) || 0;
   const net = Math.abs(poidsEntree - poidsSortie);
-  
+
   const prixUnitaireHT = selectedProduct?.prixHT || 0;
   const totalHT = net * prixUnitaireHT;
   const tauxTVA = selectedProduct?.tauxTVA || 20;
@@ -33,20 +32,24 @@ export const generateInvoiceContent = (
     if (!client) {
       return {
         nom: formData.nomEntreprise,
-        lignes: [`<div class="client-line">${formData.nomEntreprise}</div>`]
+        lignes: [`<div class="client-line">${formData.nomEntreprise}</div>`],
       };
     }
 
     const lignes = [];
-    
-    if (client.typeClient === 'particulier') {
+
+    if (client.typeClient === "particulier") {
       if (client.prenom && client.nom) {
-        lignes.push(`<div class="client-line">${client.prenom} ${client.nom}</div>`);
+        lignes.push(
+          `<div class="client-line">${client.prenom} ${client.nom}</div>`
+        );
       } else {
         lignes.push(`<div class="client-line">${client.raisonSociale}</div>`);
       }
     } else {
-      lignes.push(`<div class="client-line"><strong>${client.raisonSociale}</strong></div>`);
+      lignes.push(
+        `<div class="client-line"><strong>${client.raisonSociale}</strong></div>`
+      );
       if (client.siret) {
         lignes.push(`<div class="client-line">SIRET: ${client.siret}</div>`);
       }
@@ -56,14 +59,19 @@ export const generateInvoiceContent = (
       lignes.push(`<div class="client-line">${client.adresse}</div>`);
     }
     if (client.codePostal && client.ville) {
-      lignes.push(`<div class="client-line">${client.codePostal} ${client.ville}</div>`);
+      lignes.push(
+        `<div class="client-line">${client.codePostal} ${client.ville}</div>`
+      );
     }
 
     return {
-      nom: client.typeClient === 'particulier' 
-        ? (client.prenom && client.nom ? `${client.prenom} ${client.nom}` : client.raisonSociale)
-        : client.raisonSociale,
-      lignes
+      nom:
+        client.typeClient === "particulier"
+          ? client.prenom && client.nom
+            ? `${client.prenom} ${client.nom}`
+            : client.raisonSociale
+          : client.raisonSociale,
+      lignes,
     };
   };
 
@@ -263,7 +271,7 @@ export const generateInvoiceContent = (
           <div class="company-info">
             <div class="company-name">BDV</div>
             <div class="company-details">
-              600, chemin de la Levade<br>
+              600, chemin de la Levade
               Les Iscles<br>
               06550 LA ROQUETTE-SUR-SIAGNE<br>
               Tél : 07 85 99 19 99
@@ -280,7 +288,7 @@ export const generateInvoiceContent = (
         <div class="client-section">
           <div class="client-title">FACTURÉ À</div>
           <div class="client-info">
-            ${clientInfo.lignes.join('')}
+            ${clientInfo.lignes.join("")}
           </div>
         </div>
 
@@ -296,11 +304,21 @@ export const generateInvoiceContent = (
           <tbody>
             <tr>
               <td>
-                <strong>Pesée de ${selectedProduct?.nom || "Matériau"}</strong><br>
+                <strong>Pesée de ${
+                  selectedProduct?.nom || "Matériau"
+                }</strong><br>
                 <span style="font-size: 9px; color: #666;">
                   Plaque : ${formData.plaque}
-                  ${formData.chantier ? `<br>Chantier : ${formData.chantier}` : ''}
-                  ${selectedTransporteur ? `<br>Transporteur : ${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : ''}
+                  ${
+                    formData.chantier
+                      ? `<br>Chantier : ${formData.chantier}`
+                      : ""
+                  }
+                  ${
+                    selectedTransporteur
+                      ? `<br>Transporteur : ${selectedTransporteur.prenom} ${selectedTransporteur.nom}`
+                      : ""
+                  }
                 </span>
               </td>
               <td class="amount">${net.toFixed(3)} T</td>
@@ -330,9 +348,10 @@ export const generateInvoiceContent = (
         <div class="payment-info">
           <div class="payment-title">CONDITIONS DE PAIEMENT</div>
           <div>Mode de paiement : ${formData.moyenPaiement}</div>
-          ${formData.moyenPaiement === 'En compte' 
-            ? '<div>Paiement à 30 jours fin de mois</div>' 
-            : '<div>Paiement à la livraison</div>'
+          ${
+            formData.moyenPaiement === "En compte"
+              ? "<div>Paiement à 30 jours fin de mois</div>"
+              : "<div>Paiement à la livraison</div>"
           }
         </div>
 

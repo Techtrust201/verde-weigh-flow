@@ -22,7 +22,11 @@ export const generatePrintContent = (
 
   // Obtenir le nom du transporteur à afficher
   const getTransporteurName = () => {
-    return getTransporteurNameForSave(formData, transporteurs, formData.transporteurLibre);
+    return getTransporteurNameForSave(
+      formData,
+      transporteurs,
+      formData.transporteurLibre
+    );
   };
 
   // Les poids sont déjà en tonnes
@@ -43,8 +47,8 @@ export const generatePrintContent = (
       <div class="header">
         <div class="company-info">
           <div class="company-name">BDV</div>
-          <div class="address">600, chemin de la Levade</div>
-          <div class="address">Les Iscles</div>
+          <div class="address">600, chemin de la Levade, Les Iscles</div>
+          
           <div class="address">06550 LA ROQUETTE-SUR-SIAGNE</div>
           <div class="phone">Tél : 07 85 99 19 99</div>
         </div>
@@ -65,6 +69,13 @@ export const generatePrintContent = (
             <span class="label">Plaque:</span>
             <span>${formData.plaque}</span>
           </div>
+          <div class="row">
+            <span class="label">Produit:</span>
+            <span>${selectedProduct?.nom || "Non défini"}</span>
+          </div>
+        </div>
+        
+        <div class="column-center">
           ${
             getTransporteurName()
               ? `
@@ -86,30 +97,12 @@ export const generatePrintContent = (
               : ""
           }
           <div class="row">
-            <span class="label">Produit:</span>
-            <span>${selectedProduct?.nom || "Non défini"}</span>
-          </div>
-          
-          <div class="signature-section">
-            <div class="signature-bdv">
-              <p class="signature-label">Signature BDV:</p>
-              <div class="signature-area">
-                <svg class="signature-scribble" viewBox="0 0 120 40" width="120" height="40">
-                  <path d="M10,25 Q20,10 30,25 T50,25 Q60,15 70,25 T90,25 Q100,20 110,25" 
-                        stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/>
-                  <path d="M15,30 Q25,20 35,30 T55,30" 
-                        stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-                </svg>
-              </div>
-            </div>
+            <span class="label">Poids Entrée:</span>
+            <span>${poidsEntree.toFixed(3)} tonnes</span>
           </div>
         </div>
         
         <div class="column-right">
-          <div class="row">
-            <span class="label">Poids Entrée:</span>
-            <span>${poidsEntree.toFixed(3)} tonnes</span>
-          </div>
           <div class="row">
             <span class="label">Poids Sortie:</span>
             <span>${poidsSortie.toFixed(3)} tonnes</span>
@@ -122,12 +115,28 @@ export const generatePrintContent = (
             <span class="label">Paiement:</span>
             <span>${formData.moyenPaiement}</span>
           </div>
-          
-          <div class="signature-section">
-            <div class="signature-client">
-              <p class="signature-label">Signature Client:</p>
-              <div class="signature-line"></div>
+        </div>
+      </div>
+      
+      <div class="signatures-bottom">
+        <div class="signature-section">
+          <div class="signature-bdv">
+            <p class="signature-label">Signature BDV:</p>
+            <div class="signature-area">
+              <svg class="signature-scribble" viewBox="0 0 120 40" width="120" height="40">
+                <path d="M10,25 Q20,10 30,25 T50,25 Q60,15 70,25 T90,25 Q100,20 110,25" 
+                      stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/>
+                <path d="M15,30 Q25,20 35,30 T55,30" 
+                      stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              </svg>
             </div>
+          </div>
+        </div>
+        
+        <div class="signature-section">
+          <div class="signature-client">
+            <p class="signature-label">Signature Client:</p>
+            <div class="signature-line"></div>
           </div>
         </div>
       </div>
@@ -135,10 +144,10 @@ export const generatePrintContent = (
       <div class="mention-legale">
         <p><strong>Important:</strong> Tous les chauffeurs prenant livraison de matériaux sont tenus de vérifier au passage de la bascule, le poids de leur chargement et de faire le nécessaire en cas de surcharge.</p>
       </div>
-      
-      <div class="copy-type">
-        <p>${copyType}</p>
-      </div>
+    </div>
+    
+    <div class="copy-type">
+      <p>${copyType}</p>
     </div>
   `;
 
@@ -162,7 +171,7 @@ export const generatePrintContent = (
           margin: 0 auto;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 3rem;
           padding: 5px;
         }
         
@@ -171,20 +180,21 @@ export const generatePrintContent = (
           padding: 12px; 
           width: 100%;
           min-height: 320px;
-          max-height: 380px;
+          max-height: 390px;
           box-sizing: border-box; 
           background: white;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
           font-size: 10px;
+          position: relative;
+          z-index: 2;
         }
         
         .header { 
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 10px; 
           border-bottom: 1px solid #ccc;
           padding-bottom: 8px;
           flex-wrap: wrap;
@@ -235,7 +245,7 @@ export const generatePrintContent = (
           flex-wrap: wrap;
         }
         
-        .column-left, .column-right {
+        .column-left, .column-center, .column-right {
           flex: 1;
           min-width: 120px;
           display: flex;
@@ -270,6 +280,22 @@ export const generatePrintContent = (
           height: 60px;
         }
         
+        .signatures-bottom {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 20px;
+          padding-top: 10px;
+          border-top: 1px solid #ddd;
+        }
+        
+        .signatures-bottom .signature-section {
+          margin-top: 0;
+          border-top: none;
+          height: auto;
+          flex: 1;
+          margin: 0 10px;
+        }
+        
         .signature-label {
           font-size: 9px;
           font-weight: bold;
@@ -294,17 +320,20 @@ export const generatePrintContent = (
         }
         
         .signature-client .signature-line {
-          border-bottom: 1px solid #000;
           height: 40px;
           border: 1px solid #ccc;
           background: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 5px;
         }
         
         .mention-legale { 
           background: #f8f8f8; 
           border: 1px solid #ddd;
           padding: 6px; 
-          margin: 6px 0; 
+          margin: 20px 0 0 0; 
           font-size: 7px; 
           text-align: justify; 
           line-height: 1.1;
@@ -312,13 +341,16 @@ export const generatePrintContent = (
         
         .copy-type { 
           text-align: center; 
-          margin-top: 10px; 
+          margin-top: 5px; 
           font-weight: bold; 
           font-size: 11px;
           border: 2px solid #000;
           padding: 5px;
           background: #f0f0f0;
+          position: relative;
+          z-index: 1;
         }
+        
         
         @media screen and (max-width: 768px) {
           .content-columns {
@@ -326,7 +358,7 @@ export const generatePrintContent = (
             gap: 15px;
           }
           
-          .column-left, .column-right {
+          .column-left, .column-center, .column-right {
             min-width: auto;
             width: 100%;
           }
@@ -340,6 +372,15 @@ export const generatePrintContent = (
             min-width: auto;
             width: 100%;
           }
+          
+          .signatures-bottom {
+            flex-direction: column;
+            gap: 15px;
+          }
+          
+          .signatures-bottom .signature-section {
+            margin: 0;
+          }
         }
         
         @media print { 
@@ -352,24 +393,82 @@ export const generatePrintContent = (
             padding: 0;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            background: white !important;
           }
+          /* Masquer tous les éléments de l'interface */
+          [data-lov-id],
+          .fixed,
+          .z-50,
+          .bg-black\/80,
+          .inset-0,
+          .translate-x-\[-50\%\],
+          .translate-y-\[-50\%\],
+          .shadow-lg,
+          .border,
+          .bg-background,
+          .p-6,
+          .gap-4,
+          .grid,
+          .w-full,
+          .duration-200,
+          .animate-in,
+          .animate-out,
+          .fade-out-0,
+          .fade-in-0,
+          .zoom-out-95,
+          .zoom-in-95,
+          .slide-out-to-left-1\/2,
+          .slide-out-to-top-\[48\%\],
+          .slide-in-from-left-1\/2,
+          .slide-in-from-top-\[48\%\],
+          .sm\:rounded-lg,
+          .print-preview-dialog,
+          .max-w-4xl,
+          .max-h-\[80vh\],
+          .overflow-hidden {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            position: absolute !important;
+            left: -9999px !important;
+            top: -9999px !important;
+            z-index: -9999 !important;
+          }
+          /* Mettre en avant-plan le contenu du bon */
           .print-container {
             page-break-inside: avoid;
             max-width: none;
             width: 100%;
             flex-direction: column;
-            gap: 20px;
+            gap: 3rem;
             padding: 0;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: static !important;
+            z-index: 9999 !important;
           }
           .bon {
             width: 100%;
             margin-bottom: 0;
             page-break-inside: avoid;
             min-height: 320px;
-            max-height: 380px;
+            max-height: 390px;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: static !important;
+            z-index: 9999 !important;
+          }
+          .copy-type {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: static !important;
+            z-index: 9999 !important;
           }
           .bon + .bon {
-            margin-top: 16px;
+            margin-top: 2rem;
           }
         }
       </style>
@@ -433,15 +532,25 @@ export const handlePrintBothBonAndInvoice = async (
   transporteurs: Transporteur[],
   client?: Client | null
 ) => {
-  if (!formData) return { bonContent: '', invoiceContent: '' };
+  if (!formData) return { bonContent: "", invoiceContent: "" };
 
   // Générer le contenu du bon de pesée
-  const bonContent = generatePrintContent(formData, products, transporteurs, false);
-  
+  const bonContent = generatePrintContent(
+    formData,
+    products,
+    transporteurs,
+    false
+  );
+
   // Générer le contenu de la facture
-  const { generateInvoiceContent } = await import('@/utils/invoiceUtils');
-  const invoiceContent = generateInvoiceContent(formData, products, transporteurs, client || null);
-  
+  const { generateInvoiceContent } = await import("@/utils/invoiceUtils");
+  const invoiceContent = generateInvoiceContent(
+    formData,
+    products,
+    transporteurs,
+    client || null
+  );
+
   return { bonContent, invoiceContent };
 };
 
@@ -454,40 +563,59 @@ export const getTransporteurNameForSave = (
   console.log("🚛 getTransporteurNameForSave - Données reçues:", {
     currentData,
     transporteurLibre,
-    transporteurLibreFromData: currentData?.transporteurLibre
+    transporteurLibreFromData: currentData?.transporteurLibre,
   });
 
   // Si l'utilisateur a saisi un transporteur libre (priorité absolue)
   if (transporteurLibre && transporteurLibre.trim()) {
-    console.log("🚛 Utilisation transporteurLibre paramètre:", transporteurLibre.trim());
+    console.log(
+      "🚛 Utilisation transporteurLibre paramètre:",
+      transporteurLibre.trim()
+    );
     return transporteurLibre.trim();
   }
 
   // Si un transporteur libre est stocké dans currentData
   if (currentData?.transporteurLibre && currentData.transporteurLibre.trim()) {
-    console.log("🚛 Utilisation transporteurLibre depuis currentData:", currentData.transporteurLibre.trim());
+    console.log(
+      "🚛 Utilisation transporteurLibre depuis currentData:",
+      currentData.transporteurLibre.trim()
+    );
     return currentData.transporteurLibre.trim();
   }
 
   // Si un transporteur officiel est sélectionné
   if (currentData?.transporteurId && currentData.transporteurId > 0) {
-    const selectedTransporteur = transporteurs.find(t => t.id === currentData.transporteurId);
-    const result = selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
+    const selectedTransporteur = transporteurs.find(
+      (t) => t.id === currentData.transporteurId
+    );
+    const result = selectedTransporteur
+      ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}`
+      : "";
     console.log("🚛 Utilisation transporteur officiel:", result);
     return result;
   }
-  
+
   // Auto-remplissage basé sur le nom d'entreprise/client si aucun transporteur n'est défini
   if (currentData?.nomEntreprise && currentData.nomEntreprise.trim()) {
     if (currentData.typeClient === "particulier") {
-      console.log("🚛 Utilisation nom entreprise (particulier):", currentData.nomEntreprise.trim());
+      console.log(
+        "🚛 Utilisation nom entreprise (particulier):",
+        currentData.nomEntreprise.trim()
+      );
       return currentData.nomEntreprise.trim();
-    } else if (currentData.typeClient === "professionnel" || currentData.typeClient === "micro-entreprise") {
-      console.log("🚛 Utilisation nom entreprise (professionnel):", currentData.nomEntreprise.trim());
+    } else if (
+      currentData.typeClient === "professionnel" ||
+      currentData.typeClient === "micro-entreprise"
+    ) {
+      console.log(
+        "🚛 Utilisation nom entreprise (professionnel):",
+        currentData.nomEntreprise.trim()
+      );
       return currentData.nomEntreprise.trim();
     }
   }
-  
+
   console.log("🚛 Aucun transporteur trouvé, retour chaîne vide");
   return "";
 };
