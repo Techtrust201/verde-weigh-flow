@@ -438,8 +438,7 @@ export default function ExportsSpace() {
                             <TableRow>
                               <TableHead>Code Article</TableHead>
                               <TableHead>Designation</TableHead>
-                              <TableHead>Prix Unitaire</TableHead>
-                              <TableHead>Unité</TableHead>
+                               <TableHead>Prix Unitaire</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -447,8 +446,7 @@ export default function ExportsSpace() {
                               <TableRow key={product.id}>
                                 <TableCell className="font-mono text-sm">{product.codeProduct}</TableCell>
                                 <TableCell>{product.nom}</TableCell>
-                                <TableCell>{product.prixTTC.toFixed(2)} €</TableCell>
-                                <TableCell>{product.unite}</TableCell>
+                                 <TableCell>{product.prixTTC.toFixed(2)} €/t</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>

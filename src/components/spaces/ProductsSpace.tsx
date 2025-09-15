@@ -186,15 +186,6 @@ export default function ProductsSpace() {
                   placeholder="Code unique pour l'article"
                 />
               </div>
-              <div>
-                <Label htmlFor="unite">Unité</Label>
-                <Input
-                  id="unite"
-                  value={formData.unite || 'tonne'}
-                  onChange={(e) => setFormData({...formData, unite: e.target.value})}
-                  placeholder="tonne"
-                />
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="prixHT">Prix HT (€)</Label>
@@ -288,10 +279,6 @@ export default function ProductsSpace() {
                     Favori
                   </Badge>
                 )}
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Unité:</span>
-                <span className="text-sm">{product.unite || 'tonne'}</span>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between">
