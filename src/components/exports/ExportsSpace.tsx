@@ -445,7 +445,7 @@ export default function ExportsSpace() {
                           <TableBody>
                             {products.slice(0, 10).map((product) => (
                               <TableRow key={product.id}>
-                                <TableCell className="font-mono text-sm">ART{String(product.id).padStart(6, '0')}</TableCell>
+                                <TableCell className="font-mono text-sm">{product.codeProduct}</TableCell>
                                 <TableCell>{product.nom}</TableCell>
                                 <TableCell>{product.prixTTC.toFixed(2)} €</TableCell>
                                 <TableCell>{product.unite}</TableCell>
@@ -524,7 +524,12 @@ export default function ExportsSpace() {
                                 />
                               </TableCell>
                               <TableCell>{pesee.dateHeure.toLocaleDateString('fr-FR')}</TableCell>
-                              <TableCell className="font-mono text-sm">ART{String(pesee.produitId).padStart(6, '0')}</TableCell>
+                              <TableCell className="font-mono text-sm">
+                                {(() => {
+                                  const product = products.find(p => p.id === pesee.produitId);
+                                  return product?.codeProduct || 'N/A';
+                                })()}
+                              </TableCell>
                               <TableCell>{getProductName(pesee.produitId)}</TableCell>
                               <TableCell>{pesee.net} t</TableCell>
                               <TableCell>{pesee.prixTTC.toFixed(2)} €</TableCell>
