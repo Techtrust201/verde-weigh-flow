@@ -297,34 +297,39 @@ export const PeseeDetailDialog = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <Button 
-                    onClick={handlePrintBon} 
-                    disabled={isPrinting}
-                    variant="outline"
-                    className="justify-start"
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    Imprimer le bon de pesée
-                  </Button>
-                  <Button 
-                    onClick={handlePrintFacture} 
-                    disabled={isPrinting}
-                    variant="outline"
-                    className="justify-start"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Imprimer la facture
-                  </Button>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Button 
+                      onClick={handlePrintBon} 
+                      disabled={isPrinting}
+                      variant="outline"
+                      className="justify-center text-sm"
+                      size="sm"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      Bon de pesée
+                    </Button>
+                    <Button 
+                      onClick={handlePrintFacture} 
+                      disabled={isPrinting}
+                      variant="outline"
+                      className="justify-center text-sm"
+                      size="sm"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Facture
+                    </Button>
+                  </div>
                   <Button 
                     onClick={handlePrintBoth} 
                     disabled={isPrinting}
                     variant="secondary"
-                    className="justify-start"
+                    className="w-full justify-center text-sm"
+                    size="sm"
                   >
                     <Printer className="h-4 w-4 mr-2" />
                     <FileText className="h-4 w-4 mr-2" />
-                    Imprimer bon + facture
+                    Bon + Facture
                   </Button>
                 </div>
               </CardContent>
