@@ -128,7 +128,7 @@ export default function ExportsSpace() {
   };
 
   const handleExport = async () => {
-    if (!dateDebut || !dateFin || selectedPeseeIds.size === 0) {
+    if (!dateDebut || !dateFin || (selectedFormat !== 'sage-articles' && selectedPeseeIds.size === 0)) {
       return;
     }
 
@@ -273,7 +273,7 @@ export default function ExportsSpace() {
                 </Select>
               </div>
 
-              {/* Type d'export - masqué pour sage-articles */}
+              {/* Type de données - adapté selon le format */}
               {selectedFormat !== 'sage-articles' && (
                 <div>
                   <Label>Type de données</Label>
@@ -307,7 +307,7 @@ export default function ExportsSpace() {
               )}
 
               {/* Statistiques */}
-              {exportStats && (
+              {exportStats && selectedFormat !== 'sage-articles' && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -387,42 +387,64 @@ export default function ExportsSpace() {
                   </Alert>
                 )}
               </div>
-
-              {/* Bouton d'export - déplacé dans l'aperçu */}
-              {!showPreview && (
-                <div className="flex justify-end">
-                  <Button 
-                    onClick={handleExport} 
-                    disabled={isLoading || !dateDebut || !dateFin}
-                    className="min-w-32"
-                  >
-                    {isLoading ? (
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    {isLoading ? 'Export...' : `Exporter ${getFormatLabel(selectedFormat)}`}
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
 
-          {/* Aperçu des données à exporter - masqué pour sage-articles */}
-          {showPreview && selectedFormat !== 'sage-articles' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Eye className="h-5 w-5 mr-2" />
-                    Aperçu des données à exporter
-                  </div>
+          {/* Interface unifiée d'aperçu et export */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Eye className="h-5 w-5 mr-2" />
+                  {selectedFormat === 'sage-articles' ? 'Export Articles Sage 50' : 'Aperçu des données à exporter'}
+                </div>
+                {selectedFormat !== 'sage-articles' && showPreview && (
                   <Badge variant="outline">
                     {selectedPeseeIds.size} / {previewPesees.length} sélectionnées
                   </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedFormat === 'sage-articles' ? (
+                // Interface spéciale pour Sage Articles
+                <div className="space-y-4">
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Cet export générera un fichier .txt contenant tous vos produits au format Sage 50.
+                      Le fichier inclura les codes articles, désignations, prix et comptes comptables.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="font-bold text-lg text-blue-600">{products.length}</div>
+                      <div className="text-sm text-muted-foreground">Articles à exporter</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="font-bold text-lg text-green-600">100%</div>
+                      <div className="text-sm text-muted-foreground">Compatibilité Sage</div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleExport} 
+                      disabled={isLoading}
+                      className="min-w-32"
+                    >
+                      {isLoading ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-2" />
+                      )}
+                      {isLoading ? 'Export...' : 'Exporter Articles Sage'}
+                    </Button>
+                  </div>
+                </div>
+              ) : showPreview ? (
+                // Interface pour données de pesée
                 <div className="space-y-4">
                   {/* Contrôles de sélection */}
                   <div className="flex items-center space-x-4">
@@ -543,7 +565,7 @@ export default function ExportsSpace() {
                     </div>
                   </div>
 
-                  {/* Bouton d'export avec sélection */}
+                  {/* Bouton d'export pour données de pesée */}
                   <div className="flex justify-end">
                     <Button 
                       onClick={handleExport} 
@@ -559,56 +581,16 @@ export default function ExportsSpace() {
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Aperçu spécial pour Sage Articles */}
-          {selectedFormat === 'sage-articles' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Database className="h-5 w-5 mr-2" />
-                  Export Articles Sage 50
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Alert>
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Cet export générera un fichier .txt contenant tous vos produits au format Sage 50.
-                    Le fichier inclura les codes articles, désignations, prix et comptes comptables.
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <div className="font-bold text-lg text-blue-600">{products.length}</div>
-                    <div className="text-sm text-muted-foreground">Articles à exporter</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-bold text-lg text-green-600">100%</div>
-                    <div className="text-sm text-muted-foreground">Compatibilité Sage</div>
-                  </div>
+              ) : (
+                // Message quand pas de données à afficher
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertCircle className="h-12 w-12 mx-auto mb-4" />
+                  <p>Aucune donnée à afficher pour la période sélectionnée.</p>
+                  <p className="text-sm mt-2">Vérifiez vos dates ou changez le type de données.</p>
                 </div>
-
-                <div className="flex justify-end">
-                  <Button 
-                    onClick={handleExport} 
-                    disabled={isLoading}
-                    className="min-w-32"
-                  >
-                    {isLoading ? (
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    {isLoading ? 'Export...' : 'Exporter Articles Sage'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="history" className="space-y-6">
@@ -622,59 +604,49 @@ export default function ExportsSpace() {
             <CardContent>
               {exportLogs.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Aucun export effectué</p>
+                  <FileText className="h-12 w-12 mx-auto mb-4" />
+                  <p>Aucun export trouvé</p>
+                  <p className="text-sm mt-2">Vos exports apparaîtront ici une fois créés.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {exportLogs.map((log) => (
-                    <Card key={log.id} className="border-l-4 border-l-blue-500">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold">{log.fileName}</h3>
-                              <Badge variant={getExportTypeBadgeVariant(log.exportType)}>
-                                {getExportTypeLabel(log.exportType)}
-                              </Badge>
+                    <div key={log.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-5 w-5 text-blue-600" />
+                          <div>
+                            <div className="font-medium">{log.fileName}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {getExportTypeLabel(log.exportType)} • {log.totalRecords} enregistrement(s)
                             </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              <div className="flex items-center gap-4">
-                                <span className="flex items-center">
-                                  <Calendar className="h-4 w-4 mr-1" />
-                                  {log.startDate.toLocaleDateString()} - {log.endDate.toLocaleDateString()}
-                                </span>
-                                <span className="flex items-center">
-                                  <Database className="h-4 w-4 mr-1" />
-                                  {log.totalRecords} pesée(s)
-                                </span>
-                              </div>
-                              <div>
-                                Créé le {log.createdAt.toLocaleDateString()} à {log.createdAt.toLocaleTimeString()}
-                              </div>
+                            <div className="text-xs text-muted-foreground">
+                              {log.startDate.toLocaleDateString()} - {log.endDate.toLocaleDateString()} • 
+                              Créé le {log.createdAt.toLocaleDateString()} à {log.createdAt.toLocaleTimeString()}
                             </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => redownloadExport(log)}
-                              variant="outline"
-                              size="sm"
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Re-télécharger
-                            </Button>
-                            <Button
-                              onClick={() => deleteExportLog(log.id!)}
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={getExportTypeBadgeVariant(log.exportType)}>
+                          {getExportTypeLabel(log.exportType)}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => redownloadExport(log)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteExportLog(log.id!)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
