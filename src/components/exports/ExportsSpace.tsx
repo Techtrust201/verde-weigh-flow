@@ -22,14 +22,16 @@ import {
   Check,
   X
 } from 'lucide-react';
-import { useExportData, ExportStats } from '@/hooks/useExportData';
+import { useExportData, ExportStats, ExportFormat } from '@/hooks/useExportData';
 import { db, Pesee, Product } from '@/lib/database';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ExportsSpace() {
   const [dateDebut, setDateDebut] = useState('');
   const [dateFin, setDateFin] = useState('');
   const [exportStats, setExportStats] = useState<ExportStats | null>(null);
   const [selectedExportType, setSelectedExportType] = useState<'new' | 'selective' | 'complete'>('new');
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('csv');
   const [previewPesees, setPreviewPesees] = useState<Pesee[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedPeseeIds, setSelectedPeseeIds] = useState<Set<number>>(new Set());
@@ -61,7 +63,7 @@ export default function ExportsSpace() {
       updateStats();
       loadPreviewData();
     }
-  }, [dateDebut, dateFin, selectedExportType]);
+  }, [dateDebut, dateFin, selectedExportType, selectedFormat]);
 
   const loadProducts = async () => {
     try {
@@ -137,8 +139,8 @@ export default function ExportsSpace() {
     const endDate = new Date(dateFin);
     endDate.setHours(23, 59, 59, 999);
 
-    // Call export with selected pesees
-    await exportToCSV(startDate, endDate, selectedExportType, selectedPesees);
+    // Call export with selected pesees and format
+    await exportToCSV(startDate, endDate, selectedExportType, selectedPesees, selectedFormat);
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -166,6 +168,10 @@ export default function ExportsSpace() {
   };
 
   const getExportTypeLabel = (type: string) => {
+    if (type.includes('sage-articles')) return 'Articles Sage';
+    if (type.includes('sage-ventes')) return 'Ventes Sage';
+    if (type.includes('csv')) return 'CSV Standard';
+    
     switch (type) {
       case 'new':
         return 'Nouveaux uniquement';
@@ -175,6 +181,19 @@ export default function ExportsSpace() {
         return 'Complet';
       default:
         return type;
+    }
+  };
+
+  const getFormatLabel = (format: ExportFormat) => {
+    switch (format) {
+      case 'csv':
+        return 'CSV Standard';
+      case 'sage-articles':
+        return 'Sage 50 - Articles';
+      case 'sage-ventes':
+        return 'Sage 50 - Ventes';
+      default:
+        return format;
     }
   };
 
@@ -194,7 +213,7 @@ export default function ExportsSpace() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Exports CSV pour Sage 50</h1>
+        <h1 className="text-3xl font-bold">Exports pour Sage 50</h1>
         <Button onClick={() => loadExportLogs()} variant="outline" size="sm">
           <RefreshCw className="h-4 w-4 mr-2" />
           Actualiser
@@ -239,36 +258,53 @@ export default function ExportsSpace() {
                 </div>
               </div>
 
-              {/* Type d'export */}
+              {/* Format d'export */}
               <div>
-                <Label>Type d'export</Label>
-                <div className="grid grid-cols-3 gap-2 mt-2">
-                  <Button
-                    variant={selectedExportType === 'new' ? 'default' : 'outline'}
-                    onClick={() => setSelectedExportType('new')}
-                    className="text-sm"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Nouveaux uniquement
-                  </Button>
-                  <Button
-                    variant={selectedExportType === 'selective' ? 'default' : 'outline'}
-                    onClick={() => setSelectedExportType('selective')}
-                    className="text-sm"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Période sélectionnée
-                  </Button>
-                  <Button
-                    variant={selectedExportType === 'complete' ? 'default' : 'outline'}
-                    onClick={() => setSelectedExportType('complete')}
-                    className="text-sm"
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    Toutes les données
-                  </Button>
-                </div>
+                <Label htmlFor="format-select">Format d'export</Label>
+                <Select value={selectedFormat} onValueChange={(value) => setSelectedFormat(value as ExportFormat)}>
+                  <SelectTrigger id="format-select" className="mt-2">
+                    <SelectValue placeholder="Sélectionner un format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="csv">CSV Standard - Compatible Excel</SelectItem>
+                    <SelectItem value="sage-articles">Sage 50 - Import Articles (.txt)</SelectItem>
+                    <SelectItem value="sage-ventes">Sage 50 - Import Ventes (.txt)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Type d'export - masqué pour sage-articles */}
+              {selectedFormat !== 'sage-articles' && (
+                <div>
+                  <Label>Type de données</Label>
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    <Button
+                      variant={selectedExportType === 'new' ? 'default' : 'outline'}
+                      onClick={() => setSelectedExportType('new')}
+                      className="text-sm"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Nouveaux uniquement
+                    </Button>
+                    <Button
+                      variant={selectedExportType === 'selective' ? 'default' : 'outline'}
+                      onClick={() => setSelectedExportType('selective')}
+                      className="text-sm"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Période sélectionnée
+                    </Button>
+                    <Button
+                      variant={selectedExportType === 'complete' ? 'default' : 'outline'}
+                      onClick={() => setSelectedExportType('complete')}
+                      className="text-sm"
+                    >
+                      <Database className="h-4 w-4 mr-2" />
+                      Toutes les données
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Statistiques */}
               {exportStats && (
@@ -293,9 +329,37 @@ export default function ExportsSpace() {
                 </Alert>
               )}
 
-              {/* Descriptions des types d'export */}
+              {/* Descriptions des formats et types d'export */}
               <div className="space-y-2 text-sm text-muted-foreground">
-                {selectedExportType === 'new' && (
+                {selectedFormat === 'csv' && (
+                  <Alert>
+                    <FileText className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>CSV Standard :</strong> Format compatible Excel avec toutes les données de pesée.
+                      Utilise l'encodage UTF-8 et des points-virgules comme séparateurs.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {selectedFormat === 'sage-articles' && (
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Sage 50 Articles :</strong> Exporte la liste des produits pour import dans Sage 50.
+                      Format .txt avec tabulations, encodage Windows-1252. Inclut codes articles, prix, comptes comptables.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {selectedFormat === 'sage-ventes' && (
+                  <Alert>
+                    <Database className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Sage 50 Ventes :</strong> Exporte les pesées comme lignes de facture pour Sage 50.
+                      Format .txt avec tabulations, encodage Windows-1252. Prêt pour import direct dans Sage.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {selectedFormat !== 'sage-articles' && selectedExportType === 'new' && (
                   <Alert>
                     <CheckCircle className="h-4 w-4" />
                     <AlertDescription>
@@ -304,7 +368,7 @@ export default function ExportsSpace() {
                     </AlertDescription>
                   </Alert>
                 )}
-                {selectedExportType === 'selective' && (
+                {selectedFormat !== 'sage-articles' && selectedExportType === 'selective' && (
                   <Alert>
                     <FileText className="h-4 w-4" />
                     <AlertDescription>
@@ -313,7 +377,7 @@ export default function ExportsSpace() {
                     </AlertDescription>
                   </Alert>
                 )}
-                {selectedExportType === 'complete' && (
+                {selectedFormat !== 'sage-articles' && selectedExportType === 'complete' && (
                   <Alert>
                     <Database className="h-4 w-4" />
                     <AlertDescription>
@@ -337,15 +401,15 @@ export default function ExportsSpace() {
                     ) : (
                       <Download className="h-4 w-4 mr-2" />
                     )}
-                    {isLoading ? 'Export...' : 'Exporter vers Sage 50'}
+                    {isLoading ? 'Export...' : `Exporter ${getFormatLabel(selectedFormat)}`}
                   </Button>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Aperçu des données à exporter */}
-          {showPreview && (
+          {/* Aperçu des données à exporter - masqué pour sage-articles */}
+          {showPreview && selectedFormat !== 'sage-articles' && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -494,6 +558,53 @@ export default function ExportsSpace() {
                       {isLoading ? 'Export...' : `Exporter ${selectedPeseeIds.size} pesée(s)`}
                     </Button>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Aperçu spécial pour Sage Articles */}
+          {selectedFormat === 'sage-articles' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Database className="h-5 w-5 mr-2" />
+                  Export Articles Sage 50
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Cet export générera un fichier .txt contenant tous vos produits au format Sage 50.
+                    Le fichier inclura les codes articles, désignations, prix et comptes comptables.
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="text-center">
+                    <div className="font-bold text-lg text-blue-600">{products.length}</div>
+                    <div className="text-sm text-muted-foreground">Articles à exporter</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-lg text-green-600">100%</div>
+                    <div className="text-sm text-muted-foreground">Compatibilité Sage</div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleExport} 
+                    disabled={isLoading}
+                    className="min-w-32"
+                  >
+                    {isLoading ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {isLoading ? 'Export...' : 'Exporter Articles Sage'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
