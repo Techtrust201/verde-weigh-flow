@@ -25,6 +25,11 @@ export interface Client {
       prixTTC?: number;
     }
   };
+  // Track Déchet - Token API par client
+  trackDechetToken?: string;
+  trackDechetEnabled?: boolean;
+  trackDechetValidated?: boolean; // Indique si le token a été validé
+  trackDechetValidatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -217,7 +222,22 @@ class AppDatabase extends Dexie {
 
     // Version 3 - Ajout du champ exportedAt SANS supprimer les données existantes
     this.version(3).stores({
-      clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
+      clients: '++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt',
+      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
+      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
+      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',
+      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
+      userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
+      bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
+      config: '++id, key, createdAt, updatedAt',
+      syncLogs: '++id, type, status, synchronized, createdAt',
+      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
+      exportLogs: '++id, fileName, startDate, endDate, exportType, createdAt'
+    });
+
+    // Version 4 - Ajout des champs Track Déchet pour les clients
+    this.version(4).stores({
+      clients: '++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt',
       transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
       products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
       pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',

@@ -31,6 +31,9 @@ export function TrackDechetDialog({
   // Vérifier si Track Déchet est applicable
   const isTrackDechetApplicable = () => {
     return client?.typeClient !== 'particulier' && 
+           client?.trackDechetEnabled &&
+           client?.trackDechetValidated &&
+           client?.trackDechetToken &&
            product?.categorieDechet && 
            client?.siret && 
            transporteur?.siret;
@@ -53,23 +56,30 @@ export function TrackDechetDialog({
   ];
 
   const handleGenerateBSD = async () => {
-    if (!selectedCodeDechet) return;
+    if (!selectedCodeDechet || !client?.trackDechetToken) return;
     
     setIsGenerating(true);
     try {
-      // Ici, on intégrerait l'API Track Déchet
-      // Pour l'instant, simulation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Import de l'API Track Déchet
+      const { generateBSD } = await import('@/utils/trackdechetApi');
       
-      // TODO: Intégrer l'API Track Déchet
-      console.log("Génération BSD Track Déchet:", {
-        peseeId: pesee.id,
-        codeDechet: selectedCodeDechet,
-        producteur: client,
-        transporteur: transporteur
-      });
+      const result = await generateBSD(
+        pesee,
+        client,
+        transporteur!,
+        product!,
+        selectedCodeDechet,
+        client.trackDechetToken
+      );
       
-      onClose();
+      if (result.success) {
+        console.log("BSD généré avec succès:", result.bsdId);
+        // TODO: Afficher un message de succès avec l'ID du BSD
+        onClose();
+      } else {
+        console.error("Erreur génération BSD:", result.error);
+        // TODO: Afficher l'erreur à l'utilisateur
+      }
     } catch (error) {
       console.error("Erreur génération BSD:", error);
     } finally {
@@ -90,7 +100,7 @@ export function TrackDechetDialog({
           
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Track Déchet n'est applicable que pour les professionnels avec SIRET.
+              Track Déchet n'est applicable que pour les professionnels avec un token API configuré et validé.
             </p>
             
             <div className="space-y-2">
@@ -118,13 +128,29 @@ export function TrackDechetDialog({
                 <span className="text-sm">SIRET transporteur renseigné</span>
               </div>
               
-              <div className="flex items-center gap-2">
-                {product?.categorieDechet ? 
-                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                  <AlertCircle className="h-4 w-4 text-orange-500" />
-                }
-                <span className="text-sm">Catégorie déchet définie</span>
-              </div>
+               <div className="flex items-center gap-2">
+                 {product?.categorieDechet ? 
+                   <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                   <AlertCircle className="h-4 w-4 text-orange-500" />
+                 }
+                 <span className="text-sm">Catégorie déchet définie</span>
+               </div>
+               
+               <div className="flex items-center gap-2">
+                 {client?.trackDechetEnabled ? 
+                   <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                   <AlertCircle className="h-4 w-4 text-orange-500" />
+                 }
+                 <span className="text-sm">Track Déchet activé</span>
+               </div>
+               
+               <div className="flex items-center gap-2">
+                 {client?.trackDechetToken && client?.trackDechetValidated ? 
+                   <CheckCircle className="h-4 w-4 text-green-500" /> : 
+                   <AlertCircle className="h-4 w-4 text-orange-500" />
+                 }
+                 <span className="text-sm">Token API configuré et validé</span>
+               </div>
             </div>
             
             <Button onClick={onClose} className="w-full">
