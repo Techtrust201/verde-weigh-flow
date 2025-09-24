@@ -35,6 +35,8 @@ Deno.serve(async (req) => {
         return await handleCreateForm(req, trackDechetToken)
       case 'getForm':
         return await handleGetForm(req, trackDechetToken)
+      case 'validateToken':
+        return await handleValidateToken(req, trackDechetToken)
       default:
         return new Response(
           JSON.stringify({ error: 'Unknown endpoint' }),
@@ -107,7 +109,17 @@ async function handleCreateForm(req: Request, token: string) {
 async function handleGetForm(req: Request, token: string) {
   try {
     const url = new URL(req.url)
-    const bsdId = url.searchParams.get('id')
+    let bsdId = url.searchParams.get('id')
+    
+    // Si pas d'ID en query param, essayer dans le body
+    if (!bsdId) {
+      try {
+        const body = await req.json()
+        bsdId = body.id
+      } catch (e) {
+        // Ignore JSON parse errors
+      }
+    }
     
     if (!bsdId) {
       return new Response(
@@ -160,6 +172,83 @@ async function handleGetForm(req: Request, token: string) {
     return new Response(
       JSON.stringify({ error: 'Failed to get BSD', details: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+}
+
+async function handleValidateToken(req: Request, token: string) {
+  try {
+    const validateQuery = `
+      query {
+        me {
+          id
+          email
+          name
+        }
+      }
+    `
+
+    const response = await fetch('https://api.trackdechets.beta.gouv.fr/graphql', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: validateQuery
+      })
+    })
+
+    const result = await response.json()
+    
+    if (result.errors) {
+      console.error('Track Déchet validation errors:', result.errors)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          isValid: false,
+          errorType: 'invalid_token',
+          errorMessage: result.errors[0]?.message || 'Token invalide'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!response.ok) {
+      let errorType = 'network'
+      if (response.status === 401) errorType = 'invalid_token'
+      if (response.status === 403) errorType = 'permissions'
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          isValid: false,
+          errorType,
+          errorMessage: `Erreur HTTP ${response.status}`
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        isValid: true,
+        userInfo: result.data?.me
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
+  } catch (error) {
+    console.error('Validate token error:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        isValid: false,
+        errorType: 'network',
+        errorMessage: 'Erreur de connexion'
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 }

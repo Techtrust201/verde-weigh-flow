@@ -1,17 +1,11 @@
 /**
- * Module d'intégration avec l'API Track Déchet
- * API GraphQL officielle : https://api.trackdechets.beta.gouv.fr/graphql
+ * Module d'intégration avec l'API Track Déchet via proxy backend
+ * Tous les appels passent maintenant par notre edge function pour éviter CORS
  */
 
 import { formatPeseeForTrackDechet } from './trackdechetValidation';
 import { Pesee, Product, Client, Transporteur, BSD, db } from '@/lib/database';
-
-// Configuration API Track Déchet
-const TRACKDECHET_API_URL = 'https://api.trackdechets.beta.gouv.fr/graphql';
-const TRACKDECHET_SANDBOX_URL = 'https://sandbox.trackdechets.beta.gouv.fr/graphql';
-
-// Utiliser sandbox en développement
-const API_URL = process.env.NODE_ENV === 'production' ? TRACKDECHET_API_URL : TRACKDECHET_SANDBOX_URL;
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Interface pour les réponses de l'API Track Déchet
@@ -73,35 +67,24 @@ export const generateBSD = async (
       }
     `;
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`
-      },
-      body: JSON.stringify({
-        query: mutation,
-        variables: {
-          createFormInput: bsdData
-        }
-      })
+    const { data, error } = await supabase.functions.invoke('trackdechet-proxy/createForm', {
+      body: bsdData
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (error) {
+      throw new Error(`Proxy error: ${error.message}`);
     }
 
-    const result: TrackDechetResponse = await response.json();
+    const result = data;
 
-    if (result.errors) {
-      console.error('Track Déchet API errors:', result.errors);
+    if (!result.success) {
       return {
         success: false,
-        error: result.errors[0]?.message || 'Erreur inconnue de l\'API Track Déchet'
+        error: result.error || 'Erreur inconnue lors de la création du BSD'
       };
     }
 
-    const bsdId = result.data?.createForm?.id;
+    const bsdId = result.bsd?.id;
     if (!bsdId) {
       return {
         success: false,
@@ -191,34 +174,26 @@ export const getBSDStatus = async (
       }
     `;
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`
-      },
-      body: JSON.stringify({
-        query,
-        variables: { id: bsdId }
-      })
+    const { data, error } = await supabase.functions.invoke('trackdechet-proxy/getForm', {
+      body: { id: bsdId }
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (error) {
+      throw new Error(`Proxy error: ${error.message}`);
     }
 
-    const result: TrackDechetResponse = await response.json();
+    const result = data;
 
-    if (result.errors) {
+    if (!result.success) {
       return {
         success: false,
-        error: result.errors[0]?.message || 'Erreur lors de la récupération du statut'
+        error: result.error || 'Erreur lors de la récupération du statut'
       };
     }
 
     return {
       success: true,
-      status: result.data?.form?.status
+      status: result.bsd?.status
     };
 
   } catch (error) {
@@ -307,83 +282,36 @@ export const validateTrackDechetTokenDetailed = async (token: string): Promise<V
       }
     `;
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ query })
+    const { data, error } = await supabase.functions.invoke('trackdechet-proxy/validateToken', {
+      body: {}
     });
 
-    const result: TrackDechetResponse = await response.json();
-    
-    // Gestion des erreurs HTTP
-    if (!response.ok) {
-      if (response.status === 401) {
-        return {
-          isValid: false,
-          errorType: 'invalid_token',
-          errorMessage: 'Token invalide ou expiré'
-        };
-      }
-      if (response.status === 403) {
-        return {
-          isValid: false,
-          errorType: 'permissions',
-          errorMessage: 'Permissions insuffisantes pour ce token'
-        };
-      }
+    if (error) {
+      console.error('Proxy error:', error);
       return {
         isValid: false,
         errorType: 'network',
-        errorMessage: `Erreur serveur (${response.status})`
+        errorMessage: 'Erreur de connexion au proxy backend'
       };
     }
 
-    // Gestion des erreurs GraphQL
-    if (result.errors && result.errors.length > 0) {
-      const error = result.errors[0];
-      
-      if (error.message.includes('UNAUTHENTICATED') || error.message.includes('Invalid token')) {
-        return {
-          isValid: false,
-          errorType: 'invalid_token',
-          errorMessage: 'Token invalide ou expiré'
-        };
-      }
-      
-      if (error.message.includes('FORBIDDEN')) {
-        return {
-          isValid: false,
-          errorType: 'permissions',
-          errorMessage: 'Permissions insuffisantes'
-        };
-      }
-
+    const result = data;
+    
+    if (!result.success || !result.isValid) {
       return {
         isValid: false,
-        errorType: 'invalid_token',
-        errorMessage: error.message
-      };
-    }
-
-    // Vérification de la présence des données utilisateur
-    if (!result.data?.me) {
-      return {
-        isValid: false,
-        errorType: 'invalid_token',
-        errorMessage: 'Impossible de récupérer les informations utilisateur'
+        errorType: result.errorType || 'invalid_token',
+        errorMessage: result.errorMessage || 'Token invalide'
       };
     }
 
     return {
       isValid: true,
-      userInfo: {
-        id: result.data.me.id,
-        email: result.data.me.email,
-        name: result.data.me.name
-      }
+      userInfo: result.userInfo ? {
+        id: result.userInfo.id,
+        email: result.userInfo.email,
+        name: result.userInfo.name
+      } : undefined
     };
 
   } catch (error) {
