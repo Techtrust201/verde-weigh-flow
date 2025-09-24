@@ -13,7 +13,7 @@ import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { Client, Transporteur } from "@/lib/database";
 import { CityPostalInput } from "@/components/ui/city-postal-input";
 import { validateEmail, getEmailError } from "@/utils/validation";
-import TrackDechetSection from "@/components/forms/TrackDechetSection";
+import ClientTrackDechetSection from "@/components/forms/ClientTrackDechetSection";
 
 interface ClientFormProps {
   formData: Partial<Client>;
@@ -373,7 +373,7 @@ export default function ClientForm({
       </div>
 
       {/* Section Track Déchet */}
-      <TrackDechetSection
+      <ClientTrackDechetSection
         formData={formData}
         onFormDataChange={onFormDataChange}
         isEditing={isEditing}

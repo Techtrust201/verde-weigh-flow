@@ -25,11 +25,8 @@ export interface Client {
       prixTTC?: number;
     }
   };
-  // Track Déchet - Token API par client
-  trackDechetToken?: string;
+  // Track Déchet - Seulement activation par client (token global maintenant)
   trackDechetEnabled?: boolean;
-  trackDechetValidated?: boolean; // Indique si le token a été validé
-  trackDechetValidatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

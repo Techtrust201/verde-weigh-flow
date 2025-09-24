@@ -1,17 +1,20 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle, FileText, Truck } from "lucide-react";
-import { Pesee, Product, Client, Transporteur, BSD } from "@/lib/database";
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Pesee, Product, Client, Transporteur } from '@/lib/database';
+import { generateBSD } from '@/utils/trackdechetApi';
+import { getTrackDechetToken, isTrackDechetReady } from '@/lib/globalSettings';
+import { useToast } from '@/hooks/use-toast';
 
 interface TrackDechetDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  pesee: Pesee;
+  pesee?: Pesee;
   product?: Product;
   client?: Client;
   transporteur?: Transporteur;
@@ -27,16 +30,25 @@ export function TrackDechetDialog({
 }: TrackDechetDialogProps) {
   const [selectedCodeDechet, setSelectedCodeDechet] = useState(product?.codeDechets || "");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
+  const { toast } = useToast();
 
   // Vérifier si Track Déchet est applicable
-  const isTrackDechetApplicable = () => {
-    return client?.typeClient !== 'particulier' && 
-           client?.trackDechetEnabled &&
-           client?.trackDechetValidated &&
-           client?.trackDechetToken &&
-           product?.categorieDechet && 
-           client?.siret && 
-           transporteur?.siret;
+  const checkTrackDechetApplicability = async (): Promise<boolean> => {
+    if (client?.typeClient === 'particulier' || !client?.trackDechetEnabled) {
+      return false;
+    }
+
+    // Vérifier la configuration globale
+    const isGloballyReady = await isTrackDechetReady();
+    if (!isGloballyReady) {
+      return false;
+    }
+
+    // Vérifier les autres conditions
+    return !!(product?.categorieDechet && 
+              client?.siret && 
+              transporteur?.siret);
   };
 
   // Codes déchets les plus courants dans le BTP
@@ -55,226 +67,288 @@ export function TrackDechetDialog({
     { code: "170904", description: "Déchets de construction et de démolition en mélange" }
   ];
 
+  // Générer le BSD
   const handleGenerateBSD = async () => {
-    if (!selectedCodeDechet || !client?.trackDechetToken) return;
-    
+    if (!selectedCodeDechet || !pesee || !client || !transporteur || !product) {
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      // Import de l'API Track Déchet
-      const { generateBSD } = await import('@/utils/trackdechetApi');
-      
+      // Récupérer le token global
+      const globalToken = await getTrackDechetToken();
+      if (!globalToken) {
+        toast({
+          title: "Erreur",
+          description: "Token Track Déchet non configuré. Allez dans Paramètres → Track Déchet",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const result = await generateBSD(
         pesee,
         client,
-        transporteur!,
-        product!,
+        transporteur, 
+        product,
         selectedCodeDechet,
-        client.trackDechetToken
+        globalToken
       );
-      
+
       if (result.success) {
-        console.log("BSD généré avec succès:", result.bsdId);
-        // TODO: Afficher un message de succès avec l'ID du BSD
+        toast({
+          title: "BSD généré avec succès",
+          description: `BSD ${result.bsdId} créé dans Track Déchet`
+        });
         onClose();
       } else {
-        console.error("Erreur génération BSD:", result.error);
-        // TODO: Afficher l'erreur à l'utilisateur
+        toast({
+          title: "Erreur génération BSD",
+          description: result.error || "Une erreur est survenue",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error("Erreur génération BSD:", error);
+      console.error('Erreur génération BSD:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de générer le BSD",
+        variant: "destructive"
+      });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  if (!isTrackDechetApplicable()) {
+  // Vérifier l'applicabilité à l'ouverture
+  useEffect(() => {
+    const checkApplicability = async () => {
+      if (isOpen) {
+        const applicable = await checkTrackDechetApplicability();
+        setIsApplicable(applicable);
+      }
+    };
+    
+    checkApplicability();
+  }, [isOpen, client, product, transporteur]);
+
+  // Si on ne sait pas encore si c'est applicable
+  if (isApplicable === null) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              Track Déchet non applicable
-            </DialogTitle>
+            <DialogTitle>Track Déchet - Génération BSD</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Track Déchet n'est applicable que pour les professionnels avec un token API configuré et validé.
-            </p>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                {client?.typeClient !== 'particulier' ? 
-                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                  <AlertCircle className="h-4 w-4 text-orange-500" />
-                }
-                <span className="text-sm">Client professionnel</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {client?.siret ? 
-                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                  <AlertCircle className="h-4 w-4 text-orange-500" />
-                }
-                <span className="text-sm">SIRET client renseigné</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {transporteur?.siret ? 
-                  <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                  <AlertCircle className="h-4 w-4 text-orange-500" />
-                }
-                <span className="text-sm">SIRET transporteur renseigné</span>
-              </div>
-              
-               <div className="flex items-center gap-2">
-                 {product?.categorieDechet ? 
-                   <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                   <AlertCircle className="h-4 w-4 text-orange-500" />
-                 }
-                 <span className="text-sm">Catégorie déchet définie</span>
-               </div>
-               
-               <div className="flex items-center gap-2">
-                 {client?.trackDechetEnabled ? 
-                   <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                   <AlertCircle className="h-4 w-4 text-orange-500" />
-                 }
-                 <span className="text-sm">Track Déchet activé</span>
-               </div>
-               
-               <div className="flex items-center gap-2">
-                 {client?.trackDechetToken && client?.trackDechetValidated ? 
-                   <CheckCircle className="h-4 w-4 text-green-500" /> : 
-                   <AlertCircle className="h-4 w-4 text-orange-500" />
-                 }
-                 <span className="text-sm">Token API configuré et validé</span>
-               </div>
-            </div>
-            
-            <Button onClick={onClose} className="w-full">
-              Fermer
-            </Button>
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            <span className="text-muted-foreground">Vérification de la configuration...</span>
           </div>
         </DialogContent>
       </Dialog>
     );
   }
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Générer un BSD Track Déchet
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Informations pré-remplies */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  Producteur (Client)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div>
-                  <strong>{client?.raisonSociale}</strong>
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {client?.typeClient}
-                  </Badge>
-                </div>
-                <div>SIRET: {client?.siret}</div>
-                <div>{client?.adresse}</div>
-                <div>{client?.codePostal} {client?.ville}</div>
-              </CardContent>
-            </Card>
+  // Si Track Déchet n'est pas applicable
+  if (!isApplicable) {
+    const missingRequirements: string[] = [];
+    
+    if (client?.typeClient === 'particulier') {
+      missingRequirements.push("Track Déchet n'est disponible que pour les clients professionnels");
+    }
+    
+    if (!client?.trackDechetEnabled) {
+      missingRequirements.push("Track Déchet n'est pas activé pour ce client");
+    }
+    
+    if (!product?.categorieDechet) {
+      missingRequirements.push("Le produit doit avoir une catégorie de déchet définie");
+    }
+    
+    if (!client?.siret) {
+      missingRequirements.push("Le client doit avoir un SIRET");
+    }
+    
+    if (!transporteur?.siret) {
+      missingRequirements.push("Le transporteur doit avoir un SIRET");
+    }
+
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Track Déchet non applicable</DialogTitle>
+            <DialogDescription>
+              Les conditions suivantes ne sont pas remplies pour générer un BSD :
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <ul className="space-y-2">
+              {missingRequirements.map((requirement, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                  <span className="text-sm">{requirement}</span>
+                </li>
+              ))}
+            </ul>
             
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-blue-500" />
-                  Transporteur
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div><strong>{transporteur?.prenom} {transporteur?.nom}</strong></div>
-                <div>SIRET: {transporteur?.siret}</div>
-                <div>{transporteur?.adresse}</div>
-                <div>Plaque: {transporteur?.plaque || pesee.plaque}</div>
-              </CardContent>
-            </Card>
+            {missingRequirements.length === 1 && missingRequirements[0].includes("Track Déchet n'est pas activé") && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-700">
+                  💡 Activez Track Déchet pour ce client dans sa fiche pour pouvoir générer des BSD automatiquement.
+                </p>
+              </div>
+            )}
           </div>
           
-          {/* Sélection du code déchet */}
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Interface principale pour générer le BSD
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span>Génération BSD Track Déchet</span>
+            <Badge variant="secondary">Automatique</Badge>
+          </DialogTitle>
+          <DialogDescription>
+            Génération automatique d'un bordereau de suivi des déchets
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Informations du producteur (client) */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Déchet</CardTitle>
+            <CardHeader>
+              <CardTitle className="text-base">Producteur (Émetteur)</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Produit:</strong> {product?.nom}
-                </div>
-                <div>
-                  <strong>Catégorie:</strong>
-                  <Badge variant="outline" className="ml-2">
-                    {product?.categorieDechet}
-                  </Badge>
-                </div>
-                <div>
-                  <strong>Quantité:</strong> {pesee.net} tonnes
-                </div>
-                <div>
-                  <strong>Date:</strong> {new Date(pesee.dateHeure).toLocaleDateString()}
-                </div>
-              </div>
-              
+            <CardContent className="space-y-2">
               <div>
-                <Label htmlFor="codeDechet">Code déchet européen *</Label>
-                <Select 
-                  value={selectedCodeDechet} 
-                  onValueChange={setSelectedCodeDechet}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un code déchet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {product?.codeDechets && (
-                      <SelectItem value={product.codeDechets}>
-                        {product.codeDechets} - Code produit défini
-                      </SelectItem>
-                    )}
-                    {codesDechetsCommuns.map((item) => (
-                      <SelectItem key={item.code} value={item.code}>
-                        {item.code} - {item.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <strong>{client?.raisonSociale}</strong>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                SIRET: {client?.siret}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {client?.adresse}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {client?.codePostal} {client?.ville}
               </div>
             </CardContent>
           </Card>
-          
-          {/* Actions */}
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={onClose}>
-              Annuler
-            </Button>
-            <Button 
-              onClick={handleGenerateBSD}
-              disabled={!selectedCodeDechet || isGenerating}
-            >
-              {isGenerating ? "Génération..." : "Générer BSD"}
-            </Button>
-          </div>
+
+          {/* Informations du transporteur */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Transporteur</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div>
+                <strong>{transporteur?.prenom} {transporteur?.nom}</strong>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                SIRET: {transporteur?.siret}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {transporteur?.adresse}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {transporteur?.codePostal} {transporteur?.ville}
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Informations sur le déchet */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Déchet</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-sm font-medium">Produit</Label>
+              <p className="text-sm">{product?.nom}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Catégorie</Label>
+              <Badge variant="secondary" className="text-xs">
+                {product?.categorieDechet}
+              </Badge>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Quantité</Label>
+              <p className="text-sm">{pesee?.net} tonnes</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Date</Label>
+              <p className="text-sm">
+                {pesee?.dateHeure ? new Date(pesee.dateHeure).toLocaleDateString() : 'Non définie'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sélection du code déchet */}
+        <div className="space-y-2">
+          <Label htmlFor="codeDechet">Code déchet européen *</Label>
+          <Select value={selectedCodeDechet} onValueChange={setSelectedCodeDechet}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionnez un code déchet" />
+            </SelectTrigger>
+            <SelectContent>
+              {/* Code du produit s'il est défini */}
+              {product?.codeDechets && (
+                <>
+                  <SelectItem value={product.codeDechets}>
+                    {product.codeDechets} - Code produit
+                  </SelectItem>
+                  <div className="border-b my-1" />
+                </>
+              )}
+              
+              {/* Codes communs */}
+              {codesDechetsCommuns.map((code) => (
+                <SelectItem key={code.code} value={code.code}>
+                  {code.code} - {code.description}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Sélectionnez le code déchet européen approprié pour cette pesée
+          </p>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleGenerateBSD}
+            disabled={!selectedCodeDechet || isGenerating}
+            className="min-w-[120px]"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Génération...
+              </>
+            ) : (
+              "Générer BSD"
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

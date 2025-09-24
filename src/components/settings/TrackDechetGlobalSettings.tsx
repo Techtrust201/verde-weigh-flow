@@ -5,34 +5,40 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { AlertCircle, CheckCircle, ExternalLink, Loader2, XCircle, Info } from 'lucide-react';
-import { Client } from '@/lib/database';
+import { AlertCircle, CheckCircle, ExternalLink, Loader2, XCircle, Info, Settings } from 'lucide-react';
 import { validateTrackDechetTokenDetailed, ValidationResult } from '@/utils/trackdechetApi';
+import { getGlobalSettings, updateTrackDechetSettings, GlobalSettings } from '@/lib/globalSettings';
 import { useToast } from '@/hooks/use-toast';
 
-interface TrackDechetSectionProps {
-  formData: Partial<Client>;
-  onFormDataChange: (data: Partial<Client>) => void;
-  isEditing?: boolean;
-}
-
-export default function TrackDechetSection({
-  formData,
-  onFormDataChange,
-  isEditing = false
-}: TrackDechetSectionProps) {
+export default function TrackDechetGlobalSettings() {
+  const [settings, setSettings] = useState<GlobalSettings>({});
   const [isValidating, setIsValidating] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [validationTimeoutId, setValidationTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const handleTrackDechetToggle = (enabled: boolean) => {
-    onFormDataChange({
-      ...formData,
-      trackDechetEnabled: enabled,
-      trackDechetValidated: enabled ? formData.trackDechetValidated : false
-    });
+  // Charger les paramètres au montage
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      const globalSettings = await getGlobalSettings();
+      setSettings(globalSettings);
+    } catch (error) {
+      console.error('Erreur chargement paramètres:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les paramètres",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Validation automatique avec debounce
@@ -46,47 +52,128 @@ export default function TrackDechetSection({
     const result = await validateTrackDechetTokenDetailed(token);
     setValidationResult(result);
     
-    if (result.isValid) {
-      onFormDataChange({
-        ...formData,
-        trackDechetValidated: true,
-        trackDechetValidatedAt: new Date()
+    // Mettre à jour les paramètres
+    try {
+      await updateTrackDechetSettings({
+        validated: result.isValid,
+        validatedAt: result.isValid ? new Date() : undefined
       });
-    } else {
-      onFormDataChange({
-        ...formData,
-        trackDechetValidated: false,
-        trackDechetValidatedAt: undefined
-      });
+      
+      // Recharger les paramètres
+      await loadSettings();
+    } catch (error) {
+      console.error('Erreur sauvegarde validation:', error);
     }
     
     setIsValidating(false);
-  }, [formData, onFormDataChange]);
+  }, []);
 
-  const handleTokenChange = (token: string) => {
-    onFormDataChange({
-      ...formData,
-      trackDechetToken: token,
-      trackDechetValidated: false,
-      trackDechetValidatedAt: undefined
-    });
-
-    // Clear previous validation
-    setValidationResult(null);
-    
-    // Clear existing timeout
-    if (validationTimeoutId) {
-      clearTimeout(validationTimeoutId);
-    }
-
-    // Set new timeout for auto-validation
-    if (token && token.trim().length >= 10) {
-      const timeoutId = setTimeout(() => {
-        debouncedValidation(token);
-      }, 2000); // 2 secondes de délai
+  const handleTrackDechetToggle = async (enabled: boolean) => {
+    try {
+      await updateTrackDechetSettings({ enabled });
+      setSettings(prev => ({ ...prev, trackDechetEnabled: enabled }));
       
-      setValidationTimeoutId(timeoutId);
+      toast({
+        title: enabled ? "Track Déchet activé" : "Track Déchet désactivé",
+        description: enabled 
+          ? "Vous pouvez maintenant configurer votre token API" 
+          : "Track Déchet est désormais désactivé pour tous les clients"
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier le paramètre",
+        variant: "destructive"
+      });
     }
+  };
+
+  const handleTokenChange = async (token: string) => {
+    try {
+      await updateTrackDechetSettings({ 
+        token,
+        validated: false,
+        validatedAt: undefined
+      });
+      
+      setSettings(prev => ({ 
+        ...prev, 
+        trackDechetToken: token,
+        trackDechetValidated: false,
+        trackDechetValidatedAt: undefined
+      }));
+
+      // Clear previous validation
+      setValidationResult(null);
+      
+      // Clear existing timeout
+      if (validationTimeoutId) {
+        clearTimeout(validationTimeoutId);
+      }
+
+      // Set new timeout for auto-validation
+      if (token && token.trim().length >= 10) {
+        const timeoutId = setTimeout(() => {
+          debouncedValidation(token);
+        }, 2000);
+        
+        setValidationTimeoutId(timeoutId);
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder le token",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSandboxToggle = async (sandboxMode: boolean) => {
+    try {
+      await updateTrackDechetSettings({ 
+        sandboxMode,
+        validated: false, // Revalider avec le nouvel environnement
+        validatedAt: undefined
+      });
+      
+      setSettings(prev => ({ 
+        ...prev, 
+        trackDechetSandboxMode: sandboxMode,
+        trackDechetValidated: false,
+        trackDechetValidatedAt: undefined
+      }));
+      
+      // Si on a un token, le revalider
+      if (settings.trackDechetToken) {
+        debouncedValidation(settings.trackDechetToken);
+      }
+      
+      toast({
+        title: sandboxMode ? "Mode sandbox activé" : "Mode production activé",
+        description: sandboxMode 
+          ? "Vous utilisez maintenant l'environnement de test" 
+          : "Vous utilisez maintenant l'environnement de production"
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier l'environnement",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const validateToken = async () => {
+    if (!settings.trackDechetToken) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un token API",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    await debouncedValidation(settings.trackDechetToken);
   };
 
   // Cleanup timeout on unmount
@@ -98,19 +185,6 @@ export default function TrackDechetSection({
     };
   }, [validationTimeoutId]);
 
-  const validateToken = async () => {
-    if (!formData.trackDechetToken) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez saisir un token API",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    await debouncedValidation(formData.trackDechetToken);
-  };
-
   // Fonction pour obtenir l'icône et la couleur selon le statut
   const getValidationStatus = () => {
     if (isValidating) {
@@ -121,7 +195,7 @@ export default function TrackDechetSection({
       };
     }
 
-    if (!formData.trackDechetToken) {
+    if (!settings.trackDechetToken) {
       return null;
     }
 
@@ -157,9 +231,17 @@ export default function TrackDechetSection({
     };
   };
 
-  // N'afficher la section que pour les professionnels
-  if (formData.typeClient === 'particulier') {
-    return null;
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="ml-2">Chargement des paramètres...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -167,30 +249,52 @@ export default function TrackDechetSection({
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <span className="text-primary">Track Déchet</span>
+            <Settings className="h-5 w-5 text-primary" />
+            <span className="text-primary">Configuration Track Déchet</span>
             <Badge variant="secondary" className="text-xs">
-              Professionnel
+              Global
             </Badge>
           </span>
           <Switch
-            checked={formData.trackDechetEnabled || false}
+            checked={settings.trackDechetEnabled || false}
             onCheckedChange={handleTrackDechetToggle}
           />
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Activez Track Déchet pour générer automatiquement des bordereaux de suivi des déchets (BSD)
+          Configuration globale pour générer automatiquement des bordereaux de suivi des déchets (BSD)
         </p>
       </CardHeader>
 
-      {formData.trackDechetEnabled && (
-        <CardContent className="space-y-4">
+      {settings.trackDechetEnabled && (
+        <CardContent className="space-y-6">
+          {/* Mode sandbox/production */}
+          <div className="space-y-2">
+            <Label>Environnement</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={settings.trackDechetSandboxMode || false}
+                onCheckedChange={handleSandboxToggle}
+              />
+              <span className="text-sm">
+                {settings.trackDechetSandboxMode ? 'Mode sandbox (test)' : 'Mode production'}
+              </span>
+              <Badge variant={settings.trackDechetSandboxMode ? "secondary" : "default"} className="text-xs">
+                {settings.trackDechetSandboxMode ? 'TEST' : 'PROD'}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Utilisez le mode sandbox pour vos tests, puis basculez en production
+            </p>
+          </div>
+
+          {/* Token API */}
           <div className="space-y-2">
             <Label htmlFor="trackDechetToken">Token API Track Déchet *</Label>
             <div className="flex gap-2">
               <Input
                 id="trackDechetToken"
                 type={showToken ? "text" : "password"}
-                value={formData.trackDechetToken || ""}
+                value={settings.trackDechetToken || ""}
                 onChange={(e) => handleTokenChange(e.target.value)}
                 placeholder="Votre token API Track Déchet"
                 className="flex-1"
@@ -207,7 +311,7 @@ export default function TrackDechetSection({
                 type="button"
                 variant="outline"
                 onClick={validateToken}
-                disabled={!formData.trackDechetToken || isValidating}
+                disabled={!settings.trackDechetToken || isValidating}
                 className="shrink-0"
               >
                 {isValidating ? (
@@ -278,21 +382,29 @@ export default function TrackDechetSection({
               asChild
             >
               <a
-                href="https://trackdechets.beta.gouv.fr"
+                href={settings.trackDechetSandboxMode 
+                  ? "https://sandbox.trackdechets.beta.gouv.fr" 
+                  : "https://trackdechets.beta.gouv.fr"
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1"
               >
-                Accéder à Track Déchet
+                Accéder à Track Déchet {settings.trackDechetSandboxMode && '(Sandbox)'}
                 <ExternalLink className="h-3 w-3" />
               </a>
             </Button>
           </div>
 
-          {/* Avantages */}
-          <div className="text-xs text-muted-foreground">
-            <strong>Avantages :</strong> Génération automatique des BSD, 
-            traçabilité complète, conformité réglementaire.
+          {/* Configuration globale info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <h4 className="text-sm font-medium text-blue-800 mb-1">
+              Configuration globale
+            </h4>
+            <p className="text-xs text-blue-700">
+              Ce token sera utilisé pour tous les clients professionnels ayant Track Déchet activé. 
+              Vous n'avez besoin de le configurer qu'une seule fois.
+            </p>
           </div>
         </CardContent>
       )}
