@@ -178,6 +178,22 @@ async function handleGetForm(req: Request, token: string) {
 
 async function handleValidateToken(req: Request, token: string) {
   try {
+    // Récupérer le token depuis le body de la requête
+    const body = await req.json()
+    const userToken = body.token
+    
+    if (!userToken) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          isValid: false,
+          errorType: 'format',
+          errorMessage: 'Token manquant dans la requête'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
     const validateQuery = `
       query {
         me {
@@ -191,7 +207,7 @@ async function handleValidateToken(req: Request, token: string) {
     const response = await fetch('https://api.trackdechets.beta.gouv.fr/graphql', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${userToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

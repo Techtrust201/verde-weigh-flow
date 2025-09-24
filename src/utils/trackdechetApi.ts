@@ -283,7 +283,7 @@ export const validateTrackDechetTokenDetailed = async (token: string): Promise<V
     `;
 
     const { data, error } = await supabase.functions.invoke('trackdechet-proxy/validateToken', {
-      body: {}
+      body: { token }
     });
 
     if (error) {
