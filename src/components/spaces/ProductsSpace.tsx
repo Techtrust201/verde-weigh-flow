@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Package, Star, StarOff } from 'lucide-react';
 import { db, Product } from '@/lib/database';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +23,9 @@ export default function ProductsSpace() {
     prixTTC: 0,
     codeProduct: '',
     unite: 'tonne',
-    isFavorite: false
+    isFavorite: false,
+    categorieDechet: undefined,
+    codeDechets: ''
   });
   const { toast } = useToast();
 
@@ -220,6 +223,45 @@ export default function ProductsSpace() {
                   readOnly
                   className="bg-gray-100"
                 />
+              </div>
+              
+              {/* Champs Track Déchet */}
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium mb-3 text-primary">Track Déchet (obligatoire pour professionnels)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="categorieDechet">Catégorie déchet</Label>
+                    <Select
+                      value={formData.categorieDechet || ""}
+                      onValueChange={(value: 'dangereux' | 'non-dangereux' | 'inerte') => 
+                        setFormData({...formData, categorieDechet: value})
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="non-dangereux">Non dangereux</SelectItem>
+                        <SelectItem value="inerte">Inerte</SelectItem>
+                        <SelectItem value="dangereux">Dangereux</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="codeDechets">Code déchet (6 chiffres)</Label>
+                    <Input
+                      id="codeDechets"
+                      value={formData.codeDechets || ""}
+                      onChange={(e) => setFormData({...formData, codeDechets: e.target.value})}
+                      placeholder="170504"
+                      maxLength={6}
+                      pattern="[0-9]{6}"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Code déchet européen (ex: 170504 pour terre et cailloux)
+                </p>
               </div>
             </div>
             <div className="flex justify-end space-x-2 mt-4">

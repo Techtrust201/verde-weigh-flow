@@ -146,7 +146,7 @@ export default function ClientForm({
         <div>
           <Label htmlFor="siret">
             SIRET{" "}
-            {formData.typeClient === "professionnel" ? "*" : "(optionnel)"}
+            {formData.typeClient !== "particulier" ? "*" : "(optionnel)"}
           </Label>
           <Input
             id="siret"
@@ -154,6 +154,7 @@ export default function ClientForm({
             onChange={(e) =>
               onFormDataChange({ ...formData, siret: e.target.value })
             }
+            required={formData.typeClient !== "particulier"}
           />
         </div>
         {formData.typeClient !== "particulier" && (
@@ -173,13 +174,14 @@ export default function ClientForm({
       {formData.typeClient !== "particulier" && (
         <>
           <div>
-            <Label htmlFor="activite">Activité</Label>
+            <Label htmlFor="activite">Activité *</Label>
             <Input
               id="activite"
               value={formData.activite || ""}
               onChange={(e) =>
                 onFormDataChange({ ...formData, activite: e.target.value })
               }
+              required
             />
           </div>
           <div>
@@ -200,13 +202,17 @@ export default function ClientForm({
 
       <div className="grid grid-cols-1 gap-4">
         <div>
-          <Label htmlFor="adresse">Adresse</Label>
+          <Label htmlFor="adresse">
+            Adresse{" "}
+            {formData.typeClient !== "particulier" ? "*" : ""}
+          </Label>
           <Input
             id="adresse"
             value={formData.adresse || ""}
             onChange={(e) =>
               onFormDataChange({ ...formData, adresse: e.target.value })
             }
+            required={formData.typeClient !== "particulier"}
           />
         </div>
         <div>

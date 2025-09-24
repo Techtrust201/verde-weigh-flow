@@ -54,13 +54,14 @@ export default function TransporteurForm({
       </div>
 
       <div>
-        <Label htmlFor="siret">SIRET (optionnel)</Label>
+        <Label htmlFor="siret">SIRET *</Label>
         <Input
           id="siret"
           value={formData.siret || ""}
           onChange={(e) =>
             onFormDataChange({ ...formData, siret: e.target.value })
           }
+          required
         />
       </div>
 

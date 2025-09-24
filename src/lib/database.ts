@@ -55,6 +55,9 @@ export interface Product {
   tauxTVA: number;
   codeProduct: string;
   isFavorite: boolean;
+  // Champs Track Déchet
+  categorieDechet?: 'dangereux' | 'non-dangereux' | 'inerte';
+  codeDechets?: string; // Code déchet européen à 6 chiffres
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,6 +84,23 @@ export interface Pesee {
   version: number; // Version pour détecter les conflits
   lastSyncHash?: string; // Hash de la dernière version synchronisée
   exportedAt?: Date[]; // Dates des exports (support des exports multiples)
+  // Track Déchet
+  bsdId?: string; // ID du BSD généré dans Track Déchet
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Interface BSD pour Track Déchet
+export interface BSD {
+  id?: number;
+  peseeId: number;
+  bsdId: string; // ID Track Déchet
+  status: 'draft' | 'sealed' | 'sent' | 'received' | 'processed';
+  generatedAt: Date;
+  sealedAt?: Date;
+  sentAt?: Date;
+  receivedAt?: Date;
+  processedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -158,6 +178,7 @@ class AppDatabase extends Dexie {
   pesees!: Table<Pesee>;
   users!: Table<User>;
   userSettings!: Table<UserSettings>;
+  bsds!: Table<BSD>;
   config!: Table<Config>;
   syncLogs!: Table<SyncLog>;
   conflictLogs!: Table<ConflictLog>;
@@ -187,6 +208,7 @@ class AppDatabase extends Dexie {
       pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt',
       users: '++id, nom, prenom, email, role, createdAt, updatedAt',
       userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
+      bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
       config: '++id, key, createdAt, updatedAt',
       syncLogs: '++id, type, status, synchronized, createdAt',
       conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
@@ -201,6 +223,7 @@ class AppDatabase extends Dexie {
       pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',
       users: '++id, nom, prenom, email, role, createdAt, updatedAt',
       userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
+      bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
       config: '++id, key, createdAt, updatedAt',
       syncLogs: '++id, type, status, synchronized, createdAt',
       conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',

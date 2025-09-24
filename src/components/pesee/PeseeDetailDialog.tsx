@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Printer, FileText, Calendar, User, Truck, Package, Weight } from 'lucide-react';
+import { Printer, FileText, Calendar, User, Truck, Package, Weight, Recycle } from 'lucide-react';
 import { Pesee, Product, Transporteur, Client, db } from '@/lib/database';
 import { handlePrint, handlePrintBothBonAndInvoice, getTransporteurNameForSave } from '@/utils/peseeUtils';
 import { PrintPreviewDialog } from '@/components/ui/print-preview-dialog';
+import { TrackDechetDialog } from '@/components/trackdechet/TrackDechetDialog';
 import { PeseeTab } from '@/hooks/usePeseeTabs';
 
 interface PeseeDetailDialogProps {
@@ -28,6 +29,7 @@ export const PeseeDetailDialog = ({
   const [printContent, setPrintContent] = useState('');
   const [printTitle, setPrintTitle] = useState('');
   const [client, setClient] = useState<Client | null>(null);
+  const [trackDechetOpen, setTrackDechetOpen] = useState(false);
 
   // Charger les données du client quand la pesée change
   useEffect(() => {
@@ -331,6 +333,19 @@ export const PeseeDetailDialog = ({
                     <FileText className="h-4 w-4 mr-2" />
                     Bon + Facture
                   </Button>
+                  
+                  {/* Bouton Track Déchet - visible seulement pour professionnels */}
+                  {pesee && client?.typeClient !== 'particulier' && (
+                    <Button 
+                      onClick={() => setTrackDechetOpen(true)}
+                      variant="outline"
+                      className="w-full justify-center text-sm border-green-200 hover:bg-green-50"
+                      size="sm"
+                    >
+                      <Recycle className="h-4 w-4 mr-2 text-green-600" />
+                      Track Déchet
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -344,6 +359,18 @@ export const PeseeDetailDialog = ({
         content={printContent}
         title={printTitle}
       />
+      
+      {/* Dialog Track Déchet */}
+      {pesee && (
+        <TrackDechetDialog
+          isOpen={trackDechetOpen}
+          onClose={() => setTrackDechetOpen(false)}
+          pesee={pesee}
+          product={selectedProduct}
+          client={client}
+          transporteur={selectedTransporteur}
+        />
+      )}
     </>
   );
 };
