@@ -55,8 +55,16 @@ Deno.serve(async (req) => {
 
 async function handleCreateForm(req: Request, token: string) {
   try {
+    const url = new URL(req.url)
     const body = await req.json()
-    console.log('Creating BSD with data:', JSON.stringify(body, null, 2))
+
+    const sandboxFromQuery = url.searchParams.get('sandbox')
+    const sandbox = typeof body?.sandbox === 'boolean' ? body.sandbox : sandboxFromQuery === 'true'
+
+    // Retirer la clé sandbox du payload envoyé à GraphQL si elle est présente
+    const { sandbox: _sandbox, ...createFormInput } = body || {}
+
+    console.log('Creating BSD with data:', JSON.stringify(createFormInput, null, 2), 'sandbox:', sandbox)
 
     const createFormMutation = `
       mutation CreateForm($createFormInput: CreateFormInput!) {
@@ -69,7 +77,11 @@ async function handleCreateForm(req: Request, token: string) {
       }
     `
 
-    const response = await fetch('https://api.trackdechets.beta.gouv.fr/graphql', {
+    const graphqlUrl = sandbox 
+      ? 'https://api.sandbox.trackdechets.fr/graphql' 
+      : 'https://api.trackdechets.fr/graphql'
+
+    const response = await fetch(graphqlUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -77,14 +89,30 @@ async function handleCreateForm(req: Request, token: string) {
       },
       body: JSON.stringify({
         query: createFormMutation,
-        variables: { createFormInput: body }
+        variables: { createFormInput }
       })
     })
 
-    const result = await response.json()
-    console.log('Track Déchet API response:', JSON.stringify(result, null, 2))
+    const contentType = response.headers.get('content-type') || ''
+    let result: any = null
+    let rawText: string | undefined
 
-    if (result.errors) {
+    if (contentType.includes('application/json')) {
+      result = await response.json()
+      console.log('Track Déchet API response:', JSON.stringify(result, null, 2))
+    } else {
+      rawText = await response.text()
+      console.error('Non-JSON response from Track Déchets (createForm):', response.status, rawText?.slice(0, 500))
+    }
+
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Track Déchet API error', details: result?.errors || rawText || `HTTP ${response.status}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (result?.errors) {
       console.error('Track Déchet API errors:', result.errors)
       return new Response(
         JSON.stringify({ error: 'Track Déchet API error', details: result.errors }),
@@ -100,7 +128,7 @@ async function handleCreateForm(req: Request, token: string) {
   } catch (error) {
     console.error('Create form error:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to create BSD', details: error.message }),
+      JSON.stringify({ error: 'Failed to create BSD', details: (error as any)?.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -110,16 +138,16 @@ async function handleGetForm(req: Request, token: string) {
   try {
     const url = new URL(req.url)
     let bsdId = url.searchParams.get('id')
-    
-    // Si pas d'ID en query param, essayer dans le body
-    if (!bsdId) {
-      try {
-        const body = await req.json()
-        bsdId = body.id
-      } catch (e) {
-        // Ignore JSON parse errors
-      }
+
+    let body: any = undefined
+    try { body = await req.json() } catch (e) { /* ignore */ }
+
+    if (!bsdId && body?.id) {
+      bsdId = body.id
     }
+
+    const sandboxFromQuery = url.searchParams.get('sandbox')
+    const sandbox = typeof body?.sandbox === 'boolean' ? body.sandbox : sandboxFromQuery === 'true'
     
     if (!bsdId) {
       return new Response(
@@ -140,7 +168,11 @@ async function handleGetForm(req: Request, token: string) {
       }
     `
 
-    const response = await fetch('https://api.trackdechets.beta.gouv.fr/graphql', {
+    const graphqlUrl = sandbox 
+      ? 'https://api.sandbox.trackdechets.fr/graphql' 
+      : 'https://api.trackdechets.fr/graphql'
+
+    const response = await fetch(graphqlUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -152,9 +184,25 @@ async function handleGetForm(req: Request, token: string) {
       })
     })
 
-    const result = await response.json()
+    const contentType = response.headers.get('content-type') || ''
+    let result: any = null
+    let rawText: string | undefined
+
+    if (contentType.includes('application/json')) {
+      result = await response.json()
+    } else {
+      rawText = await response.text()
+      console.error('Non-JSON response from Track Déchets (getForm):', response.status, rawText?.slice(0, 500))
+    }
     
-    if (result.errors) {
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Track Déchet API error', details: result?.errors || rawText || `HTTP ${response.status}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (result?.errors) {
       console.error('Track Déchet API errors:', result.errors)
       return new Response(
         JSON.stringify({ error: 'Track Déchet API error', details: result.errors }),
@@ -170,7 +218,7 @@ async function handleGetForm(req: Request, token: string) {
   } catch (error) {
     console.error('Get form error:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to get BSD', details: error.message }),
+      JSON.stringify({ error: 'Failed to get BSD', details: (error as any)?.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -178,10 +226,13 @@ async function handleGetForm(req: Request, token: string) {
 
 async function handleValidateToken(req: Request, token: string) {
   try {
-    // Récupérer le token depuis le body de la requête
+    // Récupérer le token et le mode (sandbox) depuis le body / query
+    const url = new URL(req.url)
     const body = await req.json()
-    const userToken = body.token
-    
+    const userToken = body?.token
+    const sandboxFromQuery = url.searchParams.get('sandbox')
+    const sandbox = typeof body?.sandbox === 'boolean' ? body.sandbox : sandboxFromQuery === 'true'
+
     if (!userToken) {
       return new Response(
         JSON.stringify({ 
@@ -193,7 +244,7 @@ async function handleValidateToken(req: Request, token: string) {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-    
+
     const validateQuery = `
       query {
         me {
@@ -204,20 +255,47 @@ async function handleValidateToken(req: Request, token: string) {
       }
     `
 
-    const response = await fetch('https://api.trackdechets.beta.gouv.fr/graphql', {
+    const graphqlUrl = sandbox 
+      ? 'https://api.sandbox.trackdechets.fr/graphql' 
+      : 'https://api.trackdechets.fr/graphql'
+
+    const response = await fetch(graphqlUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${userToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        query: validateQuery
-      })
+      body: JSON.stringify({ query: validateQuery })
     })
 
-    const result = await response.json()
-    
-    if (result.errors) {
+    const contentType = response.headers.get('content-type') || ''
+    let result: any = null
+    let rawText: string | undefined
+
+    if (contentType.includes('application/json')) {
+      result = await response.json()
+    } else {
+      rawText = await response.text()
+      console.error('Non-JSON response from Track Déchets (validateToken):', response.status, rawText?.slice(0, 500))
+    }
+
+    if (!response.ok) {
+      let errorType = 'network'
+      if (response.status === 401) errorType = 'invalid_token'
+      if (response.status === 403) errorType = 'permissions'
+
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          isValid: false,
+          errorType,
+          errorMessage: result?.errors?.[0]?.message || rawText || `Erreur HTTP ${response.status}`
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (result?.errors) {
       console.error('Track Déchet validation errors:', result.errors)
       return new Response(
         JSON.stringify({ 
@@ -230,27 +308,11 @@ async function handleValidateToken(req: Request, token: string) {
       )
     }
 
-    if (!response.ok) {
-      let errorType = 'network'
-      if (response.status === 401) errorType = 'invalid_token'
-      if (response.status === 403) errorType = 'permissions'
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          isValid: false,
-          errorType,
-          errorMessage: `Erreur HTTP ${response.status}`
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     return new Response(
       JSON.stringify({ 
         success: true, 
         isValid: true,
-        userInfo: result.data?.me
+        userInfo: result?.data?.me
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

@@ -3,6 +3,7 @@ import { SyncQueueManager } from "@/lib/syncQueue";
 import { db } from "@/lib/database";
 import { formatPeseeForTrackDechet } from "./trackdechetValidation";
 import { toast } from "@/hooks/use-toast";
+import { getGlobalSettings } from "@/lib/globalSettings";
 
 /**
  * Processeur spécialisé pour les tâches Track Déchet dans la file de synchronisation
@@ -98,9 +99,12 @@ export class TrackDechetSyncProcessor {
 
     console.log('📝 Sending BSD data to Track Déchet API:', JSON.stringify(bsdData, null, 2));
 
-    // Appeler le proxy backend
+    // Appeler le proxy backend (respecte le mode sandbox global)
+    const settings = await getGlobalSettings();
+    const sandbox = !!settings.trackDechetSandboxMode;
+
     const { data, error } = await supabase.functions.invoke('trackdechet-proxy/createForm', {
-      body: bsdData
+      body: { ...bsdData, sandbox }
     });
 
     if (error) {
@@ -183,11 +187,14 @@ export class TrackDechetSyncProcessor {
     console.log('🔄 Syncing all BSD statuses...');
     
     const bsds = await db.bsds.where('status').notEqual('pending_sync').toArray();
+
+    const settings = await getGlobalSettings();
+    const sandbox = !!settings.trackDechetSandboxMode;
     
     for (const bsd of bsds) {
       try {
         const { data, error } = await supabase.functions.invoke('trackdechet-proxy/getForm', {
-          body: { id: bsd.bsdId }
+          body: { id: bsd.bsdId, sandbox }
         });
 
         if (!error && data.success) {

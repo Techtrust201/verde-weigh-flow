@@ -6,6 +6,7 @@
 import { formatPeseeForTrackDechet } from './trackdechetValidation';
 import { Pesee, Product, Client, Transporteur, BSD, db } from '@/lib/database';
 import { supabase } from '@/integrations/supabase/client';
+import { getGlobalSettings } from '@/lib/globalSettings';
 
 /**
  * Interface pour les réponses de l'API Track Déchet
@@ -67,8 +68,11 @@ export const generateBSD = async (
       }
     `;
 
+    const settings = await getGlobalSettings();
+    const sandbox = !!settings.trackDechetSandboxMode;
+
     const { data, error } = await supabase.functions.invoke('trackdechet-proxy/createForm', {
-      body: bsdData
+      body: { ...bsdData, sandbox }
     });
 
     if (error) {
@@ -174,8 +178,11 @@ export const getBSDStatus = async (
       }
     `;
 
+    const settings = await getGlobalSettings();
+    const sandbox = !!settings.trackDechetSandboxMode;
+
     const { data, error } = await supabase.functions.invoke('trackdechet-proxy/getForm', {
-      body: { id: bsdId }
+      body: { id: bsdId, sandbox }
     });
 
     if (error) {
@@ -282,8 +289,11 @@ export const validateTrackDechetTokenDetailed = async (token: string): Promise<V
       }
     `;
 
+    const settings = await getGlobalSettings();
+    const sandbox = !!settings.trackDechetSandboxMode;
+
     const { data, error } = await supabase.functions.invoke('trackdechet-proxy/validateToken', {
-      body: { token }
+      body: { token, sandbox }
     });
 
     if (error) {
