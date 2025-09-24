@@ -97,7 +97,7 @@ export interface BSD {
   id?: number;
   peseeId: number;
   bsdId: string; // ID Track Déchet
-  status: 'draft' | 'sealed' | 'sent' | 'received' | 'processed';
+  status: 'draft' | 'sealed' | 'sent' | 'received' | 'processed' | 'pending_sync';
   generatedAt: Date;
   sealedAt?: Date;
   sentAt?: Date;

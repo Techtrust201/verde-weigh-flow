@@ -52,7 +52,7 @@ export default function TrackDechetGlobalSettings() {
     const result = await validateTrackDechetTokenDetailed(token);
     setValidationResult(result);
     
-    // Mettre à jour les paramètres
+    // Mettre à jour les paramètres - on sauvegarde même si c'est CORS (mode hors ligne)
     try {
       await updateTrackDechetSettings({
         validated: result.isValid,
@@ -61,12 +61,21 @@ export default function TrackDechetGlobalSettings() {
       
       // Recharger les paramètres
       await loadSettings();
+      
+      // Afficher un toast informatif pour les validations CORS
+      if (result.isValid && result.errorType === 'network' && result.errorMessage?.includes('CORS')) {
+        toast({
+          title: "Token accepté",
+          description: "Validation limitée par CORS, mais token sauvegardé pour usage hors ligne",
+          variant: "default"
+        });
+      }
     } catch (error) {
       console.error('Erreur sauvegarde validation:', error);
     }
     
     setIsValidating(false);
-  }, []);
+  }, [toast]);
 
   const handleTrackDechetToggle = async (enabled: boolean) => {
     try {
@@ -201,6 +210,15 @@ export default function TrackDechetGlobalSettings() {
 
     if (validationResult) {
       if (validationResult.isValid) {
+        // Cas spécial pour CORS - icône différente
+        if (validationResult.errorType === 'network' && validationResult.errorMessage?.includes('CORS')) {
+          return {
+            icon: <AlertCircle className="h-4 w-4 text-orange-500" />,
+            message: "Token accepté (validation limitée par CORS)",
+            className: "text-orange-600"
+          };
+        }
+        
         return {
           icon: <CheckCircle className="h-4 w-4 text-green-500" />,
           message: `Token validé pour ${validationResult.userInfo?.name || 'utilisateur inconnu'}`,
