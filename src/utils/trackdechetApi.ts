@@ -156,10 +156,11 @@ export const saveBSDLocally = async (
   const bsd: Omit<BSD, 'id'> = {
     peseeId,
     bsdId,
+    readableId: bsdId,
     status,
     generatedAt: now,
     createdAt: now,
-    updatedAt: now
+    lastSyncAt: now
   };
 
   await db.bsds.add(bsd);
@@ -243,7 +244,7 @@ export const syncAllBSDs = async (apiToken: string): Promise<void> => {
         // Mettre à jour le statut local
         await db.bsds.update(bsd.id!, {
           status: statusResult.status as BSD['status'],
-          updatedAt: new Date()
+          lastSyncAt: new Date()
         });
       }
     }

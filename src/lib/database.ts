@@ -60,6 +60,7 @@ export interface Product {
   // Champs Track Déchet
   categorieDechet?: 'dangereux' | 'non-dangereux' | 'inerte';
   codeDechets?: string; // Code déchet européen à 6 chiffres
+  trackDechetEnabled?: boolean; // Nouveau champ pour activer Track Déchet
   createdAt: Date;
   updatedAt: Date;
 }
@@ -97,14 +98,15 @@ export interface BSD {
   id?: number;
   peseeId: number;
   bsdId: string; // ID Track Déchet
+  readableId: string; // ID lisible du BSD Track Déchet
   status: 'draft' | 'sealed' | 'sent' | 'received' | 'processed' | 'pending_sync';
-  generatedAt: Date;
+  generatedAt?: Date;
   sealedAt?: Date;
   sentAt?: Date;
   receivedAt?: Date;
   processedAt?: Date;
   createdAt: Date;
-  updatedAt: Date;
+  lastSyncAt?: Date;
 }
 
 export interface ExportLog {

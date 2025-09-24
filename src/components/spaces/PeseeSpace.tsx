@@ -15,6 +15,8 @@ import { RecentPeseesTab } from "@/components/pesee/RecentPeseesTab";
 import { SaveConfirmDialog } from "@/components/pesee/SaveConfirmDialog";
 import { handlePrint, handlePrintBothBonAndInvoice } from "@/utils/peseeUtils";
 import { PrintPreviewDialog } from "@/components/ui/print-preview-dialog";
+import { trackDechetProcessor } from "@/utils/trackdechetSyncProcessor";
+import { isTrackDechetApplicable } from "@/utils/trackdechetValidation";
 
 export default function PeseeSpace() {
   const { pesees, clients, products, loadData } = usePeseeData();
@@ -405,7 +407,11 @@ export default function PeseeSpace() {
         updatedAt: new Date(),
       };
 
-      await db.pesees.add(peseeData);
+      const savedPeseeId = await db.pesees.add(peseeData);
+
+      // Vérifier Track Déchet automatique
+      await checkAndGenerateTrackDechet(savedPeseeId, peseeData);
+
       toast({
         title: "Pesée enregistrée",
         description: `Bon n°${currentData.numeroBon} créé avec succès.`,
@@ -434,6 +440,53 @@ export default function PeseeSpace() {
         variant: "destructive",
       });
       return false;
+    }
+  };
+
+  /**
+   * Vérifie et génère automatiquement un BSD Track Déchet si nécessaire
+   */
+  const checkAndGenerateTrackDechet = async (savedPeseeId: number, peseeData: any) => {
+    try {
+      // Trouver le produit
+      const product = products.find(p => p.id === peseeData.produitId);
+      if (!product || !product.trackDechetEnabled || !product.codeDechets) {
+        return; // Track Déchet non activé pour ce produit
+      }
+
+      // Récupérer client et transporteur
+      const [client, transporteur] = await Promise.all([
+        peseeData.clientId ? db.clients.get(peseeData.clientId) : Promise.resolve(null),
+        peseeData.transporteurId ? db.transporteurs.get(peseeData.transporteurId) : Promise.resolve(null)
+      ]);
+
+      if (!client || !transporteur) {
+        return; // Pas assez de données
+      }
+
+      // Vérifier si Track Déchet est applicable
+      const fullPeseeData = { ...peseeData, id: savedPeseeId };
+      const isApplicable = isTrackDechetApplicable(fullPeseeData, client, transporteur, product);
+      
+      if (isApplicable) {
+        console.log(`🔄 Track Déchet applicable pour la pesée ${peseeData.numeroBon} - Ajout à la file de synchronisation`);
+        
+        // Ajouter à la file de synchronisation Track Déchet
+        await trackDechetProcessor.addPeseeToQueue(
+          savedPeseeId,
+          client.id!,
+          transporteur.id!,
+          product.id!,
+          product.codeDechets
+        );
+
+        toast({
+          title: "📋 Track Déchet",
+          description: "BSD programmé pour génération automatique",
+        });
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification Track Déchet:', error);
     }
   };
 

@@ -16,6 +16,7 @@ import ComptabiliteSpace from './components/spaces/ComptabiliteSpace';
 import { initializeSampleData, checkDataIntegrity } from './lib/database';
 import { setupAutoSync } from './utils/syncScheduler';
 import { connectionManager } from './utils/connectionManager';
+import './utils/backgroundSyncTrackDechet'; // Démarrage automatique de la sync Track Déchet
 
 const App = () => {
   const [currentSpace, setCurrentSpace] = useState('pesee');
