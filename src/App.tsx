@@ -11,7 +11,6 @@ import PeseeSpace from './components/spaces/PeseeSpace';
 import TransporteursSpace from './components/spaces/TransporteursSpace';
 import HistoriqueSpace from './components/spaces/HistoriqueSpace';
 import ExportsSpace from './components/exports/ExportsSpace';
-import ParametresSpace from './components/spaces/ParametresSpace';
 import UtilisateurSpace from './components/spaces/UtilisateurSpace';
 import ComptabiliteSpace from './components/spaces/ComptabiliteSpace';
 import { initializeSampleData, checkDataIntegrity } from './lib/database';
@@ -99,8 +98,6 @@ const App = () => {
         return <HistoriqueSpace />;
       case 'exports':
         return <ExportsSpace />;
-      case 'parametres':
-        return <ParametresSpace />;
       case 'utilisateur':
         return <UtilisateurSpace />;
       case 'comptabilite':
