@@ -6,9 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
-import { Pesee, Product, Client, Transporteur } from '@/lib/database';
+import { Pesee, Product, Client, Transporteur, UserSettings, db } from '@/lib/database';
 import { generateBSD } from '@/utils/trackdechetApi';
 import { getTrackDechetToken, isTrackDechetReady } from '@/lib/globalSettings';
+import { validateTrackDechetData } from '@/utils/trackdechetValidation';
+import { validateUserSettingsForTrackDechet } from '@/utils/trackdechetValidationHelpers';
 import { useToast } from '@/hooks/use-toast';
 
 interface TrackDechetDialogProps {
@@ -31,24 +33,39 @@ export function TrackDechetDialog({
   const [selectedCodeDechet, setSelectedCodeDechet] = useState(product?.codeDechets || "");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const { toast } = useToast();
 
   // Vérifier si Track Déchet est applicable
   const checkTrackDechetApplicability = async (): Promise<boolean> => {
-    if (client?.typeClient === 'particulier' || !client?.trackDechetEnabled) {
+    try {
+      // Charger les paramètres utilisateur
+      const settings = await db.userSettings.toCollection().first();
+      setUserSettings(settings || null);
+
+      if (client?.typeClient === 'particulier' || !client?.trackDechetEnabled) {
+        return false;
+      }
+
+      // Vérifier la configuration globale
+      const isGloballyReady = await isTrackDechetReady();
+      if (!isGloballyReady) {
+        return false;
+      }
+
+      // Validation complète avec les nouvelles règles
+      if (pesee) {
+        const validation = validateTrackDechetData(pesee, client, transporteur, product, settings);
+        setValidationErrors(validation.missingFields);
+        return validation.isValid;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Erreur vérification Track Déchet:', error);
       return false;
     }
-
-    // Vérifier la configuration globale
-    const isGloballyReady = await isTrackDechetReady();
-    if (!isGloballyReady) {
-      return false;
-    }
-
-    // Vérifier les autres conditions
-    return !!(product?.categorieDechet && 
-              client?.siret && 
-              transporteur?.siret);
   };
 
   // Codes déchets les plus courants dans le BTP
@@ -151,26 +168,17 @@ export function TrackDechetDialog({
 
   // Si Track Déchet n'est pas applicable
   if (!isApplicable) {
-    const missingRequirements: string[] = [];
+    let missingRequirements: string[] = [];
     
     if (client?.typeClient === 'particulier') {
       missingRequirements.push("Track Déchet n'est disponible que pour les clients professionnels");
-    }
-    
-    if (!client?.trackDechetEnabled) {
+    } else if (!client?.trackDechetEnabled) {
       missingRequirements.push("Track Déchet n'est pas activé pour ce client");
-    }
-    
-    if (!product?.categorieDechet) {
-      missingRequirements.push("Le produit doit avoir une catégorie de déchet définie");
-    }
-    
-    if (!client?.siret) {
-      missingRequirements.push("Le client doit avoir un SIRET");
-    }
-    
-    if (!transporteur?.siret) {
-      missingRequirements.push("Le transporteur doit avoir un SIRET");
+    } else {
+      // Utiliser les erreurs de validation détaillées
+      missingRequirements = validationErrors.length > 0 ? validationErrors : [
+        "Impossible de valider les données pour Track Déchet"
+      ];
     }
 
     return (
@@ -200,6 +208,14 @@ export function TrackDechetDialog({
                 </p>
               </div>
             )}
+            
+            {missingRequirements.some(req => req.includes("votre entreprise")) && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-xs text-amber-700">
+                  💡 Complétez vos informations d'entreprise dans l'espace "Utilisateur" pour utiliser Track Déchet.
+                </p>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
@@ -226,7 +242,7 @@ export function TrackDechetDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Informations du producteur (client) */}
           <Card>
             <CardHeader>
@@ -266,6 +282,43 @@ export function TrackDechetDialog({
               <div className="text-sm text-muted-foreground">
                 {transporteur?.codePostal} {transporteur?.ville}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Informations du destinataire (mon entreprise) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Destinataire (Votre entreprise)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {userSettings ? (
+                <>
+                  <div>
+                    <strong>{userSettings.nomEntreprise}</strong>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    SIRET: {userSettings.siret}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {userSettings.adresse}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {userSettings.codePostal} {userSettings.ville}
+                  </div>
+                  {userSettings.numeroAutorisation && (
+                    <div className="text-sm text-muted-foreground">
+                      Autorisation: {userSettings.numeroAutorisation}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-sm text-amber-600">
+                  ⚠️ Informations manquantes
+                  <p className="text-xs mt-1">
+                    Configurez vos informations dans l'espace Utilisateur
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

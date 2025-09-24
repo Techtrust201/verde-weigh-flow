@@ -36,8 +36,14 @@ export const generateBSD = async (
   apiToken: string
 ): Promise<{ success: boolean; bsdId?: string; error?: string }> => {
   try {
+    // Récupérer les paramètres utilisateur pour les informations de l'entreprise
+    const userSettings = await db.userSettings.toCollection().first();
+    if (!userSettings) {
+      throw new Error('Informations entreprise non configurées. Veuillez configurer vos informations dans l\'espace Utilisateur.');
+    }
+    
     // Formater les données pour Track Déchet
-    const bsdData = formatPeseeForTrackDechet(pesee, client, transporteur, product, codeDechet);
+    const bsdData = formatPeseeForTrackDechet(pesee, client, transporteur, product, codeDechet, userSettings);
     
     // Mutation GraphQL pour créer le BSD
     const mutation = `

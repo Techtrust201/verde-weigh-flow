@@ -134,12 +134,20 @@ export interface UserSettings {
   id?: number;
   nomEntreprise: string;
   adresse: string;
+  codePostal: string;
+  ville: string;
   email: string;
   telephone: string;
   siret: string;
   codeAPE: string;
+  codeNAF?: string; // Code NAF pour Track Déchet
   logo: string;
   cleAPISage: string;
+  // Champs Track Déchet spécifiques
+  numeroRecepisse?: string; // Récépissé transporteur
+  dateValiditeRecepisse?: string; // Date de validité du récépissé
+  numeroAutorisation?: string; // Numéro d'autorisation installation
+  representantLegal?: string; // Contact Track Déchet
   createdAt: Date;
   updatedAt: Date;
 }
@@ -240,6 +248,21 @@ class AppDatabase extends Dexie {
       pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',
       users: '++id, nom, prenom, email, role, createdAt, updatedAt',
       userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
+      bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
+      config: '++id, key, createdAt, updatedAt',
+      syncLogs: '++id, type, status, synchronized, createdAt',
+      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
+      exportLogs: '++id, fileName, startDate, endDate, exportType, createdAt'
+    });
+
+    // Version 5 - Amélioration UserSettings pour Track Déchet
+    this.version(5).stores({
+      clients: '++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt',
+      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
+      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
+      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',
+      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
+      userSettings: '++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, codeNAF, logo, cleAPISage, numeroRecepisse, dateValiditeRecepisse, numeroAutorisation, representantLegal, createdAt, updatedAt',
       bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
       config: '++id, key, createdAt, updatedAt',
       syncLogs: '++id, type, status, synchronized, createdAt',

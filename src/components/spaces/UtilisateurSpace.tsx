@@ -13,12 +13,19 @@ export default function UtilisateurSpace() {
   const [settings, setSettings] = useState<UserSettings>({
     nomEntreprise: '',
     adresse: '',
+    codePostal: '',
+    ville: '',
     email: '',
     telephone: '',
     siret: '',
     codeAPE: '',
+    codeNAF: '',
     logo: '',
     cleAPISage: '',
+    numeroRecepisse: '',
+    dateValiditeRecepisse: '',
+    numeroAutorisation: '',
+    representantLegal: '',
     createdAt: new Date(),
     updatedAt: new Date()
   });
@@ -150,13 +157,37 @@ export default function UtilisateurSpace() {
                 </div>
 
                 <div>
-                  <Label htmlFor="adresse">Adresse</Label>
+                  <Label htmlFor="adresse">Adresse (rue)</Label>
                   <Input
                     id="adresse"
                     value={settings.adresse}
                     onChange={(e) => handleInputChange('adresse', e.target.value)}
                     disabled={!isEditing}
+                    placeholder="Numéro et nom de rue"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="codePostal">Code postal</Label>
+                    <Input
+                      id="codePostal"
+                      value={settings.codePostal}
+                      onChange={(e) => handleInputChange('codePostal', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="06000"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="ville">Ville</Label>
+                    <Input
+                      id="ville"
+                      value={settings.ville}
+                      onChange={(e) => handleInputChange('ville', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="Nice"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -189,6 +220,7 @@ export default function UtilisateurSpace() {
                       value={settings.siret}
                       onChange={(e) => handleInputChange('siret', e.target.value)}
                       disabled={!isEditing}
+                      placeholder="12345678901234"
                     />
                   </div>
                   <div>
@@ -198,8 +230,83 @@ export default function UtilisateurSpace() {
                       value={settings.codeAPE}
                       onChange={(e) => handleInputChange('codeAPE', e.target.value)}
                       disabled={!isEditing}
+                      placeholder="3821Z"
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="codeNAF">Code NAF (Track Déchet)</Label>
+                    <Input
+                      id="codeNAF"
+                      value={settings.codeNAF || ''}
+                      onChange={(e) => handleInputChange('codeNAF', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="Optionnel pour Track Déchet"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="representantLegal">Représentant légal</Label>
+                    <Input
+                      id="representantLegal"
+                      value={settings.representantLegal || ''}
+                      onChange={(e) => handleInputChange('representantLegal', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="Nom du responsable"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Track Déchet Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Paramètres Track Déchet
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="numeroRecepisse">N° Récépissé transporteur</Label>
+                    <Input
+                      id="numeroRecepisse"
+                      value={settings.numeroRecepisse || ''}
+                      onChange={(e) => handleInputChange('numeroRecepisse', e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="PR-2024-001234"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Obligatoire si vous transportez les déchets
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="dateValiditeRecepisse">Date validité récépissé</Label>
+                    <Input
+                      id="dateValiditeRecepisse"
+                      type="date"
+                      value={settings.dateValiditeRecepisse || ''}
+                      onChange={(e) => handleInputChange('dateValiditeRecepisse', e.target.value)}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="numeroAutorisation">N° Autorisation installation</Label>
+                  <Input
+                    id="numeroAutorisation"
+                    value={settings.numeroAutorisation || ''}
+                    onChange={(e) => handleInputChange('numeroAutorisation', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Installation classée ou enregistrement"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Numéro d'autorisation de votre installation de traitement/stockage
+                  </p>
                 </div>
               </CardContent>
             </Card>

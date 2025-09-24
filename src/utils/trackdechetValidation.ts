@@ -1,4 +1,5 @@
-import { Pesee, Product, Client, Transporteur } from "@/lib/database";
+import { Pesee, Product, Client, Transporteur, UserSettings } from "@/lib/database";
+import { validateUserSettingsForTrackDechet, formatCompleteAddress } from "./trackdechetValidationHelpers";
 
 /**
  * Valide si Track Déchet est applicable pour une pesée donnée
@@ -34,7 +35,8 @@ export const validateTrackDechetData = (
   pesee: Pesee,
   client?: Client,
   transporteur?: Transporteur,
-  product?: Product
+  product?: Product,
+  userSettings?: UserSettings
 ): { isValid: boolean; missingFields: string[] } => {
   const missingFields: string[] = [];
 
@@ -45,6 +47,7 @@ export const validateTrackDechetData = (
     };
   }
 
+  // Validation du client (producteur)
   if (!client?.siret) {
     missingFields.push('SIRET client');
   }
@@ -57,12 +60,20 @@ export const validateTrackDechetData = (
     missingFields.push('Activité client');
   }
 
+  // Validation du transporteur
   if (!transporteur?.siret) {
     missingFields.push('SIRET transporteur');
   }
 
+  // Validation du produit
   if (!product?.categorieDechet) {
     missingFields.push('Catégorie déchet du produit');
+  }
+
+  // Validation des informations de l'entreprise (collecteur/destinataire)
+  const userValidation = validateUserSettingsForTrackDechet(userSettings);
+  if (!userValidation.isValid) {
+    missingFields.push(...userValidation.missingFields);
   }
 
   return {
@@ -79,7 +90,8 @@ export const formatPeseeForTrackDechet = (
   client: Client,
   transporteur: Transporteur,
   product: Product,
-  codeDechet: string
+  codeDechet: string,
+  userSettings: UserSettings
 ) => {
   return {
     // Informations générales du BSD
@@ -98,6 +110,20 @@ export const formatPeseeForTrackDechet = (
       }
     },
     
+    // Destinataire/Collecteur (MON ENTREPRISE)
+    recipient: {
+      company: {
+        name: userSettings.nomEntreprise,
+        siret: userSettings.siret,
+        address: formatCompleteAddress(userSettings),
+        contact: userSettings.representantLegal || "",
+        phone: userSettings.telephone,
+        mail: userSettings.email
+      },
+      processingOperation: "R 13", // Opération de regroupement
+      cap: userSettings.numeroAutorisation || "" // Numéro d'autorisation installation
+    },
+    
     // Transporteur
     transporter: {
       company: {
@@ -108,8 +134,8 @@ export const formatPeseeForTrackDechet = (
         phone: transporteur.telephone || "",
         mail: transporteur.email || ""
       },
-      receipt: "", // Récépissé transporteur à renseigner
-      validityLimit: "", // Date de validité du récépissé
+      receipt: userSettings.numeroRecepisse || "", // Récépissé transporteur
+      validityLimit: userSettings.dateValiditeRecepisse || "", // Date de validité du récépissé
       numberPlate: transporteur.plaque || pesee.plaque
     },
     
