@@ -49,6 +49,36 @@ export default function TransporteursSpace() {
       return;
     }
 
+    // SIRET obligatoire (marqué * dans le formulaire)
+    if (!formData.siret) {
+      toast({
+        title: "Erreur",
+        description: "Le SIRET est obligatoire.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Adresse obligatoire pour Track Déchet
+    if (!formData.adresse) {
+      toast({
+        title: "Erreur",
+        description: "L'adresse est obligatoire.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Ville et code postal obligatoires
+    if (!formData.ville || !formData.codePostal) {
+      toast({
+        title: "Erreur",
+        description: "La ville et le code postal sont obligatoires.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const transporteurData = {
         ...formData,

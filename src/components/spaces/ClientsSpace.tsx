@@ -120,6 +120,7 @@ export default function ClientsSpace() {
         return false;
       }
     } else {
+      // Validations pour professionnels et micro-entreprises
       if (!formData.raisonSociale) {
         toast({
           title: "Erreur",
@@ -128,10 +129,41 @@ export default function ClientsSpace() {
         });
         return false;
       }
+      
       if (formData.typeClient === 'professionnel' && !formData.siret) {
         toast({
           title: "Erreur",
           description: "Le SIRET est obligatoire pour un professionnel.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // Adresse obligatoire pour les professionnels et micro-entreprises (requis pour Sage/Track Déchet)
+      if (!formData.adresse) {
+        toast({
+          title: "Erreur",
+          description: "L'adresse est obligatoire pour les entreprises.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // Ville et code postal obligatoires pour les entreprises
+      if (!formData.ville || !formData.codePostal) {
+        toast({
+          title: "Erreur",
+          description: "La ville et le code postal sont obligatoires pour les entreprises.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // Activité obligatoire pour les entreprises (requis pour Sage)
+      if (!formData.activite) {
+        toast({
+          title: "Erreur",
+          description: "L'activité est obligatoire pour les entreprises.",
           variant: "destructive"
         });
         return false;

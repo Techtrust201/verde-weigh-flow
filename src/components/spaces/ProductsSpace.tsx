@@ -61,6 +61,35 @@ export default function ProductsSpace() {
         return;
       }
 
+      // Validation Track Déchet : catégorie et code déchets obligatoires
+      if (!formData.categorieDechet) {
+        toast({
+          title: "Erreur",
+          description: "La catégorie de déchet est obligatoire pour Track Déchet.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!formData.codeDechets || formData.codeDechets.length !== 6) {
+        toast({
+          title: "Erreur",
+          description: "Le code déchet est obligatoire et doit contenir 6 chiffres.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validation format du code déchet
+      if (!/^\d{6}$/.test(formData.codeDechets)) {
+        toast({
+          title: "Erreur",
+          description: "Le code déchet doit contenir uniquement 6 chiffres.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const productData = {
         ...formData,
         tva: formData.tauxTVA || 20, // Mapper tauxTVA vers tva pour la compatibilité
