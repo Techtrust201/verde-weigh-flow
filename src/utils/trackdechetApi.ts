@@ -233,9 +233,48 @@ export const syncAllBSDs = async (apiToken: string): Promise<void> => {
 };
 
 /**
- * Valide un token API Track Déchet
+ * Types d'erreurs de validation Track Déchet
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  errorType?: 'invalid_token' | 'expired' | 'permissions' | 'network' | 'format';
+  errorMessage?: string;
+  userInfo?: {
+    id: string;
+    email: string;
+    name: string;
+  };
+}
+
+/**
+ * Valide un token API Track Déchet avec détails d'erreur
  */
 export const validateTrackDechetToken = async (token: string): Promise<boolean> => {
+  const result = await validateTrackDechetTokenDetailed(token);
+  return result.isValid;
+};
+
+/**
+ * Valide un token API Track Déchet avec informations détaillées
+ */
+export const validateTrackDechetTokenDetailed = async (token: string): Promise<ValidationResult> => {
+  // Vérification du format du token
+  if (!token || token.trim().length === 0) {
+    return {
+      isValid: false,
+      errorType: 'format',
+      errorMessage: 'Le token ne peut pas être vide'
+    };
+  }
+
+  if (token.length < 10) {
+    return {
+      isValid: false,
+      errorType: 'format',
+      errorMessage: 'Le token semble trop court (minimum 10 caractères)'
+    };
+  }
+
   try {
     const query = `
       query {
@@ -258,8 +297,80 @@ export const validateTrackDechetToken = async (token: string): Promise<boolean> 
 
     const result: TrackDechetResponse = await response.json();
     
-    return response.ok && !result.errors && !!result.data?.me;
-  } catch {
-    return false;
+    // Gestion des erreurs HTTP
+    if (!response.ok) {
+      if (response.status === 401) {
+        return {
+          isValid: false,
+          errorType: 'invalid_token',
+          errorMessage: 'Token invalide ou expiré'
+        };
+      }
+      if (response.status === 403) {
+        return {
+          isValid: false,
+          errorType: 'permissions',
+          errorMessage: 'Permissions insuffisantes pour ce token'
+        };
+      }
+      return {
+        isValid: false,
+        errorType: 'network',
+        errorMessage: `Erreur serveur (${response.status})`
+      };
+    }
+
+    // Gestion des erreurs GraphQL
+    if (result.errors && result.errors.length > 0) {
+      const error = result.errors[0];
+      
+      if (error.message.includes('UNAUTHENTICATED') || error.message.includes('Invalid token')) {
+        return {
+          isValid: false,
+          errorType: 'invalid_token',
+          errorMessage: 'Token invalide ou expiré'
+        };
+      }
+      
+      if (error.message.includes('FORBIDDEN')) {
+        return {
+          isValid: false,
+          errorType: 'permissions',
+          errorMessage: 'Permissions insuffisantes'
+        };
+      }
+
+      return {
+        isValid: false,
+        errorType: 'invalid_token',
+        errorMessage: error.message
+      };
+    }
+
+    // Vérification de la présence des données utilisateur
+    if (!result.data?.me) {
+      return {
+        isValid: false,
+        errorType: 'invalid_token',
+        errorMessage: 'Impossible de récupérer les informations utilisateur'
+      };
+    }
+
+    return {
+      isValid: true,
+      userInfo: {
+        id: result.data.me.id,
+        email: result.data.me.email,
+        name: result.data.me.name
+      }
+    };
+
+  } catch (error) {
+    console.error('Erreur validation token:', error);
+    return {
+      isValid: false,
+      errorType: 'network',
+      errorMessage: 'Erreur de connexion au service Track Déchet'
+    };
   }
 };
