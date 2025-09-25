@@ -1,18 +1,25 @@
-
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Upload, CheckCircle, AlertCircle, Wifi, WifiOff, Clock, Settings } from 'lucide-react';
-import { db, Pesee, UserSettings } from '@/lib/database';
-import { useToast } from '@/hooks/use-toast';
-import { setupAutoSync, stopAutoSync } from '@/utils/syncScheduler';
-import { backgroundSyncManager } from '@/utils/backgroundSync';
-import { SyncMonitor } from '@/components/ui/sync-monitor';
-import { conflictResolver } from '@/utils/conflictResolver';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  Wifi,
+  WifiOff,
+  Clock,
+  Settings,
+} from "lucide-react";
+import { db, Pesee, UserSettings } from "@/lib/database";
+import { useToast } from "@/hooks/use-toast";
+import { setupAutoSync, stopAutoSync } from "@/utils/syncScheduler";
+import { backgroundSyncManager } from "@/utils/backgroundSync";
+import { SyncMonitor } from "@/components/ui/sync-monitor";
+import { conflictResolver } from "@/utils/conflictResolver";
 
 export default function ComptabiliteSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
@@ -26,7 +33,7 @@ export default function ComptabiliteSpace() {
 
   useEffect(() => {
     loadData();
-    
+
     const handleOnline = () => {
       setIsOnline(true);
       // Auto-sync when coming online
@@ -34,11 +41,11 @@ export default function ComptabiliteSpace() {
         handleSyncToSage();
       }
     };
-    
+
     const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     // Démarrer la synchronisation automatique si activée
     if (autoSyncEnabled) {
@@ -46,8 +53,8 @@ export default function ComptabiliteSpace() {
     }
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
       stopAutoSync();
     };
   }, [autoSyncEnabled, userSettings]);
@@ -57,42 +64,43 @@ export default function ComptabiliteSpace() {
       const [peseesData, settingsData, conflicts] = await Promise.all([
         db.pesees.toArray(),
         db.userSettings.toCollection().first(),
-        conflictResolver.getConflictCount()
+        conflictResolver.getConflictCount(),
       ]);
-      
+
       setPesees(peseesData);
       setUserSettings(settingsData || null);
       setConflictCount(conflicts);
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
     }
   };
 
   const handleAutoSyncToggle = (enabled: boolean) => {
     setAutoSyncEnabled(enabled);
-    
+
     if (enabled) {
       setupAutoSync();
       toast({
         title: "Synchronisation automatique activée",
-        description: "Les données seront synchronisées automatiquement chaque jour à 17h55."
+        description:
+          "Les données seront synchronisées automatiquement chaque jour à 17h55.",
       });
     } else {
       stopAutoSync();
       toast({
         title: "Synchronisation automatique désactivée",
-        description: "Vous devrez synchroniser manuellement vos données."
+        description: "Vous devrez synchroniser manuellement vos données.",
       });
     }
   };
 
   const handleSyncToSage = async () => {
     setIsSyncing(true);
-    
+
     try {
       // Utiliser le nouveau système de Background Sync robuste
       const success = await backgroundSyncManager.performManualSync();
-      
+
       if (success) {
         // Recharger les données
         await loadData();
@@ -105,17 +113,20 @@ export default function ComptabiliteSpace() {
       } else {
         toast({
           title: "Erreur de synchronisation",
-          description: "La synchronisation a échoué. Vérifiez votre configuration et votre connexion.",
+          description:
+            "La synchronisation a échoué. Vérifiez votre configuration et votre connexion.",
           variant: "destructive",
         });
       }
-
     } catch (error) {
-      console.error('❌ Erreur lors de la synchronisation:', error);
-      
+      console.error("❌ Erreur lors de la synchronisation:", error);
+
       toast({
         title: "Erreur de synchronisation",
-        description: error instanceof Error ? error.message : "Une erreur inconnue est survenue.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Une erreur inconnue est survenue.",
         variant: "destructive",
       });
     } finally {
@@ -123,8 +134,8 @@ export default function ComptabiliteSpace() {
     }
   };
 
-  const pendingPesees = pesees.filter(pesee => !pesee.synchronized);
-  const syncedPesees = pesees.filter(pesee => pesee.synchronized);
+  const pendingPesees = pesees.filter((pesee) => !pesee.synchronized);
+  const syncedPesees = pesees.filter((pesee) => pesee.synchronized);
 
   return (
     <div className="space-y-6">
@@ -132,7 +143,10 @@ export default function ComptabiliteSpace() {
         <h1 className="text-3xl font-bold">Comptabilité</h1>
         <div className="flex items-center space-x-2">
           {conflictCount > 0 && (
-            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+            <Badge
+              variant="secondary"
+              className="bg-orange-100 text-orange-800"
+            >
               <AlertCircle className="h-3 w-3 mr-1" />
               {conflictCount} conflit(s)
             </Badge>
@@ -157,11 +171,13 @@ export default function ComptabiliteSpace() {
         <AlertDescription>
           {userSettings?.cleAPISage ? (
             <span className="text-green-600">
-              ✓ Configuration Sage active. Synchronisation automatique {autoSyncEnabled ? 'activée' : 'désactivée'}.
+              ✓ Configuration Sage active. Synchronisation automatique{" "}
+              {autoSyncEnabled ? "activée" : "désactivée"}.
             </span>
           ) : (
             <span className="text-orange-600">
-              ⚠ Clé API Sage non configurée. Veuillez configurer votre clé API dans les paramètres utilisateur.
+              ⚠ Clé API Sage non configurée. Veuillez configurer votre clé API
+              dans les paramètres utilisateur.
             </span>
           )}
         </AlertDescription>
@@ -180,10 +196,13 @@ export default function ComptabiliteSpace() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                <Label htmlFor="auto-sync">Synchronisation automatique quotidienne</Label>
+                <Label htmlFor="auto-sync">
+                  Synchronisation automatique quotidienne
+                </Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                Synchronise automatiquement les données avec Sage chaque jour à 17h55
+                Synchronise automatiquement les données avec Sage chaque jour à
+                17h55
               </p>
             </div>
             <Switch
@@ -193,13 +212,14 @@ export default function ComptabiliteSpace() {
               disabled={!userSettings?.cleAPISage}
             />
           </div>
-          
+
           {autoSyncEnabled && (
             <Alert>
               <Clock className="h-4 w-4" />
               <AlertDescription>
-                La synchronisation automatique est programmée tous les jours à 17h55. 
-                Assurez-vous que l'application reste ouverte pour que la synchronisation se déclenche.
+                La synchronisation automatique est programmée tous les jours à
+                17h55. Assurez-vous que l'application reste ouverte pour que la
+                synchronisation se déclenche.
               </AlertDescription>
             </Alert>
           )}
@@ -216,9 +236,7 @@ export default function ComptabiliteSpace() {
             <div className="text-3xl font-bold text-orange-600">
               {pendingPesees.length}
             </div>
-            <p className="text-sm text-gray-600">
-              pesée(s) à synchroniser
-            </p>
+            <p className="text-sm text-gray-600">pesée(s) à synchroniser</p>
           </CardContent>
         </Card>
 
@@ -242,10 +260,12 @@ export default function ComptabiliteSpace() {
           </CardHeader>
           <CardContent>
             <div className="text-lg font-semibold">
-              {lastSync ? lastSync.toLocaleDateString() : 'Jamais'}
+              {lastSync ? lastSync.toLocaleDateString() : "Jamais"}
             </div>
             <p className="text-sm text-gray-600">
-              {lastSync ? lastSync.toLocaleTimeString() : 'Aucune synchronisation'}
+              {lastSync
+                ? lastSync.toLocaleTimeString()
+                : "Aucune synchronisation"}
             </p>
           </CardContent>
         </Card>
@@ -261,12 +281,18 @@ export default function ComptabiliteSpace() {
             <div>
               <h3 className="font-semibold">Envoi manuel vers Sage</h3>
               <p className="text-sm text-gray-600">
-                Envoyer toutes les données en attente vers votre logiciel de comptabilité Sage.
+                Envoyer toutes les données en attente vers votre logiciel de
+                comptabilité Sage.
               </p>
             </div>
             <Button
               onClick={handleSyncToSage}
-              disabled={!isOnline || !userSettings?.cleAPISage || isSyncing || pendingPesees.length === 0}
+              disabled={
+                !isOnline ||
+                !userSettings?.cleAPISage ||
+                isSyncing ||
+                pendingPesees.length === 0
+              }
             >
               {isSyncing ? (
                 <>
@@ -309,8 +335,9 @@ export default function ComptabiliteSpace() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {conflictCount} conflit(s) de données ont été détectés et résolus automatiquement. 
-                Les versions locales ont été conservées. Si vous souhaitez forcer une resynchronisation 
+                {conflictCount} conflit(s) de données ont été détectés et
+                résolus automatiquement. Les versions locales ont été
+                conservées. Si vous souhaitez forcer une resynchronisation
                 complète, utilisez le bouton de synchronisation manuelle.
               </AlertDescription>
             </Alert>
@@ -327,11 +354,15 @@ export default function ComptabiliteSpace() {
           <CardContent>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {pendingPesees.slice(0, 10).map((pesee) => (
-                <div key={pesee.id} className="flex justify-between items-center p-2 bg-orange-50 rounded">
+                <div
+                  key={pesee.id}
+                  className="flex justify-between items-center p-2 bg-orange-50 rounded"
+                >
                   <div>
                     <span className="font-medium">{pesee.numeroBon}</span>
                     <span className="text-sm text-gray-600 ml-2">
-                      {pesee.nomEntreprise} - {pesee.dateHeure.toLocaleDateString()}
+                      {pesee.nomEntreprise} -{" "}
+                      {pesee.dateHeure.toLocaleDateString()}
                     </span>
                   </div>
                   <Badge variant="outline">En attente</Badge>

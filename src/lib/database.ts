@@ -1,9 +1,8 @@
-
-import Dexie, { Table } from 'dexie';
+import Dexie, { Table } from "dexie";
 
 export interface Client {
   id?: number;
-  typeClient: 'particulier' | 'professionnel' | 'micro-entreprise';
+  typeClient: "particulier" | "professionnel" | "micro-entreprise";
   raisonSociale: string;
   prenom?: string;
   nom?: string;
@@ -23,7 +22,7 @@ export interface Client {
     [productId: number]: {
       prixHT?: number;
       prixTTC?: number;
-    }
+    };
   };
   // Track Déchet - Seulement activation par client (token global maintenant)
   trackDechetEnabled?: boolean;
@@ -58,7 +57,7 @@ export interface Product {
   codeProduct: string;
   isFavorite: boolean;
   // Champs Track Déchet
-  categorieDechet?: 'dangereux' | 'non-dangereux' | 'inerte';
+  categorieDechet?: "dangereux" | "non-dangereux" | "inerte";
   codeDechets?: string; // Code déchet européen à 6 chiffres
   trackDechetEnabled?: boolean; // Nouveau champ pour activer Track Déchet
   createdAt: Date;
@@ -82,7 +81,7 @@ export interface Pesee {
   clientId?: number;
   transporteurId?: number;
   transporteurLibre?: string; // Nouveau champ pour le transporteur saisi manuellement
-  typeClient: 'particulier' | 'professionnel' | 'micro-entreprise';
+  typeClient: "particulier" | "professionnel" | "micro-entreprise";
   synchronized: boolean;
   version: number; // Version pour détecter les conflits
   lastSyncHash?: string; // Hash de la dernière version synchronisée
@@ -99,7 +98,13 @@ export interface BSD {
   peseeId: number;
   bsdId: string; // ID Track Déchet
   readableId: string; // ID lisible du BSD Track Déchet
-  status: 'draft' | 'sealed' | 'sent' | 'received' | 'processed' | 'pending_sync';
+  status:
+    | "draft"
+    | "sealed"
+    | "sent"
+    | "received"
+    | "processed"
+    | "pending_sync";
   generatedAt?: Date;
   sealedAt?: Date;
   sentAt?: Date;
@@ -117,7 +122,7 @@ export interface ExportLog {
   totalRecords: number;
   fileHash: string;
   fileContent: string; // Stockage du contenu CSV pour re-téléchargement
-  exportType: 'new' | 'selective' | 'complete';
+  exportType: "new" | "selective" | "complete";
   peseeIds: number[]; // IDs des pesées incluses dans cet export
   createdAt: Date;
 }
@@ -127,7 +132,7 @@ export interface User {
   nom: string;
   prenom: string;
   email: string;
-  role: 'admin' | 'user';
+  role: "admin" | "user";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -164,8 +169,8 @@ export interface Config {
 
 export interface SyncLog {
   id?: number;
-  type: 'manual' | 'automatic';
-  status: 'success' | 'error' | 'pending';
+  type: "manual" | "automatic";
+  status: "success" | "error" | "pending";
   message: string;
   data?: any;
   synchronized: number;
@@ -179,8 +184,43 @@ export interface ConflictLog {
   serverVersion: number;
   localData: any;
   serverData: any;
-  resolution: 'local-wins' | 'server-wins' | 'manual';
+  resolution: "local-wins" | "server-wins" | "manual";
   createdAt: Date;
+}
+
+export interface SageTemplate {
+  id?: number;
+  name: string; // Nom personnalisé par l'utilisateur
+  description?: string;
+  sageColumns: SageColumn[]; // Colonnes détectées du fichier Sage
+  mappings: ColumnMapping[]; // Mappings configurés
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SageColumn {
+  name: string; // "Type de pièce", "N° pièce", etc.
+  type: "text" | "number" | "date" | "boolean";
+  required: boolean;
+  example?: string; // Valeur d'exemple du fichier importé
+  position: number; // Position dans le fichier original
+}
+
+export interface ColumnMapping {
+  sageColumn: string; // Nom de la colonne Sage
+  dataSource:
+    | "vide"
+    | "pesee"
+    | "client"
+    | "product"
+    | "transporteur"
+    | "userSettings"
+    | "static";
+  dataField: string; // Champ spécifique (ex: "numeroBon", "raisonSociale")
+  transformation?: string; // Fonction de transformation (ex: "formatDate", "concat")
+  defaultValue?: any; // Valeur par défaut si pas de données
+  isConfigured: boolean; // Si le mapping est configuré
 }
 
 class AppDatabase extends Dexie {
@@ -195,81 +235,124 @@ class AppDatabase extends Dexie {
   syncLogs!: Table<SyncLog>;
   conflictLogs!: Table<ConflictLog>;
   exportLogs!: Table<ExportLog>;
+  sageTemplates!: Table<SageTemplate>;
 
   constructor() {
-    super('AppDatabase');
-    
+    super("AppDatabase");
+
     // Version 1 - Structure initiale
     this.version(1).stores({
-      clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
-      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
-      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
-      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt',
-      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
-      userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
-      config: '++id, key, createdAt, updatedAt',
-      syncLogs: '++id, type, status, synchronized, createdAt',
-      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt'
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings: "++id, nomEntreprise, email, siret, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
     });
 
     // Version 2 - Ajout des exports
     this.version(2).stores({
-      clients: '++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt',
-      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
-      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
-      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt',
-      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
-      userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
-      bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
-      config: '++id, key, createdAt, updatedAt',
-      syncLogs: '++id, type, status, synchronized, createdAt',
-      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
-      exportLogs: '++id, fileName, startDate, endDate, exportType, createdAt'
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings: "++id, nomEntreprise, email, siret, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
     });
 
     // Version 3 - Ajout du champ exportedAt SANS supprimer les données existantes
     this.version(3).stores({
-      clients: '++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt',
-      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
-      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
-      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',
-      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
-      userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
-      bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
-      config: '++id, key, createdAt, updatedAt',
-      syncLogs: '++id, type, status, synchronized, createdAt',
-      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
-      exportLogs: '++id, fileName, startDate, endDate, exportType, createdAt'
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings: "++id, nomEntreprise, email, siret, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
     });
 
     // Version 4 - Ajout des champs Track Déchet pour les clients
     this.version(4).stores({
-      clients: '++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt',
-      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
-      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
-      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',
-      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
-      userSettings: '++id, nomEntreprise, email, siret, createdAt, updatedAt',
-      bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
-      config: '++id, key, createdAt, updatedAt',
-      syncLogs: '++id, type, status, synchronized, createdAt',
-      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
-      exportLogs: '++id, fileName, startDate, endDate, exportType, createdAt'
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings: "++id, nomEntreprise, email, siret, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
     });
 
     // Version 5 - Amélioration UserSettings pour Track Déchet
     this.version(5).stores({
-      clients: '++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt',
-      transporteurs: '++id, prenom, nom, siret, ville, createdAt, updatedAt',
-      products: '++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt',
-      pesees: '++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt',
-      users: '++id, nom, prenom, email, role, createdAt, updatedAt',
-      userSettings: '++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, codeNAF, logo, cleAPISage, numeroRecepisse, dateValiditeRecepisse, numeroAutorisation, representantLegal, createdAt, updatedAt',
-      bsds: '++id, peseeId, bsdId, status, createdAt, updatedAt',
-      config: '++id, key, createdAt, updatedAt',
-      syncLogs: '++id, type, status, synchronized, createdAt',
-      conflictLogs: '++id, peseeId, localVersion, serverVersion, resolution, createdAt',
-      exportLogs: '++id, fileName, startDate, endDate, exportType, createdAt'
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, codeNAF, logo, cleAPISage, numeroRecepisse, dateValiditeRecepisse, numeroAutorisation, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+    });
+
+    // Version 6 - Ajout des templates Sage
+    this.version(6).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, codeNAF, logo, cleAPISage, numeroRecepisse, dateValiditeRecepisse, numeroAutorisation, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
     });
   }
 }
@@ -283,24 +366,24 @@ export const checkDataIntegrity = async () => {
       db.clients.count(),
       db.products.count(),
       db.pesees.count(),
-      db.transporteurs.count()
+      db.transporteurs.count(),
     ]);
-    
+
     console.log(`📊 Vérification des données:`, {
       clients,
       products,
       pesees,
-      transporteurs
+      transporteurs,
     });
-    
+
     // Alerter si des données critiques sont manquantes
     if (clients === 0 && products === 0) {
-      console.warn('⚠️ ATTENTION: Aucune donnée client ou produit trouvée!');
+      console.warn("⚠️ ATTENTION: Aucune donnée client ou produit trouvée!");
     }
-    
+
     return { clients, products, pesees, transporteurs };
   } catch (error) {
-    console.error('❌ Erreur lors de la vérification des données:', error);
+    console.error("❌ Erreur lors de la vérification des données:", error);
     return null;
   }
 };
@@ -310,47 +393,47 @@ export const initializeSampleData = async () => {
   try {
     // Vérifier l'intégrité des données d'abord
     await checkDataIntegrity();
-    
+
     // Vérifier si des données existent déjà
     const existingProducts = await db.products.count();
     if (existingProducts > 0) {
-      console.log('Des données existent déjà, initialisation ignorée');
+      console.log("Des données existent déjà, initialisation ignorée");
       return;
     }
 
     // Créer des produits d'exemple
     const sampleProducts: Product[] = [
       {
-        nom: 'Sable',
-        description: 'Sable de construction',
+        nom: "Sable",
+        description: "Sable de construction",
         prixHT: 25.0,
         prixTTC: 30.0,
-        unite: 'tonne',
+        unite: "tonne",
         tva: 20,
         tauxTVA: 20,
-        codeProduct: 'SAB001',
+        codeProduct: "SAB001",
         isFavorite: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
       {
-        nom: 'Gravier',
-        description: 'Gravier pour béton',
+        nom: "Gravier",
+        description: "Gravier pour béton",
         prixHT: 30.0,
         prixTTC: 36.0,
-        unite: 'tonne',
+        unite: "tonne",
         tva: 20,
         tauxTVA: 20,
-        codeProduct: 'GRA001',
+        codeProduct: "GRA001",
         isFavorite: false,
         createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        updatedAt: new Date(),
+      },
     ];
 
     await db.products.bulkAdd(sampleProducts);
-    console.log('Données d\'exemple initialisées avec succès');
+    console.log("Données d'exemple initialisées avec succès");
   } catch (error) {
-    console.error('Erreur lors de l\'initialisation des données:', error);
+    console.error("Erreur lors de l'initialisation des données:", error);
   }
 };
