@@ -315,12 +315,9 @@ async function handleValidateToken(req: Request) {
     // Récupérer le token et le mode (sandbox) depuis le body / query
     const url = new URL(req.url);
     const body = await req.json();
-    const userToken = body?.token;
-    const sandboxFromQuery = url.searchParams.get("sandbox");
-    const sandbox =
-      typeof body?.sandbox === "boolean"
-        ? body.sandbox
-        : sandboxFromQuery === "true";
+    // TEST: Token sandbox en dur pour debug
+    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
+    const sandbox = true; // Force sandbox pour le test
 
     if (!userToken) {
       return new Response(
