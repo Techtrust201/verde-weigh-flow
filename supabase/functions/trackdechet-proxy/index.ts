@@ -14,9 +14,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // NOUVELLE VERSION - VERSION 7.0 - TOKEN EN DUR
+  // VERSION 8.0 - UTILISE TOKEN DEPUIS SECRETS + FORCE REDEPLOY
   console.log(
-    "🚀🚀🚀 NOUVELLE VERSION 7.0 - TOKEN EN DUR + BETA.GOUV.FR 🚀🚀🚀"
+    "🚀🚀🚀 VERSION 8.0 - TOKEN DEPUIS SECRETS + FORCE REDEPLOY 🚀🚀🚀"
   );
 
   try {
@@ -55,8 +55,8 @@ async function handleCreateForm(req: Request) {
   try {
     const body = await req.json();
 
-    // TOKEN EN DUR POUR TEST
-    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
+    // UTILISE TOKEN DEPUIS SECRETS
+    const userToken = Deno.env.get('TRACKDECHET_API_TOKEN');
     const sandbox = true;
 
     if (!userToken) {
@@ -168,8 +168,8 @@ async function handleGetForm(req: Request) {
       bsdId = body.id;
     }
 
-    // TOKEN EN DUR POUR TEST
-    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
+    // UTILISE TOKEN DEPUIS SECRETS
+    const userToken = Deno.env.get('TRACKDECHET_API_TOKEN');
     const sandbox = true;
 
     if (!userToken) {
@@ -273,8 +273,8 @@ async function handleGetForm(req: Request) {
 
 async function handleValidateToken(req: Request) {
   try {
-    // TOKEN EN DUR POUR TEST
-    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
+    // UTILISE TOKEN DEPUIS SECRETS
+    const userToken = Deno.env.get('TRACKDECHET_API_TOKEN');
     const sandbox = true;
 
     if (!userToken) {
