@@ -36,7 +36,7 @@ export const generatePrintContent = (
 
   const clientLabel =
     formData.typeClient === "particulier" ? "Client" : "Entreprise";
-  const documentTitle = "BON DE PESÉE";
+  const documentTitle = "Bon de pesée";
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR");
@@ -163,6 +163,15 @@ export const generatePrintContent = (
           padding: 10px; 
           background: white;
           min-height: 100vh;
+        }
+        
+        .print-timestamp {
+          position: fixed;
+          top: 5px;
+          right: 10px;
+          font-size: 8px;
+          color: #666;
+          z-index: 1000;
         }
         
         .print-container {
@@ -386,7 +395,7 @@ export const generatePrintContent = (
         @media print { 
           @page { 
             size: A4 portrait; 
-            margin: 10mm; 
+            margin: 5mm; 
           } 
           body { 
             margin: 0; 
@@ -394,6 +403,19 @@ export const generatePrintContent = (
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             background: white !important;
+            height: 100vh;
+            overflow: hidden;
+          }
+          .print-timestamp {
+            position: fixed !important;
+            top: 5px !important;
+            right: 10px !important;
+            font-size: 8px !important;
+            color: #666 !important;
+            z-index: 10000 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
           }
           /* Masquer tous les éléments de l'interface */
           [data-lov-id],
@@ -439,10 +461,10 @@ export const generatePrintContent = (
             page-break-inside: avoid;
             max-width: none;
             width: 100%;
-            flex-direction: column;
-            gap: 3rem;
+            flex-direction: column !important;
+            gap: 2rem !important;
             padding: 0;
-            display: block !important;
+            display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
             position: static !important;
@@ -450,22 +472,25 @@ export const generatePrintContent = (
           }
           .bon {
             width: 100%;
-            margin-bottom: 0;
+            margin-bottom: 1rem !important;
             page-break-inside: avoid;
             min-height: 320px;
             max-height: 390px;
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
-            position: static !important;
+            position: relative !important;
             z-index: 9999 !important;
+            clear: both !important;
           }
           .copy-type {
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
-            position: static !important;
+            position: relative !important;
             z-index: 9999 !important;
+            margin-bottom: 2rem !important;
+            clear: both !important;
           }
           .bon + .bon {
             margin-top: 2rem;
@@ -474,6 +499,9 @@ export const generatePrintContent = (
       </style>
     </head>
     <body>
+      <div class="print-timestamp">
+        Imprimé le ${dateStr} à ${timeStr}
+      </div>
       <div class="print-container">
         ${bonContent("Copie Client")}
         ${bonContent("Copie BDV")}
@@ -534,7 +562,7 @@ export const handlePrintBothBonAndInvoice = async (
 ) => {
   if (!formData) return { bonContent: "", invoiceContent: "" };
 
-  // Générer le contenu du bon de pesée
+  // Générer le contenu du Bon de pesée
   const bonContent = generatePrintContent(
     formData,
     products,

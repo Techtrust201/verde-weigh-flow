@@ -52,8 +52,8 @@ export default function PeseeSpace() {
     tarifsPreferentiels: {},
   });
   const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
-  const [printContent, setPrintContent] = useState('');
-  const [printTitle, setPrintTitle] = useState('');
+  const [printContent, setPrintContent] = useState("");
+  const [printTitle, setPrintTitle] = useState("");
   const [newTransporteurForm, setNewTransporteurForm] = useState<
     Partial<Transporteur>
   >({
@@ -268,9 +268,14 @@ export default function PeseeSpace() {
     if (success) {
       const currentData = getCurrentTabData();
       if (currentData) {
-        const content = handlePrint(currentData, products, transporteurs, false);
+        const content = handlePrint(
+          currentData,
+          products,
+          transporteurs,
+          false
+        );
         setPrintContent(content);
-        setPrintTitle('Bon de pesée');
+        setPrintTitle("Bon de pesée");
         setPrintPreviewOpen(true);
       }
     }
@@ -283,12 +288,19 @@ export default function PeseeSpace() {
       const currentData = getCurrentTabData();
       if (currentData && currentData.clientId) {
         // Récupérer les données client depuis la base
-        const client = clients.find(c => c.id === currentData.clientId);
+        const client = clients.find((c) => c.id === currentData.clientId);
         if (client) {
-          const { generateInvoiceContent } = await import('@/utils/invoiceUtils');
-          const invoiceContent = generateInvoiceContent(currentData, products, transporteurs, client);
+          const { generateInvoiceContent } = await import(
+            "@/utils/invoiceUtils"
+          );
+          const invoiceContent = generateInvoiceContent(
+            currentData,
+            products,
+            transporteurs,
+            client
+          );
           setPrintContent(invoiceContent);
-          setPrintTitle('Facture');
+          setPrintTitle("Facture");
           setPrintPreviewOpen(true);
         }
       }
@@ -302,22 +314,50 @@ export default function PeseeSpace() {
       const currentData = getCurrentTabData();
       if (currentData && currentData.clientId) {
         // Récupérer les données client depuis la base
-        const client = clients.find(c => c.id === currentData.clientId);
+        const client = clients.find((c) => c.id === currentData.clientId);
         if (client) {
-          const { bonContent, invoiceContent } = await handlePrintBothBonAndInvoice(currentData, products, transporteurs, client);
-          setPrintContent(bonContent + '<div style="page-break-before: always;"></div>' + invoiceContent);
-          setPrintTitle('Bon de pesée + Facture');
+          const { bonContent, invoiceContent } =
+            await handlePrintBothBonAndInvoice(
+              currentData,
+              products,
+              transporteurs,
+              client
+            );
+          setPrintContent(
+            bonContent +
+              '<div style="page-break-before: always;"></div>' +
+              invoiceContent
+          );
+          setPrintTitle("Bon de pesée + Facture");
           setPrintPreviewOpen(true);
         } else {
-          const { bonContent, invoiceContent } = await handlePrintBothBonAndInvoice(currentData, products, transporteurs);
-          setPrintContent(bonContent + '<div style="page-break-before: always;"></div>' + invoiceContent);
-          setPrintTitle('Bon de pesée + Facture');
+          const { bonContent, invoiceContent } =
+            await handlePrintBothBonAndInvoice(
+              currentData,
+              products,
+              transporteurs
+            );
+          setPrintContent(
+            bonContent +
+              '<div style="page-break-before: always;"></div>' +
+              invoiceContent
+          );
+          setPrintTitle("Bon de pesée + Facture");
           setPrintPreviewOpen(true);
         }
       } else {
-        const { bonContent, invoiceContent } = await handlePrintBothBonAndInvoice(currentData, products, transporteurs);
-        setPrintContent(bonContent + '<div style="page-break-before: always;"></div>' + invoiceContent);
-        setPrintTitle('Bon de pesée + Facture');
+        const { bonContent, invoiceContent } =
+          await handlePrintBothBonAndInvoice(
+            currentData,
+            products,
+            transporteurs
+          );
+        setPrintContent(
+          bonContent +
+            '<div style="page-break-before: always;"></div>' +
+            invoiceContent
+        );
+        setPrintTitle("Bon de pesée + Facture");
         setPrintPreviewOpen(true);
       }
     }
@@ -446,18 +486,25 @@ export default function PeseeSpace() {
   /**
    * Vérifie et génère automatiquement un BSD Track Déchet si nécessaire
    */
-  const checkAndGenerateTrackDechet = async (savedPeseeId: number, peseeData: any) => {
+  const checkAndGenerateTrackDechet = async (
+    savedPeseeId: number,
+    peseeData: any
+  ) => {
     try {
       // Trouver le produit
-      const product = products.find(p => p.id === peseeData.produitId);
+      const product = products.find((p) => p.id === peseeData.produitId);
       if (!product || !product.trackDechetEnabled || !product.codeDechets) {
         return; // Track Déchet non activé pour ce produit
       }
 
       // Récupérer client et transporteur
       const [client, transporteur] = await Promise.all([
-        peseeData.clientId ? db.clients.get(peseeData.clientId) : Promise.resolve(null),
-        peseeData.transporteurId ? db.transporteurs.get(peseeData.transporteurId) : Promise.resolve(null)
+        peseeData.clientId
+          ? db.clients.get(peseeData.clientId)
+          : Promise.resolve(null),
+        peseeData.transporteurId
+          ? db.transporteurs.get(peseeData.transporteurId)
+          : Promise.resolve(null),
       ]);
 
       if (!client || !transporteur) {
@@ -466,11 +513,18 @@ export default function PeseeSpace() {
 
       // Vérifier si Track Déchet est applicable
       const fullPeseeData = { ...peseeData, id: savedPeseeId };
-      const isApplicable = isTrackDechetApplicable(fullPeseeData, client, transporteur, product);
-      
+      const isApplicable = isTrackDechetApplicable(
+        fullPeseeData,
+        client,
+        transporteur,
+        product
+      );
+
       if (isApplicable) {
-        console.log(`🔄 Track Déchet applicable pour la pesée ${peseeData.numeroBon} - Ajout à la file de synchronisation`);
-        
+        console.log(
+          `🔄 Track Déchet applicable pour la pesée ${peseeData.numeroBon} - Ajout à la file de synchronisation`
+        );
+
         // Ajouter à la file de synchronisation Track Déchet
         await trackDechetProcessor.addPeseeToQueue(
           savedPeseeId,
@@ -486,14 +540,20 @@ export default function PeseeSpace() {
         });
       }
     } catch (error) {
-      console.error('Erreur lors de la vérification Track Déchet:', error);
+      console.error("Erreur lors de la vérification Track Déchet:", error);
     }
   };
 
   const currentData = getCurrentTabData();
   return (
     <div className="space-y-6">
-      <div className="fixed top-0 left-64 right-0 bg-white z-50 shadow-lg">
+      <div
+        className="fixed top-0 right-0 bg-white z-10 shadow-lg transition-all duration-300"
+        style={{
+          left: "var(--sidebar-width, 4rem)",
+          marginLeft: "auto",
+        }}
+      >
         <div className="px-6 py-4">
           <h1 className="text-2xl font-bold flex items-center text-gray-800">
             <Scale className="h-6 w-6 mr-3 text-black" />
@@ -516,17 +576,17 @@ export default function PeseeSpace() {
             <div className="flex items-center justify-between">
               <EnhancedTabs
                 tabs={[
-                  ...tabs.map(tab => ({
+                  ...tabs.map((tab) => ({
                     id: tab.id,
                     label: getTabLabel(tab.id),
                     onClose: () => closeTab(tab.id),
-                    closeable: tabs.length > 1
+                    closeable: tabs.length > 1,
                   })),
                   {
                     id: "recentes",
                     label: "📊 Pesées Récentes",
-                    closeable: false
-                  }
+                    closeable: false,
+                  },
                 ]}
                 activeTabId={showRecentTab ? "recentes" : activeTabId}
                 onTabSelect={(tabId) => {
@@ -613,7 +673,7 @@ export default function PeseeSpace() {
                           false
                         );
                         setPrintContent(content);
-                        setPrintTitle('Bon de pesée');
+                        setPrintTitle("Bon de pesée");
                         setPrintPreviewOpen(true);
                       }
                     }}
@@ -636,9 +696,9 @@ export default function PeseeSpace() {
         ))}
 
         <TabsContent value="recentes">
-          <RecentPeseesTab 
-            pesees={pesees} 
-            products={products} 
+          <RecentPeseesTab
+            pesees={pesees}
+            products={products}
             transporteurs={transporteurs}
           />
         </TabsContent>

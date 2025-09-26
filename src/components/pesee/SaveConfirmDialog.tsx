@@ -1,7 +1,11 @@
-
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Save, Printer, FileText } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Save, Printer, FileText } from "lucide-react";
 
 interface SaveConfirmDialogProps {
   isOpen: boolean;
@@ -9,7 +13,7 @@ interface SaveConfirmDialogProps {
   onConfirm: () => void;
   onConfirmAndPrint: () => void;
   onConfirmPrintAndInvoice?: () => void;
-  moyenPaiement: 'Direct' | 'En compte';
+  moyenPaiement: "Direct" | "En compte";
 }
 
 export const SaveConfirmDialog = ({
@@ -18,7 +22,7 @@ export const SaveConfirmDialog = ({
   onConfirm,
   onConfirmAndPrint,
   onConfirmPrintAndInvoice,
-  moyenPaiement
+  moyenPaiement,
 }: SaveConfirmDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -32,16 +36,16 @@ export const SaveConfirmDialog = ({
             <Button onClick={onConfirmAndPrint} className="flex items-center">
               <Save className="h-4 w-4 mr-2" />
               <Printer className="h-4 w-4 mr-2" />
-              Imprimer le bon de pesée
+              Imprimer le Bon de peséeeee
             </Button>
-            {moyenPaiement === 'Direct' && (
+            {moyenPaiement === "Direct" && (
               <Button onClick={onConfirm} variant="outline">
                 <Save className="h-4 w-4 mr-2" />
                 <FileText className="h-4 w-4 mr-2" />
                 Imprimer la facture
               </Button>
             )}
-            {moyenPaiement === 'Direct' && onConfirmPrintAndInvoice && (
+            {moyenPaiement === "Direct" && onConfirmPrintAndInvoice && (
               <Button onClick={onConfirmPrintAndInvoice} variant="secondary">
                 <Save className="h-4 w-4 mr-2" />
                 <Printer className="h-4 w-4 mr-2" />

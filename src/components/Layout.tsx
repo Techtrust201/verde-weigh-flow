@@ -70,11 +70,18 @@ export default function Layout({
   }, [isOnline]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div
+      className="min-h-screen bg-gray-50 flex"
+      style={
+        {
+          "--sidebar-width": sidebarOpen ? "16rem" : "4rem",
+        } as React.CSSProperties
+      }
+    >
       {/* Sidebar - Now sticky */}
       <div
         className={cn(
-          "bg-white shadow-lg transition-all z-[51] duration-300 flex flex-col shrink-0 sticky top-0 h-screen",
+          "bg-white shadow-lg transition-all z-10 duration-300 flex flex-col shrink-0 sticky top-0 h-screen",
           sidebarOpen ? "w-64" : "w-16"
         )}
       >

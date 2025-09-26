@@ -1,70 +1,75 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Get the API token from secrets
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const trackDechetToken = Deno.env.get('TRACKDECHET_API_TOKEN')!
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    if (!trackDechetToken) {
-      console.error('Track Déchet API token not configured')
-      return new Response(
-        JSON.stringify({ error: 'Track Déchet API token not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    
-    const { pathname } = new URL(req.url)
-    const path = pathname.split('/').pop() // Get the last part of the path
+    const { pathname } = new URL(req.url);
+    const path = pathname.split("/").pop(); // Get the last part of the path
 
     switch (path) {
-      case 'createForm':
-        return await handleCreateForm(req, trackDechetToken)
-      case 'getForm':
-        return await handleGetForm(req, trackDechetToken)
-      case 'validateToken':
-        return await handleValidateToken(req, trackDechetToken)
+      case "createForm":
+        return await handleCreateForm(req);
+      case "getForm":
+        return await handleGetForm(req);
+      case "validateToken":
+        return await handleValidateToken(req);
       default:
-        return new Response(
-          JSON.stringify({ error: 'Unknown endpoint' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return new Response(JSON.stringify({ error: "Unknown endpoint" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     }
-
   } catch (error) {
-    console.error('Track Déchet proxy error:', error)
+    console.error("Track Déchet proxy error:", error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      JSON.stringify({
+        error: "Internal server error",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
-})
+});
 
-async function handleCreateForm(req: Request, token: string) {
+async function handleCreateForm(req: Request) {
   try {
-    const url = new URL(req.url)
-    const body = await req.json()
+    const url = new URL(req.url);
+    const body = await req.json();
 
-    const sandboxFromQuery = url.searchParams.get('sandbox')
-    const sandbox = typeof body?.sandbox === 'boolean' ? body.sandbox : sandboxFromQuery === 'true'
+    const sandboxFromQuery = url.searchParams.get("sandbox");
+    const sandbox =
+      typeof body?.sandbox === "boolean"
+        ? body.sandbox
+        : sandboxFromQuery === "true";
 
     // Retirer la clé sandbox du payload envoyé à GraphQL si elle est présente
-    const { sandbox: _sandbox, ...createFormInput } = body || {}
+    const { sandbox: _sandbox, ...createFormInput } = body || {};
 
-    console.log('Creating BSD with data:', JSON.stringify(createFormInput, null, 2), 'sandbox:', sandbox)
+    console.log(
+      "Creating BSD with data:",
+      JSON.stringify(createFormInput, null, 2),
+      "sandbox:",
+      sandbox
+    );
 
     const createFormMutation = `
       mutation CreateForm($createFormInput: CreateFormInput!) {
@@ -75,85 +80,116 @@ async function handleCreateForm(req: Request, token: string) {
           createdAt
         }
       }
-    `
+    `;
 
-    const graphqlUrl = sandbox 
-      ? 'https://api.sandbox.trackdechets.fr/graphql' 
-      : 'https://api.trackdechets.fr/graphql'
+    const graphqlUrl = sandbox
+      ? "https://api.sandbox.trackdechets.fr/graphql"
+      : "https://api.trackdechets.fr/graphql";
 
     const response = await fetch(graphqlUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         query: createFormMutation,
-        variables: { createFormInput }
-      })
-    })
+        variables: { createFormInput },
+      }),
+    });
 
-    const contentType = response.headers.get('content-type') || ''
-    let result: any = null
-    let rawText: string | undefined
+    const contentType = response.headers.get("content-type") || "";
+    let result: any = null;
+    let rawText: string | undefined;
 
-    if (contentType.includes('application/json')) {
-      result = await response.json()
-      console.log('Track Déchet API response:', JSON.stringify(result, null, 2))
+    if (contentType.includes("application/json")) {
+      result = await response.json();
+      console.log(
+        "Track Déchet API response:",
+        JSON.stringify(result, null, 2)
+      );
     } else {
-      rawText = await response.text()
-      console.error('Non-JSON response from Track Déchets (createForm):', response.status, rawText?.slice(0, 500))
+      rawText = await response.text();
+      console.error(
+        "Non-JSON response from Track Déchets (createForm):",
+        response.status,
+        rawText?.slice(0, 500)
+      );
     }
 
     if (!response.ok) {
       return new Response(
-        JSON.stringify({ error: 'Track Déchet API error', details: result?.errors || rawText || `HTTP ${response.status}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        JSON.stringify({
+          error: "Track Déchet API error",
+          details: result?.errors || rawText || `HTTP ${response.status}`,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     if (result?.errors) {
-      console.error('Track Déchet API errors:', result.errors)
+      console.error("Track Déchet API errors:", result.errors);
       return new Response(
-        JSON.stringify({ error: 'Track Déchet API error', details: result.errors }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        JSON.stringify({
+          error: "Track Déchet API error",
+          details: result.errors,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     return new Response(
       JSON.stringify({ success: true, bsd: result.data.createForm }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
-    console.error('Create form error:', error)
+    console.error("Create form error:", error);
     return new Response(
-      JSON.stringify({ error: 'Failed to create BSD', details: (error as any)?.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      JSON.stringify({
+        error: "Failed to create BSD",
+        details: (error as any)?.message,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 }
 
-async function handleGetForm(req: Request, token: string) {
+async function handleGetForm(req: Request) {
   try {
-    const url = new URL(req.url)
-    let bsdId = url.searchParams.get('id')
+    const url = new URL(req.url);
+    let bsdId = url.searchParams.get("id");
 
-    let body: any = undefined
-    try { body = await req.json() } catch (e) { /* ignore */ }
-
-    if (!bsdId && body?.id) {
-      bsdId = body.id
+    let body: any = undefined;
+    try {
+      body = await req.json();
+    } catch (e) {
+      /* ignore */
     }
 
-    const sandboxFromQuery = url.searchParams.get('sandbox')
-    const sandbox = typeof body?.sandbox === 'boolean' ? body.sandbox : sandboxFromQuery === 'true'
-    
+    if (!bsdId && body?.id) {
+      bsdId = body.id;
+    }
+
+    const sandboxFromQuery = url.searchParams.get("sandbox");
+    const sandbox =
+      typeof body?.sandbox === "boolean"
+        ? body.sandbox
+        : sandboxFromQuery === "true";
+
     if (!bsdId) {
-      return new Response(
-        JSON.stringify({ error: 'BSD ID is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return new Response(JSON.stringify({ error: "BSD ID is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const getFormQuery = `
@@ -166,83 +202,110 @@ async function handleGetForm(req: Request, token: string) {
           updatedAt
         }
       }
-    `
+    `;
 
-    const graphqlUrl = sandbox 
-      ? 'https://api.sandbox.trackdechets.fr/graphql' 
-      : 'https://api.trackdechets.fr/graphql'
+    const graphqlUrl = sandbox
+      ? "https://api.sandbox.trackdechets.fr/graphql"
+      : "https://api.trackdechets.fr/graphql";
 
     const response = await fetch(graphqlUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         query: getFormQuery,
-        variables: { id: bsdId }
-      })
-    })
+        variables: { id: bsdId },
+      }),
+    });
 
-    const contentType = response.headers.get('content-type') || ''
-    let result: any = null
-    let rawText: string | undefined
+    const contentType = response.headers.get("content-type") || "";
+    let result: any = null;
+    let rawText: string | undefined;
 
-    if (contentType.includes('application/json')) {
-      result = await response.json()
+    if (contentType.includes("application/json")) {
+      result = await response.json();
     } else {
-      rawText = await response.text()
-      console.error('Non-JSON response from Track Déchets (getForm):', response.status, rawText?.slice(0, 500))
+      rawText = await response.text();
+      console.error(
+        "Non-JSON response from Track Déchets (getForm):",
+        response.status,
+        rawText?.slice(0, 500)
+      );
     }
-    
+
     if (!response.ok) {
       return new Response(
-        JSON.stringify({ error: 'Track Déchet API error', details: result?.errors || rawText || `HTTP ${response.status}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        JSON.stringify({
+          error: "Track Déchet API error",
+          details: result?.errors || rawText || `HTTP ${response.status}`,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     if (result?.errors) {
-      console.error('Track Déchet API errors:', result.errors)
+      console.error("Track Déchet API errors:", result.errors);
       return new Response(
-        JSON.stringify({ error: 'Track Déchet API error', details: result.errors }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        JSON.stringify({
+          error: "Track Déchet API error",
+          details: result.errors,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     return new Response(
       JSON.stringify({ success: true, bsd: result.data.form }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
-    console.error('Get form error:', error)
+    console.error("Get form error:", error);
     return new Response(
-      JSON.stringify({ error: 'Failed to get BSD', details: (error as any)?.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      JSON.stringify({
+        error: "Failed to get BSD",
+        details: (error as any)?.message,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 }
 
-async function handleValidateToken(req: Request, token: string) {
+async function handleValidateToken(req: Request) {
   try {
     // Récupérer le token et le mode (sandbox) depuis le body / query
-    const url = new URL(req.url)
-    const body = await req.json()
-    const userToken = body?.token
-    const sandboxFromQuery = url.searchParams.get('sandbox')
-    const sandbox = typeof body?.sandbox === 'boolean' ? body.sandbox : sandboxFromQuery === 'true'
+    const url = new URL(req.url);
+    const body = await req.json();
+    const userToken = body?.token;
+    const sandboxFromQuery = url.searchParams.get("sandbox");
+    const sandbox =
+      typeof body?.sandbox === "boolean"
+        ? body.sandbox
+        : sandboxFromQuery === "true";
 
     if (!userToken) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           isValid: false,
-          errorType: 'format',
-          errorMessage: 'Token manquant dans la requête'
+          errorType: "format",
+          errorMessage: "Token manquant dans la requête",
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const validateQuery = `
@@ -253,80 +316,95 @@ async function handleValidateToken(req: Request, token: string) {
           name
         }
       }
-    `
+    `;
 
-    const graphqlUrl = sandbox 
-      ? 'https://api.sandbox.trackdechets.fr/graphql' 
-      : 'https://api.trackdechets.fr/graphql'
+    const graphqlUrl = sandbox
+      ? "https://api.sandbox.trackdechets.fr/graphql"
+      : "https://api.trackdechets.fr/graphql";
 
     const response = await fetch(graphqlUrl, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${userToken}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${userToken}`,
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query: validateQuery })
-    })
+      body: JSON.stringify({ query: validateQuery }),
+    });
 
-    const contentType = response.headers.get('content-type') || ''
-    let result: any = null
-    let rawText: string | undefined
+    const contentType = response.headers.get("content-type") || "";
+    let result: any = null;
+    let rawText: string | undefined;
 
-    if (contentType.includes('application/json')) {
-      result = await response.json()
+    if (contentType.includes("application/json")) {
+      result = await response.json();
     } else {
-      rawText = await response.text()
-      console.error('Non-JSON response from Track Déchets (validateToken):', response.status, rawText?.slice(0, 500))
+      rawText = await response.text();
+      console.error(
+        "Non-JSON response from Track Déchets (validateToken):",
+        response.status,
+        rawText?.slice(0, 500)
+      );
     }
 
     if (!response.ok) {
-      let errorType = 'network'
-      if (response.status === 401) errorType = 'invalid_token'
-      if (response.status === 403) errorType = 'permissions'
+      let errorType = "network";
+      if (response.status === 401) errorType = "invalid_token";
+      if (response.status === 403) errorType = "permissions";
 
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           isValid: false,
           errorType,
-          errorMessage: result?.errors?.[0]?.message || rawText || `Erreur HTTP ${response.status}`
+          errorMessage:
+            result?.errors?.[0]?.message ||
+            rawText ||
+            `Erreur HTTP ${response.status}`,
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     if (result?.errors) {
-      console.error('Track Déchet validation errors:', result.errors)
+      console.error("Track Déchet validation errors:", result.errors);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           isValid: false,
-          errorType: 'invalid_token',
-          errorMessage: result.errors[0]?.message || 'Token invalide'
+          errorType: "invalid_token",
+          errorMessage: result.errors[0]?.message || "Token invalide",
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         isValid: true,
-        userInfo: result?.data?.me
+        userInfo: result?.data?.me,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (error) {
-    console.error('Validate token error:', error)
+    console.error("Validate token error:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
+      JSON.stringify({
+        success: false,
         isValid: false,
-        errorType: 'network',
-        errorMessage: 'Erreur de connexion'
+        errorType: "network",
+        errorMessage: "Erreur de connexion",
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 }
