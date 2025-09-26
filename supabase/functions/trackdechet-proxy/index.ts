@@ -14,9 +14,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // VERSION 12.1 - DEBUG TOKEN DYNAMIQUE
+  // VERSION 12.2 - FORCE REDEPLOY
   console.log(
-    "🚀 VERSION 12.1 - DEBUG TOKEN DYNAMIQUE " +
+    "🚀 VERSION 12.2 - FORCE REDEPLOY " +
       new Date().toISOString() +
       " 🚀"
   );
