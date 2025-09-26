@@ -14,9 +14,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // VERSION 12.0 - TOKEN DYNAMIQUE DEPUIS LE FRONTEND
+  // VERSION 12.1 - DEBUG TOKEN DYNAMIQUE
   console.log(
-    "🚀 VERSION 12.0 - TOKEN DYNAMIQUE DEPUIS LE FRONTEND " +
+    "🚀 VERSION 12.1 - DEBUG TOKEN DYNAMIQUE " +
       new Date().toISOString() +
       " 🚀"
   );
@@ -272,8 +272,12 @@ async function handleValidateToken(req: Request) {
   try {
     const body = await req.json();
 
+    console.log("🔍 DEBUG: Body reçu:", JSON.stringify(body, null, 2));
+
     // Extraire le token depuis le body de la requête
     const userToken = body?.token;
+
+    console.log("🔍 DEBUG: Token extrait:", userToken);
 
     if (!userToken) {
       return new Response(
