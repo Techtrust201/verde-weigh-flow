@@ -1,5 +1,5 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+// @ts-ignore - Edge Functions import
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,8 +13,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Force redeploy marker - version 2.0
-  console.log("🚀 Track Déchet Proxy v2.0 - Using official API URLs");
+  // Force redeploy marker - version 3.0 
+  console.log("🚀 Track Déchet Proxy v3.0 - Fixed URLs and TypeScript imports");
 
   try {
     // Get the API token from secrets
@@ -100,8 +100,8 @@ async function handleCreateForm(req: Request) {
 
     // Utiliser les URLs officielles selon la documentation Track Déchet
     const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
-      : "https://api.trackdechets.beta.gouv.fr";
+      ? "https://api.sandbox.trackdechets.fr"
+      : "https://api.trackdechets.fr";
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -234,8 +234,8 @@ async function handleGetForm(req: Request) {
 
     // Utiliser les URLs officielles selon la documentation Track Déchet
     const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
-      : "https://api.trackdechets.beta.gouv.fr";
+      ? "https://api.sandbox.trackdechets.fr"
+      : "https://api.trackdechets.fr";
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -346,8 +346,8 @@ async function handleValidateToken(req: Request) {
 
     // Utiliser les URLs officielles selon la documentation Track Déchet
     const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
-      : "https://api.trackdechets.beta.gouv.fr";
+      ? "https://api.sandbox.trackdechets.fr"
+      : "https://api.trackdechets.fr";
 
     console.log(
       "🔍 DEBUG: Using official Track Déchet URL:",
