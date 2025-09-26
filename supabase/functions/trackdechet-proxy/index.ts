@@ -347,12 +347,14 @@ async function handleValidateToken(req: Request) {
     const graphqlUrl = sandbox
       ? "https://api.sandbox.trackdechets.beta.gouv.fr"
       : "https://api.trackdechets.beta.gouv.fr";
-
+ 
     console.log(
       "🔍 DEBUG: Using official Track Déchet URL:",
       graphqlUrl,
       "sandbox:",
-      sandbox
+      sandbox,
+      "timestamp:",
+      new Date().toISOString()
     );
 
     const response = await fetch(graphqlUrl, {
