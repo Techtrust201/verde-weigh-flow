@@ -1,5 +1,6 @@
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
 // @ts-ignore - Edge Functions import
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,20 +14,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Force redeploy marker - version 4.1 - TOKEN EN DUR
+  // NOUVELLE VERSION - VERSION 6.0 - TOKEN EN DUR
   console.log(
-    "🚀 Track Déchet Proxy v4.1 - TOKEN EN DUR + CORRECT beta.gouv.fr URLs"
+    "🚀🚀🚀 NOUVELLE VERSION 6.0 - TOKEN EN DUR + BETA.GOUV.FR 🚀🚀🚀"
   );
 
   try {
-    // Get the API token from secrets
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     const { pathname } = new URL(req.url);
-    const path = pathname.split("/").pop(); // Get the last part of the path
+    const path = pathname.split("/").pop();
 
     switch (path) {
       case "createForm":
@@ -58,13 +53,10 @@ Deno.serve(async (req) => {
 
 async function handleCreateForm(req: Request) {
   try {
-    const url = new URL(req.url);
     const body = await req.json();
 
-    // TEST: Token sandbox en dur pour debug
+    // TOKEN EN DUR POUR TEST
     const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
-
-    // TEST: Force sandbox pour debug
     const sandbox = true;
 
     if (!userToken) {
@@ -77,15 +69,7 @@ async function handleCreateForm(req: Request) {
       );
     }
 
-    // Retirer les clés sandbox/token du payload envoyé à GraphQL
     const { sandbox: _sandbox, token: _token, ...createFormInput } = body || {};
-
-    console.log(
-      "Creating BSD with data:",
-      JSON.stringify(createFormInput, null, 2),
-      "sandbox:",
-      sandbox
-    );
 
     const createFormMutation = `
       mutation CreateForm($createFormInput: CreateFormInput!) {
@@ -98,10 +82,8 @@ async function handleCreateForm(req: Request) {
       }
     `;
 
-    // FORCER les bonnes URLs - version 4.0
-    const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
-      : "https://api.trackdechets.beta.gouv.fr";
+    // URL CORRECTE
+    const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -121,17 +103,8 @@ async function handleCreateForm(req: Request) {
 
     if (contentType.includes("application/json")) {
       result = await response.json();
-      console.log(
-        "Track Déchet API response:",
-        JSON.stringify(result, null, 2)
-      );
     } else {
       rawText = await response.text();
-      console.error(
-        "Non-JSON response from Track Déchets (createForm):",
-        response.status,
-        rawText?.slice(0, 500)
-      );
     }
 
     if (!response.ok) {
@@ -148,7 +121,6 @@ async function handleCreateForm(req: Request) {
     }
 
     if (result?.errors) {
-      console.error("Track Déchet API errors:", result.errors);
       return new Response(
         JSON.stringify({
           error: "Track Déchet API error",
@@ -196,11 +168,10 @@ async function handleGetForm(req: Request) {
       bsdId = body.id;
     }
 
-    // TEST: Force sandbox pour debug
+    // TOKEN EN DUR POUR TEST
+    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
     const sandbox = true;
 
-    // TEST: Token sandbox en dur pour debug
-    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
     if (!userToken) {
       return new Response(
         JSON.stringify({
@@ -230,10 +201,8 @@ async function handleGetForm(req: Request) {
       }
     `;
 
-    // FORCER les bonnes URLs - version 4.0
-    const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
-      : "https://api.trackdechets.beta.gouv.fr";
+    // URL CORRECTE
+    const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -255,11 +224,6 @@ async function handleGetForm(req: Request) {
       result = await response.json();
     } else {
       rawText = await response.text();
-      console.error(
-        "Non-JSON response from Track Déchets (getForm):",
-        response.status,
-        rawText?.slice(0, 500)
-      );
     }
 
     if (!response.ok) {
@@ -276,7 +240,6 @@ async function handleGetForm(req: Request) {
     }
 
     if (result?.errors) {
-      console.error("Track Déchet API errors:", result.errors);
       return new Response(
         JSON.stringify({
           error: "Track Déchet API error",
@@ -310,12 +273,9 @@ async function handleGetForm(req: Request) {
 
 async function handleValidateToken(req: Request) {
   try {
-    // Récupérer le token et le mode (sandbox) depuis le body / query
-    const url = new URL(req.url);
-    const body = await req.json();
-    // TEST: Token sandbox en dur pour debug
+    // TOKEN EN DUR POUR TEST
     const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
-    const sandbox = true; // Force sandbox pour le test
+    const sandbox = true;
 
     if (!userToken) {
       return new Response(
@@ -342,18 +302,14 @@ async function handleValidateToken(req: Request) {
       }
     `;
 
-    // FORCER les bonnes URLs - version 4.0
-    const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
-      : "https://api.trackdechets.beta.gouv.fr";
+    // URL CORRECTE
+    const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
 
     console.log(
-      "🔍 DEBUG: Using official Track Déchet URL:",
+      "🔍 DEBUG: Using CORRECT URL:",
       graphqlUrl,
       "sandbox:",
-      sandbox,
-      "timestamp:",
-      new Date().toISOString()
+      sandbox
     );
 
     const response = await fetch(graphqlUrl, {
@@ -365,10 +321,7 @@ async function handleValidateToken(req: Request) {
       body: JSON.stringify({ query: validateQuery }),
     });
 
-    console.log(
-      "🔍 DEBUG validateToken: Track Déchet API response status:",
-      response.status
-    );
+    console.log("🔍 DEBUG: Response status:", response.status);
 
     const contentType = response.headers.get("content-type") || "";
     let result: any = null;
@@ -376,14 +329,11 @@ async function handleValidateToken(req: Request) {
 
     if (contentType.includes("application/json")) {
       result = await response.json();
-      console.log(
-        "🔍 DEBUG validateToken: Track Déchet API JSON response:",
-        JSON.stringify(result, null, 2)
-      );
+      console.log("🔍 DEBUG: JSON response:", JSON.stringify(result, null, 2));
     } else {
       rawText = await response.text();
       console.error(
-        "Non-JSON response from Track Déchets (validateToken):",
+        "Non-JSON response:",
         response.status,
         rawText?.slice(0, 500)
       );
@@ -427,10 +377,7 @@ async function handleValidateToken(req: Request) {
       );
     }
 
-    console.log(
-      "✅ DEBUG validateToken: Returning success with userInfo:",
-      result?.data?.me
-    );
+    console.log("✅ SUCCESS: Returning userInfo:", result?.data?.me);
 
     return new Response(
       JSON.stringify({
