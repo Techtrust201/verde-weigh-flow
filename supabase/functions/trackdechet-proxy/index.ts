@@ -342,20 +342,20 @@ async function handleValidateToken(req: Request) {
     // TEST: Essayer différentes URLs pour trouver la bonne
     const possibleUrls = [
       "https://api.trackdechets.fr/graphql",
-      "https://api.trackdechets.fr/api/graphql", 
+      "https://api.trackdechets.fr/api/graphql",
       "https://trackdechets.beta.gouv.fr/api/graphql",
       "https://trackdechets.beta.gouv.fr/graphql",
       "https://api.trackdechets.beta.gouv.fr/graphql",
-      "https://api.trackdechets.beta.gouv.fr/api/graphql"
+      "https://api.trackdechets.beta.gouv.fr/api/graphql",
     ];
-    
+
     // Tester toutes les URLs
     let workingUrl = null;
     let response;
-    
+
     for (const testUrl of possibleUrls) {
       console.log(`🔍 DEBUG: Testing URL: ${testUrl}`);
-      
+
       try {
         response = await fetch(testUrl, {
           method: "POST",
@@ -365,9 +365,11 @@ async function handleValidateToken(req: Request) {
           },
           body: JSON.stringify({ query: validateQuery }),
         });
-        
-        console.log(`🔍 DEBUG: URL ${testUrl} returned status: ${response.status}`);
-        
+
+        console.log(
+          `🔍 DEBUG: URL ${testUrl} returned status: ${response.status}`
+        );
+
         if (response.status !== 404) {
           workingUrl = testUrl;
           console.log(`✅ DEBUG: Found working URL: ${testUrl}`);
@@ -377,7 +379,7 @@ async function handleValidateToken(req: Request) {
         console.log(`❌ DEBUG: URL ${testUrl} failed:`, error.message);
       }
     }
-    
+
     if (!workingUrl) {
       console.log("❌ DEBUG: No working URL found");
       return new Response(
@@ -390,7 +392,7 @@ async function handleValidateToken(req: Request) {
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
+
     console.log("🔍 DEBUG: Using working URL:", workingUrl);
 
     console.log(
