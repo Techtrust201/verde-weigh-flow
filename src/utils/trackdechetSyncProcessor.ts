@@ -102,9 +102,14 @@ export class TrackDechetSyncProcessor {
     // Appeler le proxy backend (respecte le mode sandbox global)
     const settings = await getGlobalSettings();
     const sandbox = !!settings.trackDechetSandboxMode;
+    const token = settings.trackDechetToken;
+
+    if (!token) {
+      throw new Error('Token Track Déchet manquant');
+    }
 
     const { data, error } = await supabase.functions.invoke('trackdechet-proxy/createForm', {
-      body: { ...bsdData, sandbox }
+      body: { ...bsdData, sandbox, token }
     });
 
     if (error) {
@@ -190,11 +195,17 @@ export class TrackDechetSyncProcessor {
 
     const settings = await getGlobalSettings();
     const sandbox = !!settings.trackDechetSandboxMode;
+    const token = settings.trackDechetToken;
+
+    if (!token) {
+      console.warn('Track Déchet token manquant: impossible de synchroniser les statuts');
+      return;
+    }
     
     for (const bsd of bsds) {
       try {
         const { data, error } = await supabase.functions.invoke('trackdechet-proxy/getForm', {
-          body: { id: bsd.bsdId, sandbox }
+          body: { id: bsd.bsdId, sandbox, token }
         });
 
         if (!error && data.success) {

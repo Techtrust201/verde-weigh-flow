@@ -72,7 +72,7 @@ export const generateBSD = async (
     const sandbox = !!settings.trackDechetSandboxMode;
 
     const { data, error } = await supabase.functions.invoke('trackdechet-proxy/createForm', {
-      body: { ...bsdData, sandbox }
+      body: { ...bsdData, sandbox, token: apiToken }
     });
 
     if (error) {
@@ -182,7 +182,7 @@ export const getBSDStatus = async (
     const sandbox = !!settings.trackDechetSandboxMode;
 
     const { data, error } = await supabase.functions.invoke('trackdechet-proxy/getForm', {
-      body: { id: bsdId, sandbox }
+      body: { id: bsdId, sandbox, token: apiToken }
     });
 
     if (error) {

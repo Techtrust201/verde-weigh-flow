@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: "Internal server error",
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
       }),
       {
         status: 500,
@@ -55,14 +55,23 @@ async function handleCreateForm(req: Request) {
     const url = new URL(req.url);
     const body = await req.json();
 
+    const userToken = body?.token;
+
     const sandboxFromQuery = url.searchParams.get("sandbox");
     const sandbox =
       typeof body?.sandbox === "boolean"
         ? body.sandbox
         : sandboxFromQuery === "true";
 
-    // Retirer la clé sandbox du payload envoyé à GraphQL si elle est présente
-    const { sandbox: _sandbox, ...createFormInput } = body || {};
+    if (!userToken) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Token manquant dans la requête" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Retirer les clés sandbox/token du payload envoyé à GraphQL
+    const { sandbox: _sandbox, token: _token, ...createFormInput } = body || {};
 
     console.log(
       "Creating BSD with data:",
@@ -89,7 +98,7 @@ async function handleCreateForm(req: Request) {
     const response = await fetch(graphqlUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -185,6 +194,14 @@ async function handleGetForm(req: Request) {
         ? body.sandbox
         : sandboxFromQuery === "true";
 
+    const userToken = body?.token;
+    if (!userToken) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Token manquant dans la requête" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!bsdId) {
       return new Response(JSON.stringify({ error: "BSD ID is required" }), {
         status: 400,
@@ -211,7 +228,7 @@ async function handleGetForm(req: Request) {
     const response = await fetch(graphqlUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${userToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
