@@ -339,19 +339,59 @@ async function handleValidateToken(req: Request) {
       }
     `;
 
-    // FORCER l'URL de production - contournement du problème de déploiement
-    const graphqlUrl = "https://api.trackdechets.fr/graphql";
-
-    console.log("🔍 DEBUG: Using production URL:", graphqlUrl);
-
-    const response = await fetch(graphqlUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${userToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: validateQuery }),
-    });
+    // TEST: Essayer différentes URLs pour trouver la bonne
+    const possibleUrls = [
+      "https://api.trackdechets.fr/graphql",
+      "https://api.trackdechets.fr/api/graphql", 
+      "https://trackdechets.beta.gouv.fr/api/graphql",
+      "https://trackdechets.beta.gouv.fr/graphql",
+      "https://api.trackdechets.beta.gouv.fr/graphql",
+      "https://api.trackdechets.beta.gouv.fr/api/graphql"
+    ];
+    
+    // Tester toutes les URLs
+    let workingUrl = null;
+    let response;
+    
+    for (const testUrl of possibleUrls) {
+      console.log(`🔍 DEBUG: Testing URL: ${testUrl}`);
+      
+      try {
+        response = await fetch(testUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query: validateQuery }),
+        });
+        
+        console.log(`🔍 DEBUG: URL ${testUrl} returned status: ${response.status}`);
+        
+        if (response.status !== 404) {
+          workingUrl = testUrl;
+          console.log(`✅ DEBUG: Found working URL: ${testUrl}`);
+          break;
+        }
+      } catch (error) {
+        console.log(`❌ DEBUG: URL ${testUrl} failed:`, error.message);
+      }
+    }
+    
+    if (!workingUrl) {
+      console.log("❌ DEBUG: No working URL found");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          isValid: false,
+          errorType: "network",
+          errorMessage: "Aucune URL Track Déchet accessible",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log("🔍 DEBUG: Using working URL:", workingUrl);
 
     console.log(
       "🔍 DEBUG validateToken: Track Déchet API response status:",
