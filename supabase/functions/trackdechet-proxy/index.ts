@@ -14,10 +14,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // NOUVELLE VERSION - VERSION 7.0 - TOKEN EN DUR
-  console.log(
-    "🚀🚀🚀 NOUVELLE VERSION 7.0 - TOKEN EN DUR + BETA.GOUV.FR 🚀🚀🚀"
-  );
+  // VERSION 10.0 - SUIVANT EXACTEMENT LA DOC TRACK DÉCHET
+  console.log("🚀 VERSION 10.0 - SUIVANT LA DOC TRACK DÉCHET 🚀");
 
   try {
     const { pathname } = new URL(req.url);
@@ -55,20 +53,20 @@ async function handleCreateForm(req: Request) {
   try {
     const body = await req.json();
 
-    // TOKEN EN DUR POUR TEST
-    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
-    const sandbox = true;
+    // Token valide sandbox
+    const userToken = "5l1tELsgXOCGZjH8NWllZhwNDfzaTcoXWodWLJVQ";
 
     if (!userToken) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Token manquant dans la requête",
+          error: "Token manquant",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Retirer les clés sandbox/token du payload
     const { sandbox: _sandbox, token: _token, ...createFormInput } = body || {};
 
     const createFormMutation = `
@@ -82,9 +80,15 @@ async function handleCreateForm(req: Request) {
       }
     `;
 
-    // URL CORRECTE
+    // URL selon la documentation
     const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
 
+    console.log(
+      "📤 Creating BSD with:",
+      JSON.stringify(createFormInput, null, 2)
+    );
+
+    // Requête selon la doc : POST avec Authorization Bearer et Content-Type
     const response = await fetch(graphqlUrl, {
       method: "POST",
       headers: {
@@ -97,21 +101,14 @@ async function handleCreateForm(req: Request) {
       }),
     });
 
-    const contentType = response.headers.get("content-type") || "";
-    let result: any = null;
-    let rawText: string | undefined;
-
-    if (contentType.includes("application/json")) {
-      result = await response.json();
-    } else {
-      rawText = await response.text();
-    }
+    const result = await response.json();
+    console.log("📥 Track Déchet response:", JSON.stringify(result, null, 2));
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
           error: "Track Déchet API error",
-          details: result?.errors || rawText || `HTTP ${response.status}`,
+          details: result?.errors || `HTTP ${response.status}`,
         }),
         {
           status: 400,
@@ -168,15 +165,14 @@ async function handleGetForm(req: Request) {
       bsdId = body.id;
     }
 
-    // TOKEN EN DUR POUR TEST
-    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
-    const sandbox = true;
+    // Token valide sandbox
+    const userToken = "5l1tELsgXOCGZjH8NWllZhwNDfzaTcoXWodWLJVQ";
 
     if (!userToken) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Token manquant dans la requête",
+          error: "Token manquant",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -201,9 +197,12 @@ async function handleGetForm(req: Request) {
       }
     `;
 
-    // URL CORRECTE
+    // URL selon la documentation
     const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
 
+    console.log("📤 Getting BSD:", bsdId);
+
+    // Requête selon la doc
     const response = await fetch(graphqlUrl, {
       method: "POST",
       headers: {
@@ -216,21 +215,14 @@ async function handleGetForm(req: Request) {
       }),
     });
 
-    const contentType = response.headers.get("content-type") || "";
-    let result: any = null;
-    let rawText: string | undefined;
-
-    if (contentType.includes("application/json")) {
-      result = await response.json();
-    } else {
-      rawText = await response.text();
-    }
+    const result = await response.json();
+    console.log("📥 Track Déchet response:", JSON.stringify(result, null, 2));
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
           error: "Track Déchet API error",
-          details: result?.errors || rawText || `HTTP ${response.status}`,
+          details: result?.errors || `HTTP ${response.status}`,
         }),
         {
           status: 400,
@@ -273,9 +265,8 @@ async function handleGetForm(req: Request) {
 
 async function handleValidateToken(req: Request) {
   try {
-    // TOKEN EN DUR POUR TEST
-    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
-    const sandbox = true;
+    // Token valide sandbox
+    const userToken = "5l1tELsgXOCGZjH8NWllZhwNDfzaTcoXWodWLJVQ";
 
     if (!userToken) {
       return new Response(
@@ -283,7 +274,7 @@ async function handleValidateToken(req: Request) {
           success: false,
           isValid: false,
           errorType: "format",
-          errorMessage: "Token manquant dans la requête",
+          errorMessage: "Token manquant",
         }),
         {
           status: 200,
@@ -292,6 +283,7 @@ async function handleValidateToken(req: Request) {
       );
     }
 
+    // Query exacte de la documentation
     const validateQuery = `
       query {
         me {
@@ -302,16 +294,12 @@ async function handleValidateToken(req: Request) {
       }
     `;
 
-    // URL CORRECTE
+    // URL selon la documentation
     const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
 
-    console.log(
-      "🔍 DEBUG: Using CORRECT URL:",
-      graphqlUrl,
-      "sandbox:",
-      sandbox
-    );
+    console.log("🔍 Validating token with Track Déchet API");
 
+    // Requête EXACTEMENT comme dans la doc
     const response = await fetch(graphqlUrl, {
       method: "POST",
       headers: {
@@ -321,38 +309,16 @@ async function handleValidateToken(req: Request) {
       body: JSON.stringify({ query: validateQuery }),
     });
 
-    console.log("🔍 DEBUG: Response status:", response.status);
-
-    const contentType = response.headers.get("content-type") || "";
-    let result: any = null;
-    let rawText: string | undefined;
-
-    if (contentType.includes("application/json")) {
-      result = await response.json();
-      console.log("🔍 DEBUG: JSON response:", JSON.stringify(result, null, 2));
-    } else {
-      rawText = await response.text();
-      console.error(
-        "Non-JSON response:",
-        response.status,
-        rawText?.slice(0, 500)
-      );
-    }
+    const result = await response.json();
+    console.log("📥 Track Déchet response:", JSON.stringify(result, null, 2));
 
     if (!response.ok) {
-      let errorType = "network";
-      if (response.status === 401) errorType = "invalid_token";
-      if (response.status === 403) errorType = "permissions";
-
       return new Response(
         JSON.stringify({
           success: false,
           isValid: false,
-          errorType,
-          errorMessage:
-            result?.errors?.[0]?.message ||
-            rawText ||
-            `Erreur HTTP ${response.status}`,
+          errorType: "network",
+          errorMessage: `Erreur HTTP ${response.status}`,
         }),
         {
           status: 200,
@@ -377,7 +343,7 @@ async function handleValidateToken(req: Request) {
       );
     }
 
-    console.log("✅ SUCCESS: Returning userInfo:", result?.data?.me);
+    console.log("✅ Token validé avec succès:", result?.data?.me);
 
     return new Response(
       JSON.stringify({
