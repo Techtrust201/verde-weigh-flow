@@ -13,8 +13,10 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Force redeploy marker - version 3.0 
-  console.log("🚀 Track Déchet Proxy v3.0 - Fixed URLs and TypeScript imports");
+  // Force redeploy marker - version 4.1 - TOKEN EN DUR
+  console.log(
+    "🚀 Track Déchet Proxy v4.1 - TOKEN EN DUR + CORRECT beta.gouv.fr URLs"
+  );
 
   try {
     // Get the API token from secrets
@@ -59,13 +61,11 @@ async function handleCreateForm(req: Request) {
     const url = new URL(req.url);
     const body = await req.json();
 
-    const userToken = body?.token;
+    // TEST: Token sandbox en dur pour debug
+    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
 
-    const sandboxFromQuery = url.searchParams.get("sandbox");
-    const sandbox =
-      typeof body?.sandbox === "boolean"
-        ? body.sandbox
-        : sandboxFromQuery === "true";
+    // TEST: Force sandbox pour debug
+    const sandbox = true;
 
     if (!userToken) {
       return new Response(
@@ -98,10 +98,10 @@ async function handleCreateForm(req: Request) {
       }
     `;
 
-    // Utiliser les URLs officielles selon la documentation Track Déchet
+    // FORCER les bonnes URLs - version 4.0
     const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.fr"
-      : "https://api.trackdechets.fr";
+      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
+      : "https://api.trackdechets.beta.gouv.fr";
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -196,13 +196,11 @@ async function handleGetForm(req: Request) {
       bsdId = body.id;
     }
 
-    const sandboxFromQuery = url.searchParams.get("sandbox");
-    const sandbox =
-      typeof body?.sandbox === "boolean"
-        ? body.sandbox
-        : sandboxFromQuery === "true";
+    // TEST: Force sandbox pour debug
+    const sandbox = true;
 
-    const userToken = body?.token;
+    // TEST: Token sandbox en dur pour debug
+    const userToken = "KuZwCgNTBtric3l4YgDUUVomxqJrEwtZ4ZVqSbJV";
     if (!userToken) {
       return new Response(
         JSON.stringify({
@@ -232,10 +230,10 @@ async function handleGetForm(req: Request) {
       }
     `;
 
-    // Utiliser les URLs officielles selon la documentation Track Déchet
+    // FORCER les bonnes URLs - version 4.0
     const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.fr"
-      : "https://api.trackdechets.fr";
+      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
+      : "https://api.trackdechets.beta.gouv.fr";
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -344,10 +342,10 @@ async function handleValidateToken(req: Request) {
       }
     `;
 
-    // Utiliser les URLs officielles selon la documentation Track Déchet
+    // FORCER les bonnes URLs - version 4.0
     const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.fr"
-      : "https://api.trackdechets.fr";
+      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
+      : "https://api.trackdechets.beta.gouv.fr";
 
     console.log(
       "🔍 DEBUG: Using official Track Déchet URL:",
