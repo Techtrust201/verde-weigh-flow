@@ -14,8 +14,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // VERSION 11.0 - FORCE REDEPLOY + NOUVEAU TOKEN
-  console.log("🚀 VERSION 11.0 - REDEPLOY FORCE " + new Date().toISOString() + " 🚀");
+  // VERSION 12.0 - TOKEN DYNAMIQUE DEPUIS LE FRONTEND
+  console.log("🚀 VERSION 12.0 - TOKEN DYNAMIQUE DEPUIS LE FRONTEND " + new Date().toISOString() + " 🚀");
 
   try {
     const { pathname } = new URL(req.url);
@@ -53,21 +53,18 @@ async function handleCreateForm(req: Request) {
   try {
     const body = await req.json();
 
-    // Token valide sandbox
-    const userToken = "5l1tELsgXOCGZjH8NWllZhwNDfzaTcoXWodWLJVQ";
+    // Extraire le token depuis le body de la requête
+    const { token: userToken, sandbox: _sandbox, ...createFormInput } = body || {};
 
     if (!userToken) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Token manquant",
+          error: "Token API Track Déchet manquant",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Retirer les clés sandbox/token du payload
-    const { sandbox: _sandbox, token: _token, ...createFormInput } = body || {};
 
     const createFormMutation = `
       mutation CreateForm($createFormInput: CreateFormInput!) {
@@ -165,14 +162,14 @@ async function handleGetForm(req: Request) {
       bsdId = body.id;
     }
 
-    // Token valide sandbox
-    const userToken = "5l1tELsgXOCGZjH8NWllZhwNDfzaTcoXWodWLJVQ";
+    // Extraire le token depuis le body de la requête
+    const userToken = body?.token;
 
     if (!userToken) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Token manquant",
+          error: "Token API Track Déchet manquant",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -265,8 +262,10 @@ async function handleGetForm(req: Request) {
 
 async function handleValidateToken(req: Request) {
   try {
-    // Token valide sandbox
-    const userToken = "5l1tELsgXOCGZjH8NWllZhwNDfzaTcoXWodWLJVQ";
+    const body = await req.json();
+    
+    // Extraire le token depuis le body de la requête
+    const userToken = body?.token;
 
     if (!userToken) {
       return new Response(
@@ -274,7 +273,7 @@ async function handleValidateToken(req: Request) {
           success: false,
           isValid: false,
           errorType: "format",
-          errorMessage: "Token manquant",
+          errorMessage: "Token API Track Déchet manquant",
         }),
         {
           status: 200,
