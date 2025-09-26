@@ -65,7 +65,10 @@ async function handleCreateForm(req: Request) {
 
     if (!userToken) {
       return new Response(
-        JSON.stringify({ success: false, error: "Token manquant dans la requête" }),
+        JSON.stringify({
+          success: false,
+          error: "Token manquant dans la requête",
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -91,9 +94,8 @@ async function handleCreateForm(req: Request) {
       }
     `;
 
-    const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.fr/graphql"
-      : "https://api.trackdechets.fr/graphql";
+    // TEMPORAIRE: Forcer l'URL de production car l'URL sandbox n'est pas accessible depuis Supabase
+    const graphqlUrl = "https://api.trackdechets.fr/graphql";
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -197,7 +199,10 @@ async function handleGetForm(req: Request) {
     const userToken = body?.token;
     if (!userToken) {
       return new Response(
-        JSON.stringify({ success: false, error: "Token manquant dans la requête" }),
+        JSON.stringify({
+          success: false,
+          error: "Token manquant dans la requête",
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -221,9 +226,8 @@ async function handleGetForm(req: Request) {
       }
     `;
 
-    const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.fr/graphql"
-      : "https://api.trackdechets.fr/graphql";
+    // TEMPORAIRE: Forcer l'URL de production car l'URL sandbox n'est pas accessible depuis Supabase
+    const graphqlUrl = "https://api.trackdechets.fr/graphql";
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -335,9 +339,10 @@ async function handleValidateToken(req: Request) {
       }
     `;
 
-    const graphqlUrl = sandbox
-      ? "https://api.sandbox.trackdechets.fr/graphql"
-      : "https://api.trackdechets.fr/graphql";
+    // FORCER l'URL de production - contournement du problème de déploiement
+    const graphqlUrl = "https://api.trackdechets.fr/graphql";
+
+    console.log("🔍 DEBUG: Using production URL:", graphqlUrl);
 
     const response = await fetch(graphqlUrl, {
       method: "POST",
@@ -348,12 +353,21 @@ async function handleValidateToken(req: Request) {
       body: JSON.stringify({ query: validateQuery }),
     });
 
+    console.log(
+      "🔍 DEBUG validateToken: Track Déchet API response status:",
+      response.status
+    );
+
     const contentType = response.headers.get("content-type") || "";
     let result: any = null;
     let rawText: string | undefined;
 
     if (contentType.includes("application/json")) {
       result = await response.json();
+      console.log(
+        "🔍 DEBUG validateToken: Track Déchet API JSON response:",
+        JSON.stringify(result, null, 2)
+      );
     } else {
       rawText = await response.text();
       console.error(
@@ -400,6 +414,11 @@ async function handleValidateToken(req: Request) {
         }
       );
     }
+
+    console.log(
+      "✅ DEBUG validateToken: Returning success with userInfo:",
+      result?.data?.me
+    );
 
     return new Response(
       JSON.stringify({

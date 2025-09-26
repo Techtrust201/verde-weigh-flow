@@ -3,10 +3,10 @@
  * Tous les appels passent maintenant par notre edge function pour éviter CORS
  */
 
-import { formatPeseeForTrackDechet } from './trackdechetValidation';
-import { Pesee, Product, Client, Transporteur, BSD, db } from '@/lib/database';
-import { supabase } from '@/integrations/supabase/client';
-import { getGlobalSettings } from '@/lib/globalSettings';
+import { formatPeseeForTrackDechet } from "./trackdechetValidation";
+import { Pesee, Product, Client, Transporteur, BSD, db } from "@/lib/database";
+import { supabase } from "@/integrations/supabase/client";
+import { getGlobalSettings } from "@/lib/globalSettings";
 
 /**
  * Interface pour les réponses de l'API Track Déchet
@@ -34,12 +34,21 @@ export const generateBSD = async (
     // Récupérer les paramètres utilisateur pour les informations de l'entreprise
     const userSettings = await db.userSettings.toCollection().first();
     if (!userSettings) {
-      throw new Error('Informations entreprise non configurées. Veuillez configurer vos informations dans l\'espace Utilisateur.');
+      throw new Error(
+        "Informations entreprise non configurées. Veuillez configurer vos informations dans l'espace Utilisateur."
+      );
     }
-    
+
     // Formater les données pour Track Déchet
-    const bsdData = formatPeseeForTrackDechet(pesee, client, transporteur, product, codeDechet, userSettings);
-    
+    const bsdData = formatPeseeForTrackDechet(
+      pesee,
+      client,
+      transporteur,
+      product,
+      codeDechet,
+      userSettings
+    );
+
     // Mutation GraphQL pour créer le BSD
     const mutation = `
       mutation CreateForm($createFormInput: CreateFormInput!) {
@@ -71,9 +80,12 @@ export const generateBSD = async (
     const settings = await getGlobalSettings();
     const sandbox = !!settings.trackDechetSandboxMode;
 
-    const { data, error } = await supabase.functions.invoke('trackdechet-proxy/createForm', {
-      body: { ...bsdData, sandbox, token: apiToken }
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "trackdechet-proxy/createForm",
+      {
+        body: { ...bsdData, sandbox, token: apiToken },
+      }
+    );
 
     if (error) {
       throw new Error(`Proxy error: ${error.message}`);
@@ -84,7 +96,7 @@ export const generateBSD = async (
     if (!result.success) {
       return {
         success: false,
-        error: result.error || 'Erreur inconnue lors de la création du BSD'
+        error: result.error || "Erreur inconnue lors de la création du BSD",
       };
     }
 
@@ -92,40 +104,42 @@ export const generateBSD = async (
     if (!bsdId) {
       return {
         success: false,
-        error: 'Aucun ID de BSD retourné par l\'API'
+        error: "Aucun ID de BSD retourné par l'API",
       };
     }
 
     // Sauvegarder le BSD localement
-    await saveBSDLocally(pesee.id!, bsdId, 'draft');
+    await saveBSDLocally(pesee.id!, bsdId, "draft");
 
     // Mettre à jour la pesée avec l'ID BSD
     await db.pesees.update(pesee.id!, { bsdId });
 
     return {
       success: true,
-      bsdId
+      bsdId,
     };
-
   } catch (error) {
-    console.error('Erreur génération BSD:', error);
-    
+    console.error("Erreur génération BSD:", error);
+
     // Gestion gracieuse des erreurs CORS pour préserver le mode hors ligne
-    if (error instanceof TypeError && (error.message.includes('CORS') || error.message.includes('fetch'))) {
+    if (
+      error instanceof TypeError &&
+      (error.message.includes("CORS") || error.message.includes("fetch"))
+    ) {
       // Créer un BSD temporaire qui sera synchronisé plus tard
       const tempBsdId = `offline_${Date.now()}_${pesee.id}`;
-      await saveBSDLocally(pesee.id!, tempBsdId, 'pending_sync');
-      
+      await saveBSDLocally(pesee.id!, tempBsdId, "pending_sync");
+
       return {
         success: true,
         bsdId: tempBsdId,
-        error: 'BSD créé en mode hors ligne. Sera synchronisé automatiquement.'
+        error: "BSD créé en mode hors ligne. Sera synchronisé automatiquement.",
       };
     }
-    
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Erreur inconnue'
+      error: error instanceof Error ? error.message : "Erreur inconnue",
     };
   }
 };
@@ -136,18 +150,18 @@ export const generateBSD = async (
 export const saveBSDLocally = async (
   peseeId: number,
   bsdId: string,
-  status: BSD['status']
+  status: BSD["status"]
 ): Promise<void> => {
   const now = new Date();
-  
-  const bsd: Omit<BSD, 'id'> = {
+
+  const bsd: Omit<BSD, "id"> = {
     peseeId,
     bsdId,
     readableId: bsdId,
     status,
     generatedAt: now,
     createdAt: now,
-    lastSyncAt: now
+    lastSyncAt: now,
   };
 
   await db.bsds.add(bsd);
@@ -181,9 +195,12 @@ export const getBSDStatus = async (
     const settings = await getGlobalSettings();
     const sandbox = !!settings.trackDechetSandboxMode;
 
-    const { data, error } = await supabase.functions.invoke('trackdechet-proxy/getForm', {
-      body: { id: bsdId, sandbox, token: apiToken }
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "trackdechet-proxy/getForm",
+      {
+        body: { id: bsdId, sandbox, token: apiToken },
+      }
+    );
 
     if (error) {
       throw new Error(`Proxy error: ${error.message}`);
@@ -194,20 +211,19 @@ export const getBSDStatus = async (
     if (!result.success) {
       return {
         success: false,
-        error: result.error || 'Erreur lors de la récupération du statut'
+        error: result.error || "Erreur lors de la récupération du statut",
       };
     }
 
     return {
       success: true,
-      status: result.bsd?.status
+      status: result.bsd?.status,
     };
-
   } catch (error) {
-    console.error('Erreur récupération statut BSD:', error);
+    console.error("Erreur récupération statut BSD:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Erreur inconnue'
+      error: error instanceof Error ? error.message : "Erreur inconnue",
     };
   }
 };
@@ -218,20 +234,20 @@ export const getBSDStatus = async (
 export const syncAllBSDs = async (apiToken: string): Promise<void> => {
   try {
     const localBSDs = await db.bsds.toArray();
-    
+
     for (const bsd of localBSDs) {
       const statusResult = await getBSDStatus(bsd.bsdId, apiToken);
-      
+
       if (statusResult.success && statusResult.status) {
         // Mettre à jour le statut local
         await db.bsds.update(bsd.id!, {
-          status: statusResult.status as BSD['status'],
-          lastSyncAt: new Date()
+          status: statusResult.status as BSD["status"],
+          lastSyncAt: new Date(),
         });
       }
     }
   } catch (error) {
-    console.error('Erreur synchronisation BSD:', error);
+    console.error("Erreur synchronisation BSD:", error);
   }
 };
 
@@ -240,7 +256,12 @@ export const syncAllBSDs = async (apiToken: string): Promise<void> => {
  */
 export interface ValidationResult {
   isValid: boolean;
-  errorType?: 'invalid_token' | 'expired' | 'permissions' | 'network' | 'format';
+  errorType?:
+    | "invalid_token"
+    | "expired"
+    | "permissions"
+    | "network"
+    | "format";
   errorMessage?: string;
   userInfo?: {
     id: string;
@@ -252,7 +273,9 @@ export interface ValidationResult {
 /**
  * Valide un token API Track Déchet avec détails d'erreur
  */
-export const validateTrackDechetToken = async (token: string): Promise<boolean> => {
+export const validateTrackDechetToken = async (
+  token: string
+): Promise<boolean> => {
   const result = await validateTrackDechetTokenDetailed(token);
   return result.isValid;
 };
@@ -260,21 +283,23 @@ export const validateTrackDechetToken = async (token: string): Promise<boolean> 
 /**
  * Valide un token API Track Déchet avec informations détaillées
  */
-export const validateTrackDechetTokenDetailed = async (token: string): Promise<ValidationResult> => {
+export const validateTrackDechetTokenDetailed = async (
+  token: string
+): Promise<ValidationResult> => {
   // Vérification du format du token
   if (!token || token.trim().length === 0) {
     return {
       isValid: false,
-      errorType: 'format',
-      errorMessage: 'Le token ne peut pas être vide'
+      errorType: "format",
+      errorMessage: "Le token ne peut pas être vide",
     };
   }
 
   if (token.length < 10) {
     return {
       isValid: false,
-      errorType: 'format',
-      errorMessage: 'Le token semble trop court (minimum 10 caractères)'
+      errorType: "format",
+      errorMessage: "Le token semble trop court (minimum 10 caractères)",
     };
   }
 
@@ -292,54 +317,67 @@ export const validateTrackDechetTokenDetailed = async (token: string): Promise<V
     const settings = await getGlobalSettings();
     const sandbox = !!settings.trackDechetSandboxMode;
 
-    const { data, error } = await supabase.functions.invoke('trackdechet-proxy/validateToken', {
-      body: { token, sandbox }
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "trackdechet-proxy/validateToken",
+      {
+        body: { token, sandbox },
+      }
+    );
 
     if (error) {
-      console.error('Proxy error:', error);
+      console.error("Proxy error:", error);
       return {
         isValid: false,
-        errorType: 'network',
-        errorMessage: 'Erreur de connexion au proxy backend'
+        errorType: "network",
+        errorMessage: "Erreur de connexion au proxy backend",
       };
     }
 
     const result = data;
-    
+
+    console.log(
+      "🔍 DEBUG: Edge function response:",
+      JSON.stringify(result, null, 2)
+    );
+
     if (!result.success || !result.isValid) {
       return {
         isValid: false,
-        errorType: result.errorType || 'invalid_token',
-        errorMessage: result.errorMessage || 'Token invalide'
+        errorType: result.errorType || "invalid_token",
+        errorMessage: result.errorMessage || "Token invalide",
       };
     }
 
     return {
       isValid: true,
-      userInfo: result.userInfo ? {
-        id: result.userInfo.id,
-        email: result.userInfo.email,
-        name: result.userInfo.name
-      } : undefined
+      userInfo: result.userInfo
+        ? {
+            id: result.userInfo.id,
+            email: result.userInfo.email,
+            name: result.userInfo.name,
+          }
+        : undefined,
     };
-
   } catch (error) {
-    console.error('Erreur validation token:', error);
-    
+    console.error("Erreur validation token:", error);
+
     // Gestion spéciale pour CORS - important pour le mode PWA hors ligne
-    if (error instanceof TypeError && (error.message.includes('CORS') || error.message.includes('fetch'))) {
+    if (
+      error instanceof TypeError &&
+      (error.message.includes("CORS") || error.message.includes("fetch"))
+    ) {
       return {
         isValid: true, // On considère que le token est probablement valide
-        errorType: 'network',
-        errorMessage: 'Validation impossible (CORS). Token accepté pour usage hors ligne.'
+        errorType: "network",
+        errorMessage:
+          "Validation impossible (CORS). Token accepté pour usage hors ligne.",
       };
     }
-    
+
     return {
       isValid: false,
-      errorType: 'network',
-      errorMessage: 'Erreur de connexion au service Track Déchet'
+      errorType: "network",
+      errorMessage: "Erreur de connexion au service Track Déchet",
     };
   }
 };
