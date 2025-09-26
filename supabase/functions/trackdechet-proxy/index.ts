@@ -15,7 +15,11 @@ Deno.serve(async (req) => {
   }
 
   // VERSION 12.0 - TOKEN DYNAMIQUE DEPUIS LE FRONTEND
-  console.log("🚀 VERSION 12.0 - TOKEN DYNAMIQUE DEPUIS LE FRONTEND " + new Date().toISOString() + " 🚀");
+  console.log(
+    "🚀 VERSION 12.0 - TOKEN DYNAMIQUE DEPUIS LE FRONTEND " +
+      new Date().toISOString() +
+      " 🚀"
+  );
 
   try {
     const { pathname } = new URL(req.url);
@@ -54,7 +58,11 @@ async function handleCreateForm(req: Request) {
     const body = await req.json();
 
     // Extraire le token depuis le body de la requête
-    const { token: userToken, sandbox: _sandbox, ...createFormInput } = body || {};
+    const {
+      token: userToken,
+      sandbox: _sandbox,
+      ...createFormInput
+    } = body || {};
 
     if (!userToken) {
       return new Response(
@@ -263,7 +271,7 @@ async function handleGetForm(req: Request) {
 async function handleValidateToken(req: Request) {
   try {
     const body = await req.json();
-    
+
     // Extraire le token depuis le body de la requête
     const userToken = body?.token;
 
