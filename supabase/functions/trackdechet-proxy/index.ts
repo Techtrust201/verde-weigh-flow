@@ -14,9 +14,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // NOUVELLE VERSION - VERSION 6.0 - TOKEN EN DUR
+  // NOUVELLE VERSION - VERSION 7.0 - TOKEN EN DUR
   console.log(
-    "🚀🚀🚀 NOUVELLE VERSION 6.0 - TOKEN EN DUR + BETA.GOUV.FR 🚀🚀🚀"
+    "🚀🚀🚀 NOUVELLE VERSION 7.0 - TOKEN EN DUR + BETA.GOUV.FR 🚀🚀🚀"
   );
 
   try {
