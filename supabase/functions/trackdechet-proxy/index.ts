@@ -14,8 +14,8 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // VERSION 10.0 - SUIVANT EXACTEMENT LA DOC TRACK DÉCHET
-  console.log("🚀 VERSION 10.0 - SUIVANT LA DOC TRACK DÉCHET 🚀");
+  // VERSION 11.0 - FORCE REDEPLOY + NOUVEAU TOKEN
+  console.log("🚀 VERSION 11.0 - REDEPLOY FORCE " + new Date().toISOString() + " 🚀");
 
   try {
     const { pathname } = new URL(req.url);
