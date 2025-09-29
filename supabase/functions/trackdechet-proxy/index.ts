@@ -14,9 +14,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // VERSION 12.2 - FORCE REDEPLOY
+  // VERSION 13.0 - SUPPORT PRODUCTION ET SANDBOX
   console.log(
-    "🚀 VERSION 12.2 - FORCE REDEPLOY " +
+    "🚀 VERSION 13.0 - SUPPORT PRODUCTION ET SANDBOX " +
       new Date().toISOString() +
       " 🚀"
   );
@@ -57,10 +57,10 @@ async function handleCreateForm(req: Request) {
   try {
     const body = await req.json();
 
-    // Extraire le token depuis le body de la requête
+    // Extraire le token et le mode depuis le body de la requête
     const {
       token: userToken,
-      sandbox: _sandbox,
+      sandbox: isSandbox = true, // Par défaut en mode sandbox pour la sécurité
       ...createFormInput
     } = body || {};
 
@@ -85,8 +85,13 @@ async function handleCreateForm(req: Request) {
       }
     `;
 
-    // URL selon la documentation
-    const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
+    // URL selon le mode (sandbox ou production)
+    const graphqlUrl = isSandbox
+      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
+      : "https://api.trackdechets.beta.gouv.fr";
+
+    console.log(`🌍 Mode: ${isSandbox ? "SANDBOX" : "PRODUCTION"}`);
+    console.log(`🔗 URL: ${graphqlUrl}`);
 
     console.log(
       "📤 Creating BSD with:",
@@ -170,8 +175,9 @@ async function handleGetForm(req: Request) {
       bsdId = body.id;
     }
 
-    // Extraire le token depuis le body de la requête
+    // Extraire le token et le mode depuis le body de la requête
     const userToken = body?.token;
+    const isSandbox = body?.sandbox !== false; // Par défaut en mode sandbox pour la sécurité
 
     if (!userToken) {
       return new Response(
@@ -202,8 +208,13 @@ async function handleGetForm(req: Request) {
       }
     `;
 
-    // URL selon la documentation
-    const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
+    // URL selon le mode (sandbox ou production)
+    const graphqlUrl = isSandbox
+      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
+      : "https://api.trackdechets.beta.gouv.fr";
+
+    console.log(`🌍 Mode: ${isSandbox ? "SANDBOX" : "PRODUCTION"}`);
+    console.log(`🔗 URL: ${graphqlUrl}`);
 
     console.log("📤 Getting BSD:", bsdId);
 
@@ -274,10 +285,12 @@ async function handleValidateToken(req: Request) {
 
     console.log("🔍 DEBUG: Body reçu:", JSON.stringify(body, null, 2));
 
-    // Extraire le token depuis le body de la requête
+    // Extraire le token et le mode depuis le body de la requête
     const userToken = body?.token;
+    const isSandbox = body?.sandbox !== false; // Par défaut en mode sandbox pour la sécurité
 
     console.log("🔍 DEBUG: Token extrait:", userToken);
+    console.log("🔍 DEBUG: Mode sandbox:", isSandbox);
 
     if (!userToken) {
       return new Response(
@@ -305,9 +318,13 @@ async function handleValidateToken(req: Request) {
       }
     `;
 
-    // URL selon la documentation
-    const graphqlUrl = "https://api.sandbox.trackdechets.beta.gouv.fr";
+    // URL selon le mode (sandbox ou production)
+    const graphqlUrl = isSandbox
+      ? "https://api.sandbox.trackdechets.beta.gouv.fr"
+      : "https://api.trackdechets.beta.gouv.fr";
 
+    console.log(`🌍 Mode: ${isSandbox ? "SANDBOX" : "PRODUCTION"}`);
+    console.log(`🔗 URL: ${graphqlUrl}`);
     console.log("🔍 Validating token with Track Déchet API");
 
     // Requête EXACTEMENT comme dans la doc
