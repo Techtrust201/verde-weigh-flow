@@ -67,5 +67,6 @@ export const formatCompleteAddress = (userSettings: UserSettings): string => {
  * Vérifie si les informations de transport sont configurées
  */
 export const hasTransportConfiguration = (userSettings: UserSettings): boolean => {
-  return !!(userSettings.numeroRecepisse?.trim() && userSettings.dateValiditeRecepisse?.trim());
+  // TODO: Récupérer ces infos depuis GlobalSettings maintenant
+  return false; // Temporairement désactivé pendant la migration
 };

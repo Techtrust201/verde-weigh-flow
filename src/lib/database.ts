@@ -147,14 +147,9 @@ export interface UserSettings {
   telephone: string;
   siret: string;
   codeAPE: string;
-  codeNAF?: string; // Code NAF pour Track Déchet
   logo: string;
   cleAPISage: string;
-  // Champs Track Déchet spécifiques
-  numeroRecepisse?: string; // Récépissé transporteur
-  dateValiditeRecepisse?: string; // Date de validité du récépissé
-  numeroAutorisation?: string; // Numéro d'autorisation installation
-  representantLegal?: string; // Contact Track Déchet
+  representantLegal?: string; // Garde ça car c'est aussi utilisé pour l'entreprise
   createdAt: Date;
   updatedAt: Date;
 }

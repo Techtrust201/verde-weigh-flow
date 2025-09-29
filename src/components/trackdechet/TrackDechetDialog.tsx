@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { Pesee, Product, Client, Transporteur, UserSettings, db } from '@/lib/database';
 import { generateBSD } from '@/utils/trackdechetApi';
-import { getTrackDechetToken, isTrackDechetReady } from '@/lib/globalSettings';
+import { getTrackDechetToken, isTrackDechetReady, getGlobalSettings } from '@/lib/globalSettings';
 import { validateTrackDechetData } from '@/utils/trackdechetValidation';
 import { validateUserSettingsForTrackDechet } from '@/utils/trackdechetValidationHelpers';
 import { useToast } from '@/hooks/use-toast';
@@ -305,11 +305,12 @@ export function TrackDechetDialog({
                   <div className="text-sm text-muted-foreground">
                     {userSettings.codePostal} {userSettings.ville}
                   </div>
-                  {userSettings.numeroAutorisation && (
+                  {/* Réceptionnaire temporairement commenté - récupérer depuis GlobalSettings */}
+                  {/* {globalSettings.numeroAutorisation && (
                     <div className="text-sm text-muted-foreground">
-                      Autorisation: {userSettings.numeroAutorisation}
+                      Autorisation: {globalSettings.numeroAutorisation}
                     </div>
-                  )}
+                  )} */}
                 </>
               ) : (
                 <div className="text-sm text-amber-600">

@@ -329,7 +329,13 @@ export class SageTemplateExporter {
       case "codeAPE":
         return userSettings.codeAPE || "";
       case "codeNAF":
-        return userSettings.codeNAF || "";
+        return ""; // Maintenant dans GlobalSettings
+      case "numeroRecepisse":
+        return ""; // Maintenant dans GlobalSettings
+      case "dateValiditeRecepisse": 
+        return ""; // Maintenant dans GlobalSettings
+      case "numeroAutorisation":
+        return ""; // Maintenant dans GlobalSettings
       case "representantLegal":
         return userSettings.representantLegal || "";
       default:

@@ -121,7 +121,7 @@ export const formatPeseeForTrackDechet = (
         mail: userSettings.email
       },
       processingOperation: "R 13", // Opération de regroupement
-      cap: userSettings.numeroAutorisation || "" // Numéro d'autorisation installation
+      cap: "" // TODO: récupérer depuis GlobalSettings
     },
     
     // Transporteur
@@ -134,8 +134,8 @@ export const formatPeseeForTrackDechet = (
         phone: transporteur.telephone || "",
         mail: transporteur.email || ""
       },
-      receipt: userSettings.numeroRecepisse || "", // Récépissé transporteur
-      validityLimit: userSettings.dateValiditeRecepisse || "", // Date de validité du récépissé
+      receipt: "", // TODO: récupérer depuis GlobalSettings
+      validityLimit: "", // TODO: récupérer depuis GlobalSettings
       numberPlate: transporteur.plaque || pesee.plaque
     },
     
