@@ -1,6 +1,4 @@
 /// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-// @ts-ignore - Edge Functions import
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,9 +12,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // VERSION 13.0 - SUPPORT PRODUCTION ET SANDBOX
+  // VERSION 13.1 - REDEPLOY + PROD/SANDBOX SUPPORT
   console.log(
-    "🚀 VERSION 13.0 - SUPPORT PRODUCTION ET SANDBOX " +
+    "🚀 VERSION 13.1 - REDEPLOY + PROD/SANDBOX SUPPORT " +
       new Date().toISOString() +
       " 🚀"
   );
