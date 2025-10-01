@@ -13,7 +13,6 @@ import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { Client, Transporteur } from "@/lib/database";
 import { CityPostalInput } from "@/components/ui/city-postal-input";
 import { validateEmail, getEmailError } from "@/utils/validation";
-import ClientTrackDechetSection from "@/components/forms/ClientTrackDechetSection";
 
 interface ClientFormProps {
   formData: Partial<Client>;
@@ -146,8 +145,7 @@ export default function ClientForm({
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="siret">
-            SIRET{" "}
-            {formData.typeClient !== "particulier" ? "*" : "(optionnel)"}
+            SIRET {formData.typeClient !== "particulier" ? "*" : "(optionnel)"}
           </Label>
           <Input
             id="siret"
@@ -204,8 +202,7 @@ export default function ClientForm({
       <div className="grid grid-cols-1 gap-4">
         <div>
           <Label htmlFor="adresse">
-            Adresse{" "}
-            {formData.typeClient !== "particulier" ? "*" : ""}
+            Adresse {formData.typeClient !== "particulier" ? "*" : ""}
           </Label>
           <Input
             id="adresse"
@@ -372,12 +369,7 @@ export default function ClientForm({
         </Select>
       </div>
 
-      {/* Section Track Déchet */}
-      <ClientTrackDechetSection
-        formData={formData}
-        onFormDataChange={onFormDataChange}
-        isEditing={isEditing}
-      />
+      {/* Section Track Déchet - Supprimée temporairement */}
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { RecentPeseesTab } from "@/components/pesee/RecentPeseesTab";
 import { SaveConfirmDialog } from "@/components/pesee/SaveConfirmDialog";
 import { handlePrint, handlePrintBothBonAndInvoice } from "@/utils/peseeUtils";
 import { PrintPreviewDialog } from "@/components/ui/print-preview-dialog";
-import { trackDechetProcessor } from "@/utils/trackdechetSyncProcessor";
+import { trackDechetSync } from "@/services/trackDechetSync";
 import { isTrackDechetApplicable } from "@/utils/trackdechetValidation";
 
 export default function PeseeSpace() {
@@ -525,19 +525,27 @@ export default function PeseeSpace() {
           `🔄 Track Déchet applicable pour la pesée ${peseeData.numeroBon} - Ajout à la file de synchronisation`
         );
 
-        // Ajouter à la file de synchronisation Track Déchet
-        await trackDechetProcessor.addPeseeToQueue(
-          savedPeseeId,
-          client.id!,
-          transporteur.id!,
-          product.id!,
-          product.codeDechets
+        // Envoyer directement vers Track Déchet
+        const result = await trackDechetSync.sendPeseeToTrackDechet(
+          fullPeseeData,
+          client,
+          transporteur,
+          product,
+          (await db.userSettings.toCollection().first()) || ({} as any)
         );
 
-        toast({
-          title: "📋 Track Déchet",
-          description: "BSD programmé pour génération automatique",
-        });
+        if (result.success) {
+          toast({
+            title: "📋 Track Déchet",
+            description: `BSD ${result.bsdId} créé avec succès`,
+          });
+        } else {
+          toast({
+            title: "❌ Erreur Track Déchet",
+            description: result.error || "Erreur lors de la création du BSD",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Erreur lors de la vérification Track Déchet:", error);

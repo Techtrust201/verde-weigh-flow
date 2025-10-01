@@ -1,38 +1,90 @@
-
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Layout from './components/Layout';
-import ClientsSpace from './components/spaces/ClientsSpace';
-import ProductsSpace from './components/spaces/ProductsSpace';
-import PeseeSpace from './components/spaces/PeseeSpace';
-import TransporteursSpace from './components/spaces/TransporteursSpace';
-import HistoriqueSpace from './components/spaces/HistoriqueSpace';
-import ExportsSpace from './components/exports/ExportsSpace';
-import UtilisateurSpace from './components/spaces/UtilisateurSpace';
-import ComptabiliteSpace from './components/spaces/ComptabiliteSpace';
-import { initializeSampleData, checkDataIntegrity } from './lib/database';
-import { setupAutoSync } from './utils/syncScheduler';
-import { connectionManager } from './utils/connectionManager';
-import './utils/backgroundSyncTrackDechet'; // Démarrage automatique de la sync Track Déchet
+import Layout from "./components/Layout";
+import ClientsSpace from "./components/spaces/ClientsSpace";
+import ProductsSpace from "./components/spaces/ProductsSpace";
+import PeseeSpace from "./components/spaces/PeseeSpace";
+import TransporteursSpace from "./components/spaces/TransporteursSpace";
+import HistoriqueSpace from "./components/spaces/HistoriqueSpace";
+import ExportsSpace from "./components/exports/ExportsSpace";
+import UtilisateurSpace from "./components/spaces/UtilisateurSpace";
+import ComptabiliteSpace from "./components/spaces/ComptabiliteSpace";
+import { initializeSampleData, checkDataIntegrity } from "./lib/database";
+import { initializeAutoBackup } from "./utils/autoBackup";
+import { autoRestoreService } from "./services/autoRestoreService";
+import { BackupDetectionModal } from "./components/BackupDetectionModal";
+import { fileDetector } from "./services/FileDetectorService";
+import { backupManager } from "./services/BackupManager";
+import "./utils/testBackupPersistence"; // Charger les scripts de test
 
 const App = () => {
-  const [currentSpace, setCurrentSpace] = useState('pesee');
+  const [currentSpace, setCurrentSpace] = useState("pesee");
+  const [isFirstStartup, setIsFirstStartup] = useState(false);
+  const [backupDetectionComplete, setBackupDetectionComplete] = useState(false);
 
   useEffect(() => {
     const initializeApp = async () => {
+      // Vérifier si c'est le premier démarrage
+      const isFirst = !localStorage.getItem("app-initialized");
+      setIsFirstStartup(isFirst);
+
       // Initialize PWA and database
       await initializeSampleData();
-      
+
       // Vérifier périodiquement l'intégrité des données (toutes les 5 minutes)
       const dataIntegrityCheck = setInterval(() => {
         checkDataIntegrity();
       }, 5 * 60 * 1000);
-      
-      // Initialize connection manager and sync scheduler
-      setupAutoSync();
+
+      // Initialize automatic file backup
+      await initializeAutoBackup();
+
+      // Initialiser le gestionnaire de sauvegarde centralisé
+      try {
+        await backupManager.initialize();
+        console.log("✅ BackupManager initialisé");
+      } catch (error) {
+        console.warn(
+          "⚠️ Erreur lors de l'initialisation du BackupManager:",
+          error
+        );
+      }
+
+      // Détecter automatiquement le fichier de sauvegarde
+      if (isFirst) {
+        try {
+          // Vérifier si le fichier existe déjà dans OPFS
+          const status = await backupManager.getBackupStatus();
+          if (status.hasBackupFile) {
+            console.log(
+              "✅ Fichier de sauvegarde déjà configuré:",
+              status.backupFileName
+            );
+          } else {
+            // Tenter de détecter un fichier existant
+            const file = await fileDetector.detectBackupFile();
+            if (file) {
+              console.log("✅ Fichier de sauvegarde détecté:", file.name);
+            }
+          }
+        } catch (error) {
+          console.warn("⚠️ Erreur lors de la détection du fichier:", error);
+        }
+      } else {
+        setBackupDetectionComplete(true);
+      }
+
+      // Check for auto-restore (délai pour laisser l'app se charger)
+      setTimeout(async () => {
+        try {
+          await autoRestoreService.checkForAutoRestore();
+        } catch (error) {
+          console.warn("Auto-restore check failed:", error);
+        }
+      }, 2000); // 2 secondes après le chargement
 
       return () => {
         clearInterval(dataIntegrityCheck);
@@ -42,66 +94,45 @@ const App = () => {
     initializeApp();
 
     // Register enhanced service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-          console.log('Enhanced SW registered: ', registration);
-          
-          // Écouter les messages du service worker
-          navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data?.type === 'BACKGROUND_SYNC_AVAILABLE') {
-              console.log('Background sync available');
-            }
-          });
-          
-          // Vérifier les mises à jour
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // Nouvelle version disponible
-                  console.log('New app version available');
-                }
-              });
-            }
-          });
-        })
-        .catch((registrationError) => {
-          console.log('SW registration failed: ', registrationError);
-        });
-    }
-
-    // Enregistrer pour les notifications push si supporté
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        console.log('Notification permission:', permission);
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("/sw.js").then(
+          function (registration) {
+            console.log(
+              "ServiceWorker registration successful with scope: ",
+              registration.scope
+            );
+          },
+          function (err) {
+            console.log("ServiceWorker registration failed: ", err);
+          }
+        );
       });
     }
-
-    // Nettoyage à la fermeture
-    return () => {
-      connectionManager.destroy();
-    };
   }, []);
 
-  const renderCurrentSpace = () => {
+  const handleBackupDetectionComplete = () => {
+    setBackupDetectionComplete(true);
+    localStorage.setItem("app-initialized", "true");
+  };
+
+  const renderSpace = () => {
     switch (currentSpace) {
-      case 'clients':
+      case "clients":
         return <ClientsSpace />;
-      case 'produits':
+      case "products":
         return <ProductsSpace />;
-      case 'pesee':
+      case "pesee":
         return <PeseeSpace />;
-      case 'transporteurs':
+      case "transporteurs":
         return <TransporteursSpace />;
-      case 'historique':
+      case "historique":
         return <HistoriqueSpace />;
-      case 'exports':
+      case "exports":
         return <ExportsSpace />;
-      case 'utilisateur':
+      case "utilisateur":
         return <UtilisateurSpace />;
-      case 'comptabilite':
+      case "comptabilite":
         return <ComptabiliteSpace />;
       default:
         return <PeseeSpace />;
@@ -110,11 +141,16 @@ const App = () => {
 
   return (
     <TooltipProvider>
+      <Layout currentSpace={currentSpace} setCurrentSpace={setCurrentSpace}>
+        {renderSpace()}
+      </Layout>
       <Toaster />
       <Sonner />
-      <Layout currentSpace={currentSpace} onSpaceChange={setCurrentSpace}>
-        {renderCurrentSpace()}
-      </Layout>
+
+      {/* Modal de détection de fichier au premier démarrage */}
+      {isFirstStartup && !backupDetectionComplete && (
+        <BackupDetectionModal onComplete={handleBackupDetectionComplete} />
+      )}
     </TooltipProvider>
   );
 };

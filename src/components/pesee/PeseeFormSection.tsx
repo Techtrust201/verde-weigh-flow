@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -98,18 +98,28 @@ export const PeseeFormSection = ({
   const [clientSearchValue, setClientSearchValue] = useState("");
   const [transporteurLibre, setTransporteurLibre] = useState("");
 
+  // Synchroniser le state local avec currentData.transporteurLibre
+  useEffect(() => {
+    if (currentData?.transporteurLibre !== undefined) {
+      setTransporteurLibre(currentData.transporteurLibre);
+    }
+  }, [currentData?.transporteurLibre]);
+
   const selectedClient = clients.find((c) => c.id === currentData?.clientId);
 
   // Fonction pour obtenir le placeholder automatique du transporteur
   const getAutoTransporteurPlaceholder = () => {
     if (!currentData?.nomEntreprise) return "Nom du transporteur...";
-    
+
     if (currentData.typeClient === "particulier") {
       return currentData.nomEntreprise;
-    } else if (currentData.typeClient === "professionnel" || currentData.typeClient === "micro-entreprise") {
+    } else if (
+      currentData.typeClient === "professionnel" ||
+      currentData.typeClient === "micro-entreprise"
+    ) {
       return currentData.nomEntreprise;
     }
-    
+
     return "Nom du transporteur...";
   };
 
@@ -134,7 +144,7 @@ export const PeseeFormSection = ({
   const handleClientSelect = (client: Client) => {
     // Vérifier d'abord si le client a déjà un transporteur assigné
     let transporteurId = 0;
-    
+
     if (client.transporteurId && client.transporteurId > 0) {
       // Le client a déjà un transporteur assigné, on le garde
       transporteurId = client.transporteurId;
@@ -149,12 +159,15 @@ export const PeseeFormSection = ({
     updateCurrentTab({
       clientId: client.id!,
       nomEntreprise: client.raisonSociale,
-      typeClient: client.typeClient as "particulier" | "professionnel" | "micro-entreprise",
+      typeClient: client.typeClient as
+        | "particulier"
+        | "professionnel"
+        | "micro-entreprise",
       plaque: client.plaques?.[0] || "",
       chantier: client.chantiers?.[0] || "",
       transporteurId: transporteurId,
     });
-    
+
     setClientSelectorOpen(false);
     setClientSearchValue("");
   };
@@ -197,12 +210,16 @@ export const PeseeFormSection = ({
   const getTransporteurInputValue = () => {
     // Si un transporteur officiel est sélectionné, afficher son nom
     if (currentData?.transporteurId && currentData.transporteurId > 0) {
-      const selectedTransporteur = transporteurs.find(t => t.id === currentData.transporteurId);
-      return selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
+      const selectedTransporteur = transporteurs.find(
+        (t) => t.id === currentData.transporteurId
+      );
+      return selectedTransporteur
+        ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}`
+        : "";
     }
-    
-    // Sinon afficher ce que l'utilisateur a tapé dans transporteurLibre
-    return transporteurLibre;
+
+    // Sinon afficher ce que l'utilisateur a tapé dans transporteurLibre (depuis currentData)
+    return currentData?.transporteurLibre || transporteurLibre || "";
   };
 
   return (
@@ -234,7 +251,7 @@ export const PeseeFormSection = ({
           </Select>
         </div>
       </div>
-      
+
       {/* Si pas de client sélectionné, afficher le sélecteur de type */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         {!currentData?.clientId ? (
@@ -693,7 +710,10 @@ export const PeseeFormSection = ({
                     // ⚠️ CRITIQUE: Mettre à jour le state de l'onglet
                     updateCurrentTab({ transporteurLibre: e.target.value });
                     // S'assurer qu'aucun transporteur officiel n'est sélectionné
-                    if (currentData?.transporteurId && currentData.transporteurId > 0) {
+                    if (
+                      currentData?.transporteurId &&
+                      currentData.transporteurId > 0
+                    ) {
                       updateCurrentTab({ transporteurId: 0 });
                     }
                   }}

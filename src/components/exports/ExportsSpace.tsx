@@ -31,11 +31,6 @@ import {
   Upload,
   Plus,
 } from "lucide-react";
-import {
-  useExportData,
-  ExportStats,
-  ExportFormat,
-} from "@/hooks/useExportData";
 import { db, Pesee, Product, SageTemplate } from "@/lib/database";
 import {
   Select,
@@ -44,10 +39,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import SageImportDialog from "@/components/import/SageImportDialog";
-import SageTemplateCreator from "@/components/import/SageTemplateCreator";
-import SageTemplateSelector from "@/components/exports/SageTemplateSelector";
-import SageTemplateManager from "@/components/exports/SageTemplateManager";
+import { useExportData, ExportStats } from "@/hooks/useExportData";
+
+// Types locaux pour l'export
+type ExportFormat = "pdf" | "csv" | "excel" | "sage-articles" | "sage-template";
 
 export default function ExportsSpace() {
   const [dateDebut, setDateDebut] = useState("");
@@ -440,16 +435,6 @@ export default function ExportsSpace() {
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* Sélecteur de template pour sage-template */}
-                {selectedFormat === "sage-template" && (
-                  <SageTemplateSelector
-                    selectedTemplateId={selectedTemplateId}
-                    onTemplateSelect={handleTemplateSelect}
-                    onCreateNew={handleCreateNewTemplate}
-                    onEditExisting={handleEditExistingTemplate}
-                  />
-                )}
 
                 {/* Type de données - toujours disponible sauf pour sage-articles */}
                 {selectedFormat !== "sage-articles" && (
@@ -864,32 +849,22 @@ export default function ExportsSpace() {
                   </p>
                 </div> */}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Import des documents Sage</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Importez directement vos documents Sage
-                    </p>
-                    <SageImportDialog />
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Créer un template</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Apprenez le format Sage et créez un template réutilisable
-                    </p>
-                    <Button
-                      onClick={() => {
-                        setEditingTemplate(null);
-                        setShowTemplateCreator(true);
-                      }}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Créer un template
-                    </Button>
-                  </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium">Créer un template</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Apprenez le format Sage et créez un template réutilisable
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setEditingTemplate(null);
+                      setShowTemplateCreator(true);
+                    }}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Créer un template
+                  </Button>
                 </div>
 
                 {/* Section de gestion des templates */}

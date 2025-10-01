@@ -17,14 +17,14 @@ import { cn } from "@/lib/utils";
 interface LayoutProps {
   children: React.ReactNode;
   currentSpace: string;
-  onSpaceChange: (space: string) => void;
+  setCurrentSpace: (space: string) => void;
 }
 
 const spaces = [
   { id: "pesee", name: "Pesée", icon: Scale },
   { id: "clients", name: "Clients", icon: Users },
   { id: "transporteurs", name: "Transporteurs", icon: User },
-  { id: "produits", name: "Produits", icon: Package },
+  { id: "products", name: "Produits", icon: Package },
   { id: "historique", name: "Historique", icon: History },
   { id: "exports", name: "Exports CSV", icon: Download },
   { id: "utilisateur", name: "Utilisateur", icon: User },
@@ -34,7 +34,7 @@ const spaces = [
 export default function Layout({
   children,
   currentSpace,
-  onSpaceChange,
+  setCurrentSpace,
 }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -120,7 +120,7 @@ export default function Layout({
                 key={space.id}
                 variant={currentSpace === space.id ? "default" : "ghost"}
                 className={cn("w-full justify-start", !sidebarOpen && "px-2")}
-                onClick={() => onSpaceChange(space.id)}
+                onClick={() => setCurrentSpace(space.id)}
               >
                 <Icon className="h-4 w-4 mr-2" />
                 {sidebarOpen && space.name}

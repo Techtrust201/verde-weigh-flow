@@ -1,27 +1,33 @@
-import { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Truck, FileSpreadsheet } from 'lucide-react';
-import { db, UserSettings } from '@/lib/database';
-import TrackDechetGlobalSettings from '@/components/settings/TrackDechetGlobalSettings';
-import CompanySettings from '@/components/settings/CompanySettings';
-import SageSettings from '@/components/settings/SageSettings';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { User, Truck, FileSpreadsheet } from "lucide-react";
+import { db, UserSettings } from "@/lib/database";
+import TrackDechetGlobalSettings from "@/components/settings/TrackDechetGlobalSettings";
+import CompanySettings from "@/components/settings/CompanySettings";
+import SageSettings from "@/components/settings/SageSettings";
+import CompatibilityChecker from "@/components/CompatibilityChecker";
+import BackupInfo from "@/components/BackupInfo";
+import BackupSettings from "@/components/BackupSettings";
+import BackupFileStatus from "@/components/BackupFileStatus";
+import AutoRestoreManager from "@/components/AutoRestoreManager";
+import { BackupTestPanel } from "@/components/BackupTestPanel";
+import { useToast } from "@/hooks/use-toast";
 
 export default function UtilisateurSpace() {
   const [settings, setSettings] = useState<UserSettings>({
-    nomEntreprise: '',
-    adresse: '',
-    codePostal: '',
-    ville: '',
-    email: '',
-    telephone: '',
-    siret: '',
-    codeAPE: '',
-    logo: '',
-    cleAPISage: '',
-    representantLegal: '',
+    nomEntreprise: "",
+    adresse: "",
+    codePostal: "",
+    ville: "",
+    email: "",
+    telephone: "",
+    siret: "",
+    codeAPE: "",
+    logo: "",
+    cleAPISage: "",
+    representantLegal: "",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
   const { toast } = useToast();
 
@@ -36,7 +42,7 @@ export default function UtilisateurSpace() {
         setSettings(userSettings);
       }
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error("Error loading settings:", error);
     }
   };
 
@@ -45,31 +51,30 @@ export default function UtilisateurSpace() {
       if (settings.id) {
         await db.userSettings.update(settings.id, {
           ...settings,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
       } else {
         await db.userSettings.add({
           ...settings,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
       }
-      
+
       toast({
         title: "Paramètres sauvegardés",
-        description: "Vos informations ont été mises à jour."
+        description: "Vos informations ont été mises à jour.",
       });
       loadSettings();
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error("Error saving settings:", error);
       toast({
         title: "Erreur",
         description: "Impossible de sauvegarder les paramètres.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
-
 
   return (
     <div className="space-y-6">
@@ -77,6 +82,24 @@ export default function UtilisateurSpace() {
         <User className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold">Paramètres & Utilisateur</h1>
       </div>
+
+      {/* Vérificateur de compatibilité */}
+      <CompatibilityChecker />
+
+      {/* Informations de sauvegarde */}
+      <BackupInfo />
+
+      {/* Configuration des sauvegardes */}
+      <BackupSettings />
+
+      {/* Statut du fichier de sauvegarde */}
+      <BackupFileStatus />
+
+      {/* Gestionnaire de restauration automatique */}
+      <AutoRestoreManager />
+
+      {/* Panneau de test de persistance */}
+      <BackupTestPanel />
 
       <Tabs defaultValue="company" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -95,7 +118,7 @@ export default function UtilisateurSpace() {
         </TabsList>
 
         <TabsContent value="company" className="space-y-6">
-          <CompanySettings 
+          <CompanySettings
             settings={settings}
             onSettingsChange={setSettings}
             onSave={handleSave}
@@ -107,7 +130,7 @@ export default function UtilisateurSpace() {
         </TabsContent>
 
         <TabsContent value="sage" className="space-y-4">
-          <SageSettings 
+          <SageSettings
             settings={settings}
             onSettingsChange={setSettings}
             onSave={handleSave}

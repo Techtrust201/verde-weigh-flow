@@ -95,9 +95,11 @@ export default function HistoriqueSpace() {
 
       const csvContent = [
         headers.join(','),
-        ...pesees.map(pesee => [
-          pesee.dateHeure.toLocaleDateString(),
-          pesee.dateHeure.toLocaleTimeString(),
+        ...pesees.map(pesee => {
+          const dateHeure = new Date(pesee.dateHeure);
+          return [
+            dateHeure.toLocaleDateString(),
+            dateHeure.toLocaleTimeString(),
           pesee.plaque,
           '', // Produit name - would need to join with products table
           '', // Code produit - would need to join with products table
@@ -197,7 +199,7 @@ export default function HistoriqueSpace() {
                 <div>
                   <div className="font-semibold">{pesee.numeroBon}</div>
                   <div className="text-sm text-gray-600">
-                    {pesee.dateHeure.toLocaleDateString()} à {pesee.dateHeure.toLocaleTimeString()}
+                    {new Date(pesee.dateHeure).toLocaleDateString()} à {new Date(pesee.dateHeure).toLocaleTimeString()}
                   </div>
                 </div>
                 <div>
