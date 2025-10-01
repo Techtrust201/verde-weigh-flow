@@ -1,5 +1,28 @@
-import { Pesee, Product, Client, Transporteur, UserSettings } from "@/lib/database";
-import { validateUserSettingsForTrackDechet, formatCompleteAddress } from "./trackdechetValidationHelpers";
+import {
+  Pesee,
+  Product,
+  Client,
+  Transporteur,
+  UserSettings,
+} from "@/lib/database";
+// Fonctions helpers locales
+function formatCompleteAddress(
+  address: string,
+  postalCode: string,
+  city: string
+): string {
+  return `${address}, ${postalCode} ${city}`;
+}
+
+function validateUserSettingsForTrackDechet(settings: any): boolean {
+  return !!(
+    settings?.nomEntreprise &&
+    settings?.adresse &&
+    settings?.codePostal &&
+    settings?.ville &&
+    settings?.siret
+  );
+}
 
 /**
  * Valide si Track Déchet est applicable pour une pesée donnée
@@ -11,7 +34,7 @@ export const isTrackDechetApplicable = (
   product?: Product
 ): boolean => {
   // Track Déchet s'applique uniquement aux professionnels
-  if (client?.typeClient === 'particulier') {
+  if (client?.typeClient === "particulier") {
     return false;
   }
 
@@ -40,34 +63,34 @@ export const validateTrackDechetData = (
 ): { isValid: boolean; missingFields: string[] } => {
   const missingFields: string[] = [];
 
-  if (client?.typeClient === 'particulier') {
-    return { 
-      isValid: false, 
-      missingFields: ['Client doit être professionnel pour Track Déchet'] 
+  if (client?.typeClient === "particulier") {
+    return {
+      isValid: false,
+      missingFields: ["Client doit être professionnel pour Track Déchet"],
     };
   }
 
   // Validation du client (producteur)
   if (!client?.siret) {
-    missingFields.push('SIRET client');
+    missingFields.push("SIRET client");
   }
 
   if (!client?.adresse) {
-    missingFields.push('Adresse client');
+    missingFields.push("Adresse client");
   }
 
   if (!client?.activite) {
-    missingFields.push('Activité client');
+    missingFields.push("Activité client");
   }
 
   // Validation du transporteur
   if (!transporteur?.siret) {
-    missingFields.push('SIRET transporteur');
+    missingFields.push("SIRET transporteur");
   }
 
   // Validation du produit
   if (!product?.categorieDechet) {
-    missingFields.push('Catégorie déchet du produit');
+    missingFields.push("Catégorie déchet du produit");
   }
 
   // Validation des informations de l'entreprise (collecteur/destinataire)
@@ -78,7 +101,7 @@ export const validateTrackDechetData = (
 
   return {
     isValid: missingFields.length === 0,
-    missingFields
+    missingFields,
   };
 };
 
@@ -96,7 +119,7 @@ export const formatPeseeForTrackDechet = (
   return {
     // Informations générales du BSD
     type: "BSDD", // Bordereau de suivi de déchets dangereux/non dangereux
-    
+
     // Producteur (client)
     emitter: {
       type: "PRODUCER",
@@ -106,10 +129,10 @@ export const formatPeseeForTrackDechet = (
         address: client.adresse,
         contact: client.representantLegal || "",
         phone: client.telephone || "",
-        mail: client.email || ""
-      }
+        mail: client.email || "",
+      },
     },
-    
+
     // Destinataire/Collecteur (MON ENTREPRISE)
     recipient: {
       company: {
@@ -118,12 +141,12 @@ export const formatPeseeForTrackDechet = (
         address: formatCompleteAddress(userSettings),
         contact: userSettings.representantLegal || "",
         phone: userSettings.telephone,
-        mail: userSettings.email
+        mail: userSettings.email,
       },
       processingOperation: "R 13", // Opération de regroupement
-      cap: "" // TODO: récupérer depuis GlobalSettings
+      cap: "", // TODO: récupérer depuis GlobalSettings
     },
-    
+
     // Transporteur
     transporter: {
       company: {
@@ -132,13 +155,13 @@ export const formatPeseeForTrackDechet = (
         address: transporteur.adresse || "",
         contact: `${transporteur.prenom} ${transporteur.nom}`,
         phone: transporteur.telephone || "",
-        mail: transporteur.email || ""
+        mail: transporteur.email || "",
       },
       receipt: "", // TODO: récupérer depuis GlobalSettings
       validityLimit: "", // TODO: récupérer depuis GlobalSettings
-      numberPlate: transporteur.plaque || pesee.plaque
+      numberPlate: transporteur.plaque || pesee.plaque,
     },
-    
+
     // Déchet
     waste: {
       code: codeDechet,
@@ -150,11 +173,11 @@ export const formatPeseeForTrackDechet = (
       packagingInfos: [
         {
           type: "VRAC", // Type d'emballage
-          quantity: 1
-        }
-      ]
+          quantity: 1,
+        },
+      ],
     },
-    
+
     // Informations de traçabilité
     wasteDetails: {
       quantity: pesee.net * 1000,
@@ -163,17 +186,17 @@ export const formatPeseeForTrackDechet = (
       packagingInfos: [
         {
           type: "VRAC",
-          quantity: 1
-        }
-      ]
+          quantity: 1,
+        },
+      ],
     },
-    
+
     // Métadonnées
     metadata: {
       source: "Application de pesée",
       numeroBon: pesee.numeroBon,
       dateHeure: pesee.dateHeure.toISOString(),
-      chantier: pesee.chantier || ""
-    }
+      chantier: pesee.chantier || "",
+    },
   };
 };
