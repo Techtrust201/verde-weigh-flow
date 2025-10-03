@@ -24,8 +24,7 @@ export interface Client {
       prixTTC?: number;
     };
   };
-  // Track Déchet - Seulement activation par client (token global maintenant)
-  trackDechetEnabled?: boolean;
+  // Track Déchet - Supprimé car maintenant géré uniquement au niveau produit
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,6 +59,12 @@ export interface Product {
   categorieDechet?: "dangereux" | "non-dangereux" | "inerte";
   codeDechets?: string; // Code déchet européen à 6 chiffres
   trackDechetEnabled?: boolean; // Nouveau champ pour activer Track Déchet
+  // Champs Track Déchet supplémentaires
+  consistence?: "SOLID" | "LIQUID" | "GASEOUS" | "DOUGHY";
+  isSubjectToADR?: boolean;
+  onuCode?: string;
+  cap?: string;
+  conditionnementType?: "BENNE" | "CITERNE" | "FUT" | "GRV" | "";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -274,7 +279,7 @@ class AppDatabase extends Dexie {
     // Version 3 - Ajout du champ exportedAt SANS supprimer les données existantes
     this.version(3).stores({
       clients:
-        "++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt",
+        "++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt",
       transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
       products:
         "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
@@ -293,7 +298,7 @@ class AppDatabase extends Dexie {
     // Version 4 - Ajout des champs Track Déchet pour les clients
     this.version(4).stores({
       clients:
-        "++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt",
+        "++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt",
       transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
       products:
         "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
@@ -312,7 +317,7 @@ class AppDatabase extends Dexie {
     // Version 5 - Amélioration UserSettings pour Track Déchet
     this.version(5).stores({
       clients:
-        "++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt",
+        "++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt",
       transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
       products:
         "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
@@ -332,7 +337,7 @@ class AppDatabase extends Dexie {
     // Version 6 - Ajout des templates Sage
     this.version(6).stores({
       clients:
-        "++id, typeClient, raisonSociale, siret, email, ville, trackDechetEnabled, createdAt, updatedAt",
+        "++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt",
       transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
       products:
         "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",

@@ -162,18 +162,26 @@ export default function ExportsSpace() {
 
       if (selectedExportType === "complete") {
         // Pour "Toutes les données", charger TOUTES les pesées de la base
-        allPesees = await db.pesees.orderBy("dateHeure").reverse().toArray();
+        allPesees = await db.pesees.toArray();
       } else {
         // Pour "Nouveau" et "Période sélectionnée", filtrer par période
         const startDate = new Date(dateDebut);
         const endDate = new Date(dateFin);
         endDate.setHours(23, 59, 59, 999);
 
-        const query = db.pesees.filter(
-          (pesee) => pesee.dateHeure >= startDate && pesee.dateHeure <= endDate
-        );
-        allPesees = await query.toArray();
+        allPesees = await db.pesees
+          .filter(
+            (pesee) =>
+              pesee.dateHeure >= startDate && pesee.dateHeure <= endDate
+          )
+          .toArray();
       }
+
+      // Trier par date décroissante (plus récent en premier)
+      allPesees.sort(
+        (a, b) =>
+          new Date(b.dateHeure).getTime() - new Date(a.dateHeure).getTime()
+      );
 
       let filteredPesees: Pesee[];
       switch (selectedExportType) {
@@ -734,7 +742,9 @@ export default function ExportsSpace() {
                                   />
                                 </TableCell>
                                 <TableCell>
-                                  {pesee.dateHeure.toLocaleDateString("fr-FR")}
+                                  {new Date(pesee.dateHeure).toLocaleDateString(
+                                    "fr-FR"
+                                  )}
                                 </TableCell>
                                 <TableCell>{pesee.numeroBon}</TableCell>
                                 <TableCell>{pesee.nomEntreprise}</TableCell>

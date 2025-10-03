@@ -4,7 +4,7 @@
 
 ### 1. **Source de données** : "Données de pesée"
 
-- **Pourquoi ?** Parce que le numéro de pièce correspond au numéro de ton Bon de peséeeee
+- **Pourquoi ?** Parce que le numéro de pièce correspond au numéro de ton Bon de pesée
 - **Exemples disponibles** : Numéro de bon, Date de pesée, Poids brut, Prix HT
 
 ### 2. **Champ spécifique** : "Numéro de bon"

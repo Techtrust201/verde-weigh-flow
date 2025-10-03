@@ -187,7 +187,7 @@ export class SageTemplateExporter {
       case "numeroBon":
         return pesee.numeroBon;
       case "dateHeure":
-        return pesee.dateHeure.toLocaleDateString("fr-FR");
+        return new Date(pesee.dateHeure).toLocaleDateString("fr-FR");
       case "plaque":
         return pesee.plaque;
       case "nomEntreprise":
@@ -332,7 +332,7 @@ export class SageTemplateExporter {
         return ""; // Maintenant dans GlobalSettings
       case "numeroRecepisse":
         return ""; // Maintenant dans GlobalSettings
-      case "dateValiditeRecepisse": 
+      case "dateValiditeRecepisse":
         return ""; // Maintenant dans GlobalSettings
       case "numeroAutorisation":
         return ""; // Maintenant dans GlobalSettings

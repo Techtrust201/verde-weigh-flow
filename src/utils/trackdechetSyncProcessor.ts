@@ -22,14 +22,19 @@ export class TrackDechetSyncProcessor {
   /**
    * Traite tous les items Track Déchet en attente dans la file de synchronisation
    */
-  async processTrackDechetQueue(): Promise<{ success: number; failed: number }> {
-    console.log('🚀 Starting Track Déchet sync processing...');
-    
+  async processTrackDechetQueue(): Promise<{
+    success: number;
+    failed: number;
+  }> {
+    console.log("🚀 Starting Track Déchet sync processing...");
+
     const items = await this.syncManager.getReadyItems();
-    const trackDechetItems = items.filter(item => item.tag === 'trackdechet_bsd');
+    const trackDechetItems = items.filter(
+      (item) => item.tag === "trackdechet_bsd"
+    );
 
     if (trackDechetItems.length === 0) {
-      console.log('📭 No Track Déchet items to process');
+      console.log("📭 No Track Déchet items to process");
       return { success: 0, failed: 0 };
     }
 
@@ -43,14 +48,18 @@ export class TrackDechetSyncProcessor {
         const startTime = Date.now();
         await this.processSingleBSD(item);
         const duration = Date.now() - startTime;
-        
+
         await this.syncManager.markSuccess(item.id!, duration);
         successCount++;
-        
-        console.log(`✅ BSD created successfully for pesée ${item.data.peseeId}`);
-        
+
+        console.log(
+          `✅ BSD created successfully for pesée ${item.data.peseeId}`
+        );
       } catch (error) {
-        console.error(`❌ Failed to process BSD for pesée ${item.data.peseeId}:`, error);
+        console.error(
+          `❌ Failed to process BSD for pesée ${item.data.peseeId}:`,
+          error
+        );
         await this.syncManager.markAttemptFailed(item.id!, error.message);
         failedCount++;
       }
@@ -60,11 +69,15 @@ export class TrackDechetSyncProcessor {
     if (successCount > 0) {
       toast({
         title: "✅ Track Déchet - Synchronisation réussie",
-        description: `${successCount} BSD générés avec succès${failedCount > 0 ? `, ${failedCount} échecs` : ''}`,
+        description: `${successCount} BSD générés avec succès${
+          failedCount > 0 ? `, ${failedCount} échecs` : ""
+        }`,
       });
     }
 
-    console.log(`🏁 Track Déchet sync completed: ${successCount} success, ${failedCount} failed`);
+    console.log(
+      `🏁 Track Déchet sync completed: ${successCount} success, ${failedCount} failed`
+    );
     return { success: successCount, failed: failedCount };
   }
 
@@ -72,19 +85,23 @@ export class TrackDechetSyncProcessor {
    * Traite un seul BSD dans la file de synchronisation
    */
   private async processSingleBSD(queueItem: any): Promise<void> {
-    const { peseeId, clientId, transporteurId, productId, codeDechet } = queueItem.data;
+    const { peseeId, clientId, transporteurId, productId, codeDechet } =
+      queueItem.data;
 
     // Récupérer les données nécessaires
-    const [pesee, client, transporteur, product, userSettings] = await Promise.all([
-      db.pesees.get(peseeId),
-      db.clients.get(clientId),
-      db.transporteurs.get(transporteurId),
-      db.products.get(productId),
-      db.userSettings.orderBy('id').last()
-    ]);
+    const [pesee, client, transporteur, product, userSettings] =
+      await Promise.all([
+        db.pesees.get(peseeId),
+        db.clients.get(clientId),
+        transporteurId
+          ? db.transporteurs.get(transporteurId)
+          : Promise.resolve(null),
+        db.products.get(productId),
+        db.userSettings.orderBy("id").last(),
+      ]);
 
-    if (!pesee || !client || !transporteur || !product || !userSettings) {
-      throw new Error('Données manquantes pour générer le BSD');
+    if (!pesee || !client || !product || !userSettings) {
+      throw new Error("Données manquantes pour générer le BSD");
     }
 
     // Formater les données pour l'API Track Déchet
@@ -97,7 +114,10 @@ export class TrackDechetSyncProcessor {
       userSettings
     );
 
-    console.log('📝 Sending BSD data to Track Déchet API:', JSON.stringify(bsdData, null, 2));
+    console.log(
+      "📝 Sending BSD data to Track Déchet API:",
+      JSON.stringify(bsdData, null, 2)
+    );
 
     // Appeler le proxy backend (respecte le mode sandbox global)
     const settings = await getGlobalSettings();
@@ -105,30 +125,35 @@ export class TrackDechetSyncProcessor {
     const token = settings.trackDechetToken;
 
     if (!token) {
-      throw new Error('Token Track Déchet manquant');
+      throw new Error("Token Track Déchet manquant");
     }
 
-    const { data, error } = await supabase.functions.invoke('trackdechet-proxy/createForm', {
-      body: { ...bsdData, sandbox, token }
-    });
+    const { data, error } = await supabase.functions.invoke(
+      "trackdechet-proxy/createForm",
+      {
+        body: { ...bsdData, sandbox, token },
+      }
+    );
 
     if (error) {
       throw new Error(`Erreur du proxy: ${error.message}`);
     }
 
     if (!data.success) {
-      throw new Error(`Erreur API Track Déchet: ${JSON.stringify(data.details)}`);
+      throw new Error(
+        `Erreur API Track Déchet: ${JSON.stringify(data.details)}`
+      );
     }
 
     const bsd = data.bsd;
-    console.log('🎉 BSD created successfully:', bsd);
+    console.log("🎉 BSD created successfully:", bsd);
 
     // Sauvegarder le BSD en local
-    await this.saveBSDLocally(peseeId, bsd.id, bsd.readableId, 'draft');
+    await this.saveBSDLocally(peseeId, bsd.id, bsd.readableId, "draft");
 
     // Mettre à jour la pesée avec l'ID du BSD
-    await db.pesees.update(peseeId, { 
-      bsdId: bsd.id
+    await db.pesees.update(peseeId, {
+      bsdId: bsd.id,
     });
   }
 
@@ -136,9 +161,9 @@ export class TrackDechetSyncProcessor {
    * Sauvegarde un BSD localement
    */
   private async saveBSDLocally(
-    peseeId: number, 
-    bsdId: string, 
-    readableId: string, 
+    peseeId: number,
+    bsdId: string,
+    readableId: string,
     status: string
   ): Promise<void> {
     await db.bsds.add({
@@ -147,7 +172,7 @@ export class TrackDechetSyncProcessor {
       peseeId,
       status: status as any,
       createdAt: new Date(),
-      lastSyncAt: new Date()
+      lastSyncAt: new Date(),
     });
   }
 
@@ -157,7 +182,7 @@ export class TrackDechetSyncProcessor {
   async addPeseeToQueue(
     peseeId: number,
     clientId: number,
-    transporteurId: number,
+    transporteurId: number | null,
     productId: number,
     codeDechet: string
   ): Promise<void> {
@@ -167,21 +192,21 @@ export class TrackDechetSyncProcessor {
       transporteurId,
       productId,
       codeDechet,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
-    await this.syncManager.addToQueue('trackdechet_bsd', queueData, 3);
-    
+    await this.syncManager.addToQueue("trackdechet_bsd", queueData, 3);
+
     console.log(`📤 Added pesée ${peseeId} to Track Déchet sync queue`);
-    
+
     // Créer un BSD local en attente
     await db.bsds.add({
       bsdId: `pending_${peseeId}_${Date.now()}`,
       readableId: `En attente...`,
       peseeId,
-      status: 'pending_sync',
+      status: "pending_sync",
       createdAt: new Date(),
-      lastSyncAt: new Date()
+      lastSyncAt: new Date(),
     });
   }
 
@@ -189,42 +214,52 @@ export class TrackDechetSyncProcessor {
    * Synchronise le statut de tous les BSD existants
    */
   async syncAllBSDStatuses(): Promise<void> {
-    console.log('🔄 Syncing all BSD statuses...');
-    
-    const bsds = await db.bsds.where('status').notEqual('pending_sync').toArray();
+    console.log("🔄 Syncing all BSD statuses...");
+
+    const bsds = await db.bsds
+      .where("status")
+      .notEqual("pending_sync")
+      .toArray();
 
     const settings = await getGlobalSettings();
     const sandbox = !!settings.trackDechetSandboxMode;
     const token = settings.trackDechetToken;
 
     if (!token) {
-      console.warn('Track Déchet token manquant: impossible de synchroniser les statuts');
+      console.warn(
+        "Track Déchet token manquant: impossible de synchroniser les statuts"
+      );
       return;
     }
-    
+
     for (const bsd of bsds) {
       try {
-        const { data, error } = await supabase.functions.invoke('trackdechet-proxy/getForm', {
-          body: { id: bsd.bsdId, sandbox, token }
-        });
+        const { data, error } = await supabase.functions.invoke(
+          "trackdechet-proxy/getForm",
+          {
+            body: { id: bsd.bsdId, sandbox, token },
+          }
+        );
 
         if (!error && data.success) {
           const updatedBsd = data.bsd;
           if (updatedBsd.status !== bsd.status) {
             await db.bsds.update(bsd.id!, {
               status: updatedBsd.status as any,
-              lastSyncAt: new Date()
+              lastSyncAt: new Date(),
             });
 
-            console.log(`📊 Updated BSD ${bsd.readableId} status: ${bsd.status} → ${updatedBsd.status}`);
+            console.log(
+              `📊 Updated BSD ${bsd.readableId} status: ${bsd.status} → ${updatedBsd.status}`
+            );
           }
         }
       } catch (error) {
         console.error(`❌ Failed to sync BSD ${bsd.readableId}:`, error);
       }
     }
-    
-    console.log('✅ BSD status sync completed');
+
+    console.log("✅ BSD status sync completed");
   }
 }
 

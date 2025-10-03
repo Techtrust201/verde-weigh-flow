@@ -36,7 +36,7 @@ export const SaveConfirmDialog = ({
             <Button onClick={onConfirmAndPrint} className="flex items-center">
               <Save className="h-4 w-4 mr-2" />
               <Printer className="h-4 w-4 mr-2" />
-              Imprimer le Bon de peséeeee
+              Imprimer le Bon de pesée
             </Button>
             {moyenPaiement === "Direct" && (
               <Button onClick={onConfirm} variant="outline">

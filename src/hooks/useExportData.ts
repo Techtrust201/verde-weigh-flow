@@ -170,8 +170,8 @@ export const useExportData = () => {
         : "";
 
       return [
-        pesee.dateHeure.toLocaleDateString("fr-FR"),
-        pesee.dateHeure.toLocaleTimeString("fr-FR"),
+        new Date(pesee.dateHeure).toLocaleDateString("fr-FR"),
+        new Date(pesee.dateHeure).toLocaleTimeString("fr-FR"),
         pesee.numeroBon,
         pesee.plaque,
         pesee.nomEntreprise,

@@ -134,7 +134,7 @@ export const PeseeDetailDialog = ({
         client
       );
       setPrintContent(content);
-      setPrintTitle("Bon de peséeeee");
+      setPrintTitle("Bon de pesée");
       setPrintPreviewOpen(true);
     } finally {
       setIsPrinting(false);
@@ -173,7 +173,7 @@ export const PeseeDetailDialog = ({
           '<div style="page-break-before: always;"></div>' +
           invoiceContent
       );
-      setPrintTitle("Bon de peséeeee + Facture");
+      setPrintTitle("Bon de pesée + Facture");
       setPrintPreviewOpen(true);
     } finally {
       setIsPrinting(false);
@@ -207,8 +207,8 @@ export const PeseeDetailDialog = ({
                       Date et heure
                     </label>
                     <p className="mt-1">
-                      {pesee.dateHeure.toLocaleDateString()} à{" "}
-                      {pesee.dateHeure.toLocaleTimeString()}
+                      {new Date(pesee.dateHeure).toLocaleDateString()} à{" "}
+                      {new Date(pesee.dateHeure).toLocaleTimeString()}
                     </p>
                   </div>
                   <div>
@@ -395,7 +395,7 @@ export const PeseeDetailDialog = ({
                       size="sm"
                     >
                       <Printer className="h-4 w-4 mr-2" />
-                      Bon de peséeeee
+                      Bon de pesée
                     </Button>
                     <Button
                       onClick={handlePrintFacture}

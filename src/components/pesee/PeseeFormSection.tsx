@@ -97,20 +97,18 @@ export const PeseeFormSection = ({
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [clientSearchValue, setClientSearchValue] = useState("");
   const [transporteurLibre, setTransporteurLibre] = useState("");
+  const [transporteurSelectorOpen, setTransporteurSelectorOpen] =
+    useState(false);
+  const [transporteurSearchValue, setTransporteurSearchValue] = useState("");
 
   const selectedClient = clients.find((c) => c.id === currentData?.clientId);
 
   // Fonction pour obtenir le placeholder automatique du transporteur
   const getAutoTransporteurPlaceholder = () => {
     if (!currentData?.nomEntreprise) return "Nom du transporteur...";
-    
-    if (currentData.typeClient === "particulier") {
-      return currentData.nomEntreprise;
-    } else if (currentData.typeClient === "professionnel" || currentData.typeClient === "micro-entreprise") {
-      return currentData.nomEntreprise;
-    }
-    
-    return "Nom du transporteur...";
+
+    // Par défaut, le client devient le transporteur (logique Track Déchet)
+    return `Transporteur (par défaut: ${currentData.nomEntreprise})`;
   };
 
   // Recherche simplifiée pour les clients
@@ -134,7 +132,7 @@ export const PeseeFormSection = ({
   const handleClientSelect = (client: Client) => {
     // Vérifier d'abord si le client a déjà un transporteur assigné
     let transporteurId = 0;
-    
+
     if (client.transporteurId && client.transporteurId > 0) {
       // Le client a déjà un transporteur assigné, on le garde
       transporteurId = client.transporteurId;
@@ -149,12 +147,15 @@ export const PeseeFormSection = ({
     updateCurrentTab({
       clientId: client.id!,
       nomEntreprise: client.raisonSociale,
-      typeClient: client.typeClient as "particulier" | "professionnel" | "micro-entreprise",
+      typeClient: client.typeClient as
+        | "particulier"
+        | "professionnel"
+        | "micro-entreprise",
       plaque: client.plaques?.[0] || "",
       chantier: client.chantiers?.[0] || "",
       transporteurId: transporteurId,
     });
-    
+
     setClientSelectorOpen(false);
     setClientSearchValue("");
   };
@@ -197,12 +198,25 @@ export const PeseeFormSection = ({
   const getTransporteurInputValue = () => {
     // Si un transporteur officiel est sélectionné, afficher son nom
     if (currentData?.transporteurId && currentData.transporteurId > 0) {
-      const selectedTransporteur = transporteurs.find(t => t.id === currentData.transporteurId);
-      return selectedTransporteur ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}` : "";
+      const selectedTransporteur = transporteurs.find(
+        (t) => t.id === currentData.transporteurId
+      );
+      return selectedTransporteur
+        ? `${selectedTransporteur.prenom} ${selectedTransporteur.nom}`
+        : "";
     }
-    
-    // Sinon afficher ce que l'utilisateur a tapé dans transporteurLibre
-    return transporteurLibre;
+
+    // Si l'utilisateur a tapé quelque chose dans transporteurLibre, l'afficher
+    if (transporteurLibre) {
+      return transporteurLibre;
+    }
+
+    // Sinon, par défaut pour Track Déchet : le client devient le transporteur
+    if (currentData?.nomEntreprise) {
+      return currentData.nomEntreprise;
+    }
+
+    return "";
   };
 
   return (
@@ -234,7 +248,7 @@ export const PeseeFormSection = ({
           </Select>
         </div>
       </div>
-      
+
       {/* Si pas de client sélectionné, afficher le sélecteur de type */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         {!currentData?.clientId ? (
@@ -657,47 +671,118 @@ export const PeseeFormSection = ({
           <Label htmlFor="transporteur">Transporteur</Label>
           <div className="flex gap-2">
             <div className="flex-1">
-              {currentData?.transporteurId && currentData.transporteurId > 0 ? (
-                <Select
-                  value={currentData.transporteurId.toString()}
-                  onValueChange={(value) => {
-                    const transporteurId = parseInt(value) || 0;
-                    updateCurrentTab({ transporteurId });
-                    if (transporteurId === 0) {
-                      // Si on désélectionne le transporteur, on vide le transporteur libre
-                      setTransporteurLibre("");
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un transporteur" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Aucun transporteur</SelectItem>
-                    {transporteurs.map((transporteur) => (
-                      <SelectItem
-                        key={transporteur.id}
-                        value={transporteur.id!.toString()}
-                      >
-                        {transporteur.prenom} {transporteur.nom}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  placeholder={getAutoTransporteurPlaceholder()}
-                  value={getTransporteurInputValue()}
-                  onChange={(e) => {
-                    setTransporteurLibre(e.target.value);
-                    // ⚠️ CRITIQUE: Mettre à jour le state de l'onglet
-                    updateCurrentTab({ transporteurLibre: e.target.value });
-                    // S'assurer qu'aucun transporteur officiel n'est sélectionné
-                    if (currentData?.transporteurId && currentData.transporteurId > 0) {
-                      updateCurrentTab({ transporteurId: 0 });
-                    }
-                  }}
-                />
+              <Popover
+                open={transporteurSelectorOpen}
+                onOpenChange={setTransporteurSelectorOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={transporteurSelectorOpen}
+                    className="w-full justify-between"
+                  >
+                    {getTransporteurInputValue() ||
+                      "Sélectionner un transporteur..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Rechercher un transporteur..."
+                      value={transporteurSearchValue}
+                      onValueChange={setTransporteurSearchValue}
+                    />
+                    <CommandList>
+                      <CommandEmpty>Aucun transporteur trouvé.</CommandEmpty>
+                      <CommandGroup>
+                        {/* Option transporteur libre */}
+                        <CommandItem
+                          value="transporteur-libre"
+                          onSelect={() => {
+                            setTransporteurLibre("");
+                            updateCurrentTab({
+                              transporteurId: 0,
+                              transporteurLibre: "",
+                            });
+                            setTransporteurSelectorOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              (!currentData?.transporteurId ||
+                                currentData.transporteurId === 0) &&
+                                !transporteurLibre
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          Transporteur libre (saisie manuelle)
+                        </CommandItem>
+
+                        {/* Transporteurs existants */}
+                        {transporteurs
+                          .filter(
+                            (transporteur) =>
+                              transporteur.prenom
+                                .toLowerCase()
+                                .includes(
+                                  transporteurSearchValue.toLowerCase()
+                                ) ||
+                              transporteur.nom
+                                .toLowerCase()
+                                .includes(transporteurSearchValue.toLowerCase())
+                          )
+                          .map((transporteur) => (
+                            <CommandItem
+                              key={transporteur.id}
+                              value={`${transporteur.prenom} ${transporteur.nom}`}
+                              onSelect={() => {
+                                updateCurrentTab({
+                                  transporteurId: transporteur.id!,
+                                });
+                                setTransporteurLibre("");
+                                setTransporteurSelectorOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  currentData?.transporteurId ===
+                                    transporteur.id
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {transporteur.prenom} {transporteur.nom}
+                              {transporteur.siret && (
+                                <Badge variant="secondary" className="ml-2">
+                                  {transporteur.siret}
+                                </Badge>
+                              )}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+
+              {/* Champ pour transporteur libre si sélectionné */}
+              {(!currentData?.transporteurId ||
+                currentData.transporteurId === 0) && (
+                <div className="mt-2">
+                  <Input
+                    placeholder="Nom du transporteur libre (optionnel)"
+                    value={transporteurLibre}
+                    onChange={(e) => {
+                      setTransporteurLibre(e.target.value);
+                      updateCurrentTab({ transporteurLibre: e.target.value });
+                    }}
+                  />
+                </div>
               )}
             </div>
             <Dialog

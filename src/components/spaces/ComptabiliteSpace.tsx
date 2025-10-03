@@ -362,7 +362,7 @@ export default function ComptabiliteSpace() {
                     <span className="font-medium">{pesee.numeroBon}</span>
                     <span className="text-sm text-gray-600 ml-2">
                       {pesee.nomEntreprise} -{" "}
-                      {pesee.dateHeure.toLocaleDateString()}
+                      {new Date(pesee.dateHeure).toLocaleDateString()}
                     </span>
                   </div>
                   <Badge variant="outline">En attente</Badge>

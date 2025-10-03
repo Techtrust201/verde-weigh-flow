@@ -1,17 +1,41 @@
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
-import { Pesee, Product, Client, Transporteur, UserSettings, db } from '@/lib/database';
-import { generateBSD } from '@/utils/trackdechetApi';
-import { getTrackDechetToken, isTrackDechetReady, getGlobalSettings } from '@/lib/globalSettings';
-import { validateTrackDechetData } from '@/utils/trackdechetValidation';
-import { validateUserSettingsForTrackDechet } from '@/utils/trackdechetValidationHelpers';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import {
+  Pesee,
+  Product,
+  Client,
+  Transporteur,
+  UserSettings,
+  db,
+} from "@/lib/database";
+import { generateBSD } from "@/utils/trackdechetApi";
+import {
+  getTrackDechetToken,
+  isTrackDechetReady,
+  getGlobalSettings,
+} from "@/lib/globalSettings";
+import { validateTrackDechetData } from "@/utils/trackdechetValidation";
+import { validateUserSettingsForTrackDechet } from "@/utils/trackdechetValidationHelpers";
+import { useToast } from "@/hooks/use-toast";
 
 interface TrackDechetDialogProps {
   isOpen: boolean;
@@ -28,9 +52,11 @@ export function TrackDechetDialog({
   pesee,
   product,
   client,
-  transporteur
+  transporteur,
 }: TrackDechetDialogProps) {
-  const [selectedCodeDechet, setSelectedCodeDechet] = useState(product?.codeDechets || "");
+  const [selectedCodeDechet, setSelectedCodeDechet] = useState(
+    product?.codeDechets || ""
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
@@ -44,7 +70,10 @@ export function TrackDechetDialog({
       const settings = await db.userSettings.toCollection().first();
       setUserSettings(settings || null);
 
-      if (client?.typeClient === 'particulier' || !client?.trackDechetEnabled) {
+      if (
+        client?.typeClient === "particulier" ||
+        !product?.trackDechetEnabled
+      ) {
         return false;
       }
 
@@ -56,14 +85,20 @@ export function TrackDechetDialog({
 
       // Validation complète avec les nouvelles règles
       if (pesee) {
-        const validation = validateTrackDechetData(pesee, client, transporteur, product, settings);
+        const validation = validateTrackDechetData(
+          pesee,
+          client,
+          transporteur,
+          product,
+          settings
+        );
         setValidationErrors(validation.missingFields);
         return validation.isValid;
       }
 
       return false;
     } catch (error) {
-      console.error('Erreur vérification Track Déchet:', error);
+      console.error("Erreur vérification Track Déchet:", error);
       return false;
     }
   };
@@ -73,15 +108,24 @@ export function TrackDechetDialog({
     { code: "170101", description: "Béton" },
     { code: "170102", description: "Briques" },
     { code: "170103", description: "Tuiles et céramiques" },
-    { code: "170107", description: "Mélanges de béton, briques, tuiles et céramiques" },
+    {
+      code: "170107",
+      description: "Mélanges de béton, briques, tuiles et céramiques",
+    },
     { code: "170201", description: "Bois" },
     { code: "170202", description: "Verre" },
     { code: "170203", description: "Matières plastiques" },
     { code: "170301", description: "Mélanges bitumineux contenant du goudron" },
-    { code: "170302", description: "Mélanges bitumineux ne contenant pas de goudron" },
+    {
+      code: "170302",
+      description: "Mélanges bitumineux ne contenant pas de goudron",
+    },
     { code: "170504", description: "Terre et cailloux" },
     { code: "170506", description: "Boues de dragage" },
-    { code: "170904", description: "Déchets de construction et de démolition en mélange" }
+    {
+      code: "170904",
+      description: "Déchets de construction et de démolition en mélange",
+    },
   ];
 
   // Générer le BSD
@@ -97,8 +141,9 @@ export function TrackDechetDialog({
       if (!globalToken) {
         toast({
           title: "Erreur",
-          description: "Token Track Déchet non configuré. Allez dans Paramètres → Track Déchet",
-          variant: "destructive"
+          description:
+            "Token Track Déchet non configuré. Allez dans Paramètres → Track Déchet",
+          variant: "destructive",
         });
         return;
       }
@@ -106,7 +151,7 @@ export function TrackDechetDialog({
       const result = await generateBSD(
         pesee,
         client,
-        transporteur, 
+        transporteur,
         product,
         selectedCodeDechet,
         globalToken
@@ -115,22 +160,22 @@ export function TrackDechetDialog({
       if (result.success) {
         toast({
           title: "BSD généré avec succès",
-          description: `BSD ${result.bsdId} créé dans Track Déchet`
+          description: `BSD ${result.bsdId} créé dans Track Déchet`,
         });
         onClose();
       } else {
         toast({
           title: "Erreur génération BSD",
           description: result.error || "Une erreur est survenue",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Erreur génération BSD:', error);
+      console.error("Erreur génération BSD:", error);
       toast({
         title: "Erreur",
         description: "Impossible de générer le BSD",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
@@ -145,7 +190,7 @@ export function TrackDechetDialog({
         setIsApplicable(applicable);
       }
     };
-    
+
     checkApplicability();
   }, [isOpen, client, product, transporteur]);
 
@@ -159,7 +204,9 @@ export function TrackDechetDialog({
           </DialogHeader>
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
-            <span className="text-muted-foreground">Vérification de la configuration...</span>
+            <span className="text-muted-foreground">
+              Vérification de la configuration...
+            </span>
           </div>
         </DialogContent>
       </Dialog>
@@ -169,16 +216,19 @@ export function TrackDechetDialog({
   // Si Track Déchet n'est pas applicable
   if (!isApplicable) {
     let missingRequirements: string[] = [];
-    
-    if (client?.typeClient === 'particulier') {
-      missingRequirements.push("Track Déchet n'est disponible que pour les clients professionnels");
-    } else if (!client?.trackDechetEnabled) {
-      missingRequirements.push("Track Déchet n'est pas activé pour ce client");
+
+    if (client?.typeClient === "particulier") {
+      missingRequirements.push(
+        "Track Déchet n'est disponible que pour les clients professionnels"
+      );
+    } else if (!product?.trackDechetEnabled) {
+      missingRequirements.push("Track Déchet n'est pas activé pour ce produit");
     } else {
       // Utiliser les erreurs de validation détaillées
-      missingRequirements = validationErrors.length > 0 ? validationErrors : [
-        "Impossible de valider les données pour Track Déchet"
-      ];
+      missingRequirements =
+        validationErrors.length > 0
+          ? validationErrors
+          : ["Impossible de valider les données pour Track Déchet"];
     }
 
     return (
@@ -187,10 +237,11 @@ export function TrackDechetDialog({
           <DialogHeader>
             <DialogTitle>Track Déchet non applicable</DialogTitle>
             <DialogDescription>
-              Les conditions suivantes ne sont pas remplies pour générer un BSD :
+              Les conditions suivantes ne sont pas remplies pour générer un BSD
+              :
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <ul className="space-y-2">
               {missingRequirements.map((requirement, index) => (
@@ -200,24 +251,31 @@ export function TrackDechetDialog({
                 </li>
               ))}
             </ul>
-            
-            {missingRequirements.length === 1 && missingRequirements[0].includes("Track Déchet n'est pas activé") && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs text-blue-700">
-                  💡 Activez Track Déchet pour ce client dans sa fiche pour pouvoir générer des BSD automatiquement.
-                </p>
-              </div>
-            )}
-            
-            {missingRequirements.some(req => req.includes("votre entreprise")) && (
+
+            {missingRequirements.length === 1 &&
+              missingRequirements[0].includes(
+                "Track Déchet n'est pas activé"
+              ) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs text-blue-700">
+                    💡 Activez Track Déchet pour ce produit dans la gestion des
+                    produits pour pouvoir générer des BSD automatiquement.
+                  </p>
+                </div>
+              )}
+
+            {missingRequirements.some((req) =>
+              req.includes("votre entreprise")
+            ) && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <p className="text-xs text-amber-700">
-                  💡 Complétez vos informations d'entreprise dans l'espace "Utilisateur" pour utiliser Track Déchet.
+                  💡 Complétez vos informations d'entreprise dans l'espace
+                  "Utilisateur" pour utiliser Track Déchet.
                 </p>
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={onClose}>
               Fermer
@@ -271,7 +329,9 @@ export function TrackDechetDialog({
             </CardHeader>
             <CardContent className="space-y-2">
               <div>
-                <strong>{transporteur?.prenom} {transporteur?.nom}</strong>
+                <strong>
+                  {transporteur?.prenom} {transporteur?.nom}
+                </strong>
               </div>
               <div className="text-sm text-muted-foreground">
                 SIRET: {transporteur?.siret}
@@ -288,7 +348,9 @@ export function TrackDechetDialog({
           {/* Informations du destinataire (mon entreprise) */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Destinataire (Votre entreprise)</CardTitle>
+              <CardTitle className="text-base">
+                Destinataire (Votre entreprise)
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {userSettings ? (
@@ -347,7 +409,9 @@ export function TrackDechetDialog({
             <div>
               <Label className="text-sm font-medium">Date</Label>
               <p className="text-sm">
-                {pesee?.dateHeure ? new Date(pesee.dateHeure).toLocaleDateString() : 'Non définie'}
+                {pesee?.dateHeure
+                  ? new Date(pesee.dateHeure).toLocaleDateString()
+                  : "Non définie"}
               </p>
             </div>
           </CardContent>
@@ -356,7 +420,10 @@ export function TrackDechetDialog({
         {/* Sélection du code déchet */}
         <div className="space-y-2">
           <Label htmlFor="codeDechet">Code déchet européen *</Label>
-          <Select value={selectedCodeDechet} onValueChange={setSelectedCodeDechet}>
+          <Select
+            value={selectedCodeDechet}
+            onValueChange={setSelectedCodeDechet}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Sélectionnez un code déchet" />
             </SelectTrigger>
@@ -370,7 +437,7 @@ export function TrackDechetDialog({
                   <div className="border-b my-1" />
                 </>
               )}
-              
+
               {/* Codes communs */}
               {codesDechetsCommuns.map((code) => (
                 <SelectItem key={code.code} value={code.code}>
@@ -388,7 +455,7 @@ export function TrackDechetDialog({
           <Button variant="outline" onClick={onClose}>
             Annuler
           </Button>
-          <Button 
+          <Button
             onClick={handleGenerateBSD}
             disabled={!selectedCodeDechet || isGenerating}
             className="min-w-[120px]"

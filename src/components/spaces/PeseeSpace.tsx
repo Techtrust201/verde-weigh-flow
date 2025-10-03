@@ -507,7 +507,7 @@ export default function PeseeSpace() {
           : Promise.resolve(null),
       ]);
 
-      if (!client || !transporteur) {
+      if (!client) {
         return; // Pas assez de données
       }
 
@@ -529,7 +529,7 @@ export default function PeseeSpace() {
         await trackDechetProcessor.addPeseeToQueue(
           savedPeseeId,
           client.id!,
-          transporteur.id!,
+          transporteur?.id || null,
           product.id!,
           product.codeDechets
         );
