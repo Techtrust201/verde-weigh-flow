@@ -464,6 +464,33 @@ export const initializeSampleData = async () => {
     ];
 
     await db.products.bulkAdd(sampleProducts);
+
+    // Créer des taxes d'exemple
+    const sampleTaxes: Tax[] = [
+      {
+        nom: "Taxe de transport",
+        taux: 2.5,
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        nom: "Frais de gestion",
+        taux: 1.0,
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        nom: "Taxe environnementale",
+        taux: 0.5,
+        active: false, // Désactivée par défaut
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    await db.taxes.bulkAdd(sampleTaxes);
     console.log("Données d'exemple initialisées avec succès");
   } catch (error) {
     console.error("Erreur lors de l'initialisation des données:", error);

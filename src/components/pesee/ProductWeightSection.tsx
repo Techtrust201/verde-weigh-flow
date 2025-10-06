@@ -28,6 +28,9 @@ export const ProductWeightSection = ({
   const [calculatedCost, setCalculatedCost] = useState<{
     ht: number;
     ttc: number;
+    taxesDetails?: Array<{ nom: string; taux: number; montant: number }>;
+    montantTVA?: number;
+    tauxTVA?: number;
   } | null>(null);
 
   useEffect(() => {
@@ -66,7 +69,7 @@ export const ProductWeightSection = ({
     }
   };
 
-  const calculateCost = () => {
+  const calculateCost = async () => {
     if (
       !currentData?.produitId ||
       !currentData?.poidsEntree ||
@@ -115,10 +118,41 @@ export const ProductWeightSection = ({
       }
     }
 
-    setCalculatedCost({
-      ht: net * prixHT,
-      ttc: net * prixTTC,
-    });
+    // Calculer le total HT
+    const totalHT = net * prixHT;
+
+    // Récupérer les taxes actives et calculer le total TTC avec taxes
+    try {
+      const activeTaxes = (await db.taxes.toArray()).filter((t) => t.active);
+      const taxesDetails = activeTaxes.map((tax) => ({
+        nom: tax.nom,
+        taux: tax.taux,
+        montant: totalHT * (tax.taux / 100),
+      }));
+
+      const totalTaxes = taxesDetails.reduce(
+        (sum, tax) => sum + tax.montant,
+        0
+      );
+      const tauxTVA = selectedProduct.tauxTVA || 20;
+      const montantTVA = totalHT * (tauxTVA / 100);
+      const totalTTC = totalHT + montantTVA + totalTaxes;
+
+      setCalculatedCost({
+        ht: totalHT,
+        ttc: totalTTC,
+        taxesDetails,
+        montantTVA,
+        tauxTVA,
+      });
+    } catch (error) {
+      console.error("Erreur lors du calcul des taxes:", error);
+      // Fallback au calcul simple si erreur
+      setCalculatedCost({
+        ht: totalHT,
+        ttc: net * prixTTC,
+      });
+    }
   };
 
   const selectedProduct = products.find((p) => p.id === currentData?.produitId);
@@ -260,6 +294,34 @@ export const ProductWeightSection = ({
                       {calculatedCost.ht.toFixed(2)}€ HT
                     </div>
                   </div>
+
+                  {/* Détails des taxes */}
+                  {calculatedCost.taxesDetails &&
+                    calculatedCost.taxesDetails.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-green-300">
+                        <div className="text-sm font-semibold text-green-700 mb-2">
+                          Détail des taxes :
+                        </div>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span>TVA ({calculatedCost.tauxTVA}%)</span>
+                            <span className="font-semibold">
+                              {calculatedCost.montantTVA?.toFixed(2)}€
+                            </span>
+                          </div>
+                          {calculatedCost.taxesDetails.map((tax, index) => (
+                            <div key={index} className="flex justify-between">
+                              <span>
+                                {tax.nom} ({tax.taux}%)
+                              </span>
+                              <span className="font-semibold">
+                                {tax.montant.toFixed(2)}€
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                 </div>
 
                 {hasPrefPricing && (

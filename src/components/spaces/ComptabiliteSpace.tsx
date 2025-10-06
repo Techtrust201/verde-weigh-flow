@@ -18,11 +18,19 @@ import {
 } from "lucide-react";
 import { db, Pesee, UserSettings } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
-import { setupAutoSync, stopAutoSync } from "@/utils/syncScheduler";
+import {
+  setupSimpleAutoSync,
+  stopSimpleAutoSync,
+  testSync,
+} from "@/utils/simpleSyncScheduler";
 import { backgroundSyncManager } from "@/utils/backgroundSync";
 import { SyncMonitor } from "@/components/ui/sync-monitor";
 import { conflictResolver } from "@/utils/conflictResolver";
 import { TaxesManager } from "@/components/settings/TaxesManager";
+import {
+  resetDatabaseWithTaxes,
+  testTaxCalculation,
+} from "@/utils/resetDatabaseWithTaxes";
 
 export default function ComptabiliteSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
@@ -34,9 +42,13 @@ export default function ComptabiliteSpace() {
   const [conflictCount, setConflictCount] = useState(0);
   const { toast } = useToast();
 
+  // Charger les données au montage du composant
   useEffect(() => {
     loadData();
+  }, []);
 
+  // Gérer la synchronisation automatique
+  useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       // Auto-sync when coming online
@@ -52,15 +64,15 @@ export default function ComptabiliteSpace() {
 
     // Démarrer la synchronisation automatique si activée
     if (autoSyncEnabled) {
-      setupAutoSync();
+      setupSimpleAutoSync();
     }
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      stopAutoSync();
+      stopSimpleAutoSync();
     };
-  }, [autoSyncEnabled, userSettings]);
+  }, [autoSyncEnabled]); // Seulement autoSyncEnabled comme dépendance
 
   const loadData = async () => {
     try {
@@ -82,14 +94,14 @@ export default function ComptabiliteSpace() {
     setAutoSyncEnabled(enabled);
 
     if (enabled) {
-      setupAutoSync();
+      // setupAutoSync() est déjà appelé dans le useEffect, pas besoin de le rappeler ici
       toast({
         title: "Synchronisation automatique activée",
         description:
           "Les données seront synchronisées automatiquement chaque jour à 17h55.",
       });
     } else {
-      stopAutoSync();
+      stopSimpleAutoSync();
       toast({
         title: "Synchronisation automatique désactivée",
         description: "Vous devrez synchroniser manuellement vos données.",
@@ -134,6 +146,86 @@ export default function ComptabiliteSpace() {
       });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleResetDatabase = async () => {
+    if (
+      !confirm(
+        "Êtes-vous sûr de vouloir réinitialiser la base de données ? Cette action supprimera toutes les données existantes."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const success = await resetDatabaseWithTaxes();
+      if (success) {
+        toast({
+          title: "Base de données réinitialisée",
+          description:
+            "Les données ont été réinitialisées avec les taxes d'exemple.",
+        });
+        await loadData();
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Impossible de réinitialiser la base de données.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Reset error:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la réinitialisation.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTestTaxes = async () => {
+    try {
+      const success = await testTaxCalculation();
+      if (success) {
+        toast({
+          title: "Test des taxes",
+          description:
+            "Le calcul des taxes fonctionne correctement. Vérifiez la console pour les détails.",
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Erreur lors du test des taxes.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Test error:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du test.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTestSync = () => {
+    try {
+      const success = testSync();
+      if (success) {
+        toast({
+          title: "Test de synchronisation",
+          description: "Le système de synchronisation fonctionne correctement.",
+        });
+      }
+    } catch (error) {
+      console.error("Sync test error:", error);
+      toast({
+        title: "Erreur",
+        description: "Erreur lors du test de synchronisation.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -189,174 +281,174 @@ export default function ComptabiliteSpace() {
                 </span>
               ) : (
                 <span className="text-orange-600">
-                  ⚠ Clé API Sage non configurée. Veuillez configurer votre clé API
-                  dans les paramètres utilisateur.
+                  ⚠ Clé API Sage non configurée. Veuillez configurer votre clé
+                  API dans les paramètres utilisateur.
                 </span>
               )}
             </AlertDescription>
           </Alert>
 
-      {/* Configuration de la synchronisation automatique */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Configuration de la synchronisation
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <Label htmlFor="auto-sync">
-                  Synchronisation automatique quotidienne
-                </Label>
+          {/* Configuration de la synchronisation automatique */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Configuration de la synchronisation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <Label htmlFor="auto-sync">
+                      Synchronisation automatique quotidienne
+                    </Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Synchronise automatiquement les données avec Sage chaque
+                    jour à 17h55
+                  </p>
+                </div>
+                <Switch
+                  id="auto-sync"
+                  checked={autoSyncEnabled}
+                  onCheckedChange={handleAutoSyncToggle}
+                  disabled={!userSettings?.cleAPISage}
+                />
               </div>
-              <p className="text-sm text-muted-foreground">
-                Synchronise automatiquement les données avec Sage chaque jour à
-                17h55
-              </p>
-            </div>
-            <Switch
-              id="auto-sync"
-              checked={autoSyncEnabled}
-              onCheckedChange={handleAutoSyncToggle}
-              disabled={!userSettings?.cleAPISage}
-            />
-          </div>
 
-          {autoSyncEnabled && (
-            <Alert>
-              <Clock className="h-4 w-4" />
-              <AlertDescription>
-                La synchronisation automatique est programmée tous les jours à
-                17h55. Assurez-vous que l'application reste ouverte pour que la
-                synchronisation se déclenche.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Sync Status */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Données en attente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-600">
-              {pendingPesees.length}
-            </div>
-            <p className="text-sm text-gray-600">pesée(s) à synchroniser</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Données synchronisées</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">
-              {syncedPesees.length}
-            </div>
-            <p className="text-sm text-gray-600">
-              pesée(s) envoyée(s) vers Sage
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Dernière sync</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-semibold">
-              {lastSync ? lastSync.toLocaleDateString() : "Jamais"}
-            </div>
-            <p className="text-sm text-gray-600">
-              {lastSync
-                ? lastSync.toLocaleTimeString()
-                : "Aucune synchronisation"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sync Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Synchronisation avec Sage</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold">Envoi manuel vers Sage</h3>
-              <p className="text-sm text-gray-600">
-                Envoyer toutes les données en attente vers votre logiciel de
-                comptabilité Sage.
-              </p>
-            </div>
-            <Button
-              onClick={handleSyncToSage}
-              disabled={
-                !isOnline ||
-                !userSettings?.cleAPISage ||
-                isSyncing ||
-                pendingPesees.length === 0
-              }
-            >
-              {isSyncing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Synchronisation...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Synchroniser ({pendingPesees.length})
-                </>
+              {autoSyncEnabled && (
+                <Alert>
+                  <Clock className="h-4 w-4" />
+                  <AlertDescription>
+                    La synchronisation automatique est programmée tous les jours
+                    à 17h55. Assurez-vous que l'application reste ouverte pour
+                    que la synchronisation se déclenche.
+                  </AlertDescription>
+                </Alert>
               )}
-            </Button>
+            </CardContent>
+          </Card>
+
+          {/* Sync Status */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Données en attente</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-600">
+                  {pendingPesees.length}
+                </div>
+                <p className="text-sm text-gray-600">pesée(s) à synchroniser</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Données synchronisées</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600">
+                  {syncedPesees.length}
+                </div>
+                <p className="text-sm text-gray-600">
+                  pesée(s) envoyée(s) vers Sage
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Dernière sync</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-lg font-semibold">
+                  {lastSync ? lastSync.toLocaleDateString() : "Jamais"}
+                </div>
+                <p className="text-sm text-gray-600">
+                  {lastSync
+                    ? lastSync.toLocaleTimeString()
+                    : "Aucune synchronisation"}
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
-          {pendingPesees.length === 0 && (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                Toutes les données ont été synchronisées avec Sage.
-              </AlertDescription>
-            </Alert>
+          {/* Sync Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Synchronisation avec Sage</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold">Envoi manuel vers Sage</h3>
+                  <p className="text-sm text-gray-600">
+                    Envoyer toutes les données en attente vers votre logiciel de
+                    comptabilité Sage.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleSyncToSage}
+                  disabled={
+                    !isOnline ||
+                    !userSettings?.cleAPISage ||
+                    isSyncing ||
+                    pendingPesees.length === 0
+                  }
+                >
+                  {isSyncing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Synchronisation...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Synchroniser ({pendingPesees.length})
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {pendingPesees.length === 0 && (
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Toutes les données ont été synchronisées avec Sage.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Nouveau système de monitoring de synchronisation */}
+          <SyncMonitor onManualSync={handleSyncToSage} />
+
+          {/* Affichage des conflits s'il y en a */}
+          {conflictCount > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-600">
+                  <AlertCircle className="h-5 w-5" />
+                  Conflits de synchronisation détectés
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {conflictCount} conflit(s) de données ont été détectés et
+                    résolus automatiquement. Les versions locales ont été
+                    conservées. Si vous souhaitez forcer une resynchronisation
+                    complète, utilisez le bouton de synchronisation manuelle.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Nouveau système de monitoring de synchronisation */}
-      <SyncMonitor onManualSync={handleSyncToSage} />
-
-      {/* Affichage des conflits s'il y en a */}
-      {conflictCount > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-600">
-              <AlertCircle className="h-5 w-5" />
-              Conflits de synchronisation détectés
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {conflictCount} conflit(s) de données ont été détectés et
-                résolus automatiquement. Les versions locales ont été
-                conservées. Si vous souhaitez forcer une resynchronisation
-                complète, utilisez le bouton de synchronisation manuelle.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-      )}
 
           {/* Sync Log */}
           {pendingPesees.length > 0 && (
@@ -393,7 +485,56 @@ export default function ComptabiliteSpace() {
         </TabsContent>
 
         <TabsContent value="taxes">
-          <TaxesManager />
+          <div className="space-y-6">
+            {/* Boutons de test */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Outils de test
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button
+                    onClick={handleTestTaxes}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    <Percent className="h-4 w-4 mr-2" />
+                    Tester les taxes
+                  </Button>
+                  <Button
+                    onClick={handleTestSync}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Tester la sync
+                  </Button>
+                  <Button
+                    onClick={handleResetDatabase}
+                    variant="destructive"
+                    className="flex-1"
+                  >
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Réinitialiser DB
+                  </Button>
+                </div>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Attention :</strong> Le bouton "Réinitialiser la
+                    base de données" supprimera toutes les données existantes et
+                    créera des données d'exemple avec des taxes préconfigurées.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+
+            {/* Gestionnaire de taxes */}
+            <TaxesManager />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
