@@ -566,7 +566,7 @@ export const handlePrintBothBonAndInvoice = async (
   if (!formData) return { bonContent: "", invoiceContent: "" };
 
   // Générer le contenu du Bon de pesée
-  const bonContent = generatePrintContent(
+  const bonContent = await generatePrintContent(
     formData,
     products,
     transporteurs,
@@ -575,7 +575,7 @@ export const handlePrintBothBonAndInvoice = async (
 
   // Générer le contenu de la facture
   const { generateInvoiceContent } = await import("@/utils/invoiceUtils");
-  const invoiceContent = generateInvoiceContent(
+  const invoiceContent = await generateInvoiceContent(
     formData,
     products,
     transporteurs,
