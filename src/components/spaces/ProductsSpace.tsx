@@ -326,7 +326,7 @@ export default function ProductsSpace() {
                     id="prixHT"
                     value={formData.prixHT}
                     onChange={(value) =>
-                      setFormData({ ...formData, prixHT: value || 0 })
+                      setFormData({ ...formData, prixHT: value })
                     }
                     placeholder="0.00"
                     min={0}
