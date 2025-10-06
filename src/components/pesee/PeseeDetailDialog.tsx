@@ -126,7 +126,7 @@ export const PeseeDetailDialog = ({
   const handlePrintBon = async () => {
     setIsPrinting(true);
     try {
-      const content = handlePrint(
+      const content = await handlePrint(
         formDataForPrint,
         products,
         transporteurs,
@@ -144,7 +144,7 @@ export const PeseeDetailDialog = ({
   const handlePrintFacture = async () => {
     setIsPrinting(true);
     try {
-      const content = handlePrint(
+      const content = await handlePrint(
         formDataForPrint,
         products,
         transporteurs,

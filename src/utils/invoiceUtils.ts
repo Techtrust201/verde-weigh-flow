@@ -1,12 +1,15 @@
-import { Product, Transporteur, Client } from "@/lib/database";
+import { Product, Transporteur, Client, UserSettings, db } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
 
-export const generateInvoiceContent = (
+export const generateInvoiceContent = async (
   formData: PeseeTab["formData"],
   products: Product[],
   transporteurs: Transporteur[],
   client: Client | null
 ) => {
+  // Récupérer les paramètres utilisateur pour le SIRET
+  const userSettingsData = await db.userSettings.toArray();
+  const userSettings = userSettingsData[0];
   const selectedProduct = products.find((p) => p.id === formData.produitId);
   const selectedTransporteur = transporteurs.find(
     (t) => t.id === formData.transporteurId
@@ -269,7 +272,7 @@ export const generateInvoiceContent = (
       <div class="invoice-container">
         <div class="header">
           <div class="company-info">
-            <div class="company-name">BDV</div>
+            <div class="company-name">BDV ${userSettings?.siret ? `- SIRET: ${userSettings.siret}` : ''}</div>
             <div class="company-details">
               600, chemin de la Levade
               Les Iscles<br>

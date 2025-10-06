@@ -268,7 +268,7 @@ export default function PeseeSpace() {
     if (success) {
       const currentData = getCurrentTabData();
       if (currentData) {
-        const content = handlePrint(
+        const content = await handlePrint(
           currentData,
           products,
           transporteurs,
@@ -293,7 +293,7 @@ export default function PeseeSpace() {
           const { generateInvoiceContent } = await import(
             "@/utils/invoiceUtils"
           );
-          const invoiceContent = generateInvoiceContent(
+          const invoiceContent = await generateInvoiceContent(
             currentData,
             products,
             transporteurs,
@@ -664,9 +664,9 @@ export default function PeseeSpace() {
                 <div className="flex justify-end space-x-3 pt-4 border-t">
                   <Button
                     variant="outline"
-                    onClick={() => {
+                    onClick={async () => {
                       if (tab.formData) {
-                        const content = handlePrint(
+                        const content = await handlePrint(
                           tab.formData,
                           products,
                           transporteurs,

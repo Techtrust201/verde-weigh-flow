@@ -1,14 +1,17 @@
-import { Product, Transporteur, Client } from "@/lib/database";
+import { Product, Transporteur, Client, UserSettings, db } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
 import { generateInvoiceContent } from "./invoiceUtils";
 
-export const generatePrintContent = (
+export const generatePrintContent = async (
   formData: PeseeTab["formData"],
   products: Product[],
   transporteurs: Transporteur[],
   isInvoice = false,
   client: Client | null = null
 ) => {
+  // Récupérer les paramètres utilisateur pour le SIRET
+  const userSettingsData = await db.userSettings.toArray();
+  const userSettings = userSettingsData[0];
   // Si c'est une facture, utiliser la nouvelle fonction
   if (isInvoice) {
     return generateInvoiceContent(formData, products, transporteurs, client);
@@ -46,7 +49,7 @@ export const generatePrintContent = (
     <div class="bon">
       <div class="header">
         <div class="company-info">
-          <div class="company-name">BDV</div>
+          <div class="company-name">BDV ${userSettings?.siret ? `- SIRET: ${userSettings.siret}` : ''}</div>
           <div class="address">600, chemin de la Levade, Les Iscles</div>
           
           <div class="address">06550 LA ROQUETTE-SUR-SIAGNE</div>
@@ -511,14 +514,14 @@ export const generatePrintContent = (
   `;
 };
 
-export const handlePrint = (
+export const handlePrint = async (
   formData: PeseeTab["formData"],
   products: Product[],
   transporteurs: Transporteur[],
   isInvoice = false,
   client: Client | null = null
 ) => {
-  const printContent = generatePrintContent(
+  const printContent = await generatePrintContent(
     formData,
     products,
     transporteurs,
@@ -531,14 +534,14 @@ export const handlePrint = (
 };
 
 // Nouvelle fonction pour l'impression directe (ancienne fonction)
-export const handlePrintDirect = (
+export const handlePrintDirect = async (
   formData: PeseeTab["formData"],
   products: Product[],
   transporteurs: Transporteur[],
   isInvoice = false,
   client: Client | null = null
 ) => {
-  const printContent = generatePrintContent(
+  const printContent = await generatePrintContent(
     formData,
     products,
     transporteurs,

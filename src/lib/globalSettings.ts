@@ -28,6 +28,7 @@ export interface GlobalSettings {
  */
 const SETTINGS_KEYS = {
   TRACK_DECHET_TOKEN: "trackDechetToken",
+  TRACK_DECHET_ENABLED: "trackDechetEnabled",
   TRACK_DECHET_VALIDATED: "trackDechetValidated",
   TRACK_DECHET_VALIDATED_AT: "trackDechetValidatedAt",
   TRACK_DECHET_SANDBOX_MODE: "trackDechetSandboxMode",
