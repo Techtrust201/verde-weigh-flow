@@ -39,9 +39,9 @@ export default function ProductsSpace() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({
     nom: "",
-    prixHT: 0,
+    prixHT: undefined,
     tauxTVA: 20,
-    prixTTC: 0,
+    prixTTC: undefined,
     codeProduct: "",
     unite: "tonne",
     isFavorite: false,
