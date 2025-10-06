@@ -335,7 +335,7 @@ class AppDatabase extends Dexie {
         "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
       users: "++id, nom, prenom, email, role, createdAt, updatedAt",
       userSettings:
-        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, codeNAF, logo, cleAPISage, numeroRecepisse, dateValiditeRecepisse, numeroAutorisation, representantLegal, createdAt, updatedAt",
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
       bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
       config: "++id, key, createdAt, updatedAt",
       syncLogs: "++id, type, status, synchronized, createdAt",
@@ -355,7 +355,7 @@ class AppDatabase extends Dexie {
         "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
       users: "++id, nom, prenom, email, role, createdAt, updatedAt",
       userSettings:
-        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, codeNAF, logo, cleAPISage, numeroRecepisse, dateValiditeRecepisse, numeroAutorisation, representantLegal, createdAt, updatedAt",
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
       bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
       config: "++id, key, createdAt, updatedAt",
       syncLogs: "++id, type, status, synchronized, createdAt",
@@ -376,7 +376,7 @@ class AppDatabase extends Dexie {
         "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
       users: "++id, nom, prenom, email, role, createdAt, updatedAt",
       userSettings:
-        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, codeNAF, logo, cleAPISage, numeroRecepisse, dateValiditeRecepisse, numeroAutorisation, representantLegal, createdAt, updatedAt",
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
       bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
       config: "++id, key, createdAt, updatedAt",
       syncLogs: "++id, type, status, synchronized, createdAt",
