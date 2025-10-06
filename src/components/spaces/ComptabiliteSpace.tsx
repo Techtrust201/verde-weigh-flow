@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload,
   CheckCircle,
@@ -13,6 +14,7 @@ import {
   WifiOff,
   Clock,
   Settings,
+  Percent,
 } from "lucide-react";
 import { db, Pesee, UserSettings } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +22,7 @@ import { setupAutoSync, stopAutoSync } from "@/utils/syncScheduler";
 import { backgroundSyncManager } from "@/utils/backgroundSync";
 import { SyncMonitor } from "@/components/ui/sync-monitor";
 import { conflictResolver } from "@/utils/conflictResolver";
+import { TaxesManager } from "@/components/settings/TaxesManager";
 
 export default function ComptabiliteSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
@@ -165,23 +168,33 @@ export default function ComptabiliteSpace() {
         </div>
       </div>
 
-      {/* Sage Configuration Status */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {userSettings?.cleAPISage ? (
-            <span className="text-green-600">
-              ✓ Configuration Sage active. Synchronisation automatique{" "}
-              {autoSyncEnabled ? "activée" : "désactivée"}.
-            </span>
-          ) : (
-            <span className="text-orange-600">
-              ⚠ Clé API Sage non configurée. Veuillez configurer votre clé API
-              dans les paramètres utilisateur.
-            </span>
-          )}
-        </AlertDescription>
-      </Alert>
+      <Tabs defaultValue="sync" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="sync">Synchronisation</TabsTrigger>
+          <TabsTrigger value="taxes">
+            <Percent className="h-4 w-4 mr-2" />
+            Taxes
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="sync" className="space-y-6">
+          {/* Sage Configuration Status */}
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {userSettings?.cleAPISage ? (
+                <span className="text-green-600">
+                  ✓ Configuration Sage active. Synchronisation automatique{" "}
+                  {autoSyncEnabled ? "activée" : "désactivée"}.
+                </span>
+              ) : (
+                <span className="text-orange-600">
+                  ⚠ Clé API Sage non configurée. Veuillez configurer votre clé API
+                  dans les paramètres utilisateur.
+                </span>
+              )}
+            </AlertDescription>
+          </Alert>
 
       {/* Configuration de la synchronisation automatique */}
       <Card>
@@ -345,38 +358,44 @@ export default function ComptabiliteSpace() {
         </Card>
       )}
 
-      {/* Sync Log */}
-      {pendingPesees.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Données en attente de synchronisation</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {pendingPesees.slice(0, 10).map((pesee) => (
-                <div
-                  key={pesee.id}
-                  className="flex justify-between items-center p-2 bg-orange-50 rounded"
-                >
-                  <div>
-                    <span className="font-medium">{pesee.numeroBon}</span>
-                    <span className="text-sm text-gray-600 ml-2">
-                      {pesee.nomEntreprise} -{" "}
-                      {new Date(pesee.dateHeure).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <Badge variant="outline">En attente</Badge>
+          {/* Sync Log */}
+          {pendingPesees.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Données en attente de synchronisation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {pendingPesees.slice(0, 10).map((pesee) => (
+                    <div
+                      key={pesee.id}
+                      className="flex justify-between items-center p-2 bg-orange-50 rounded"
+                    >
+                      <div>
+                        <span className="font-medium">{pesee.numeroBon}</span>
+                        <span className="text-sm text-gray-600 ml-2">
+                          {pesee.nomEntreprise} -{" "}
+                          {new Date(pesee.dateHeure).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <Badge variant="outline">En attente</Badge>
+                    </div>
+                  ))}
+                  {pendingPesees.length > 10 && (
+                    <p className="text-sm text-gray-600 text-center">
+                      ... et {pendingPesees.length - 10} autres pesées
+                    </p>
+                  )}
                 </div>
-              ))}
-              {pendingPesees.length > 10 && (
-                <p className="text-sm text-gray-600 text-center">
-                  ... et {pendingPesees.length - 10} autres pesées
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="taxes">
+          <TaxesManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

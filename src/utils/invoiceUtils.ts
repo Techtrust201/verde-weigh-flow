@@ -10,6 +10,9 @@ export const generateInvoiceContent = async (
   // Récupérer les paramètres utilisateur pour le SIRET
   const userSettingsData = await db.userSettings.toArray();
   const userSettings = userSettingsData[0];
+
+  // Récupérer les taxes actives
+  const activeTaxes = await db.taxes.where("active").equals(1).toArray();
   const selectedProduct = products.find((p) => p.id === formData.produitId);
   const selectedTransporteur = transporteurs.find(
     (t) => t.id === formData.transporteurId
@@ -22,9 +25,20 @@ export const generateInvoiceContent = async (
 
   const prixUnitaireHT = selectedProduct?.prixHT || 0;
   const totalHT = net * prixUnitaireHT;
+  
+  // Calcul de la TVA produit
   const tauxTVA = selectedProduct?.tauxTVA || 20;
-  const montantTVA = totalHT * (tauxTVA / 100);
-  const totalTTC = totalHT + montantTVA;
+  const montantTVAProduit = totalHT * (tauxTVA / 100);
+  
+  // Calcul des taxes additionnelles actives
+  const taxesDetails = activeTaxes.map(tax => ({
+    nom: tax.nom,
+    taux: tax.taux,
+    montant: totalHT * (tax.taux / 100),
+  }));
+  
+  const totalTaxes = taxesDetails.reduce((sum, tax) => sum + tax.montant, 0);
+  const totalTTC = totalHT + montantTVAProduit + totalTaxes;
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR");
@@ -339,8 +353,14 @@ export const generateInvoiceContent = async (
             </tr>
             <tr>
               <td class="label">TVA (${tauxTVA}%)</td>
-              <td class="amount">${montantTVA.toFixed(2)} €</td>
+              <td class="amount">${montantTVAProduit.toFixed(2)} €</td>
             </tr>
+            ${taxesDetails.map(tax => `
+            <tr>
+              <td class="label">${tax.nom} (${tax.taux}%)</td>
+              <td class="amount">${tax.montant.toFixed(2)} €</td>
+            </tr>
+            `).join('')}
             <tr class="total-final">
               <td class="label">TOTAL TTC</td>
               <td class="amount">${totalTTC.toFixed(2)} €</td>

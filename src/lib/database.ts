@@ -159,6 +159,15 @@ export interface UserSettings {
   updatedAt: Date;
 }
 
+export interface Tax {
+  id?: number;
+  nom: string;
+  taux: number; // Pourcentage (ex: 20 pour 20%)
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Config {
   id?: number;
   key: string;
@@ -236,6 +245,7 @@ class AppDatabase extends Dexie {
   conflictLogs!: Table<ConflictLog>;
   exportLogs!: Table<ExportLog>;
   sageTemplates!: Table<SageTemplate>;
+  taxes!: Table<Tax>;
 
   constructor() {
     super("AppDatabase");
@@ -353,6 +363,28 @@ class AppDatabase extends Dexie {
         "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
       exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
       sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+    });
+
+    // Version 7 - Ajout de la table taxes
+    this.version(7).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, codeNAF, logo, cleAPISage, numeroRecepisse, dateValiditeRecepisse, numeroAutorisation, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      taxes: "++id, nom, taux, active, createdAt, updatedAt",
     });
   }
 }
