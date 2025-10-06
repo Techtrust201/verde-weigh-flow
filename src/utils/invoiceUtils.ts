@@ -12,7 +12,7 @@ export const generateInvoiceContent = async (
   const userSettings = userSettingsData[0];
 
   // Récupérer les taxes actives
-  const activeTaxes = await db.taxes.where("active").equals(1).toArray();
+  const activeTaxes = (await db.taxes.toArray()).filter(t => t.active);
   const selectedProduct = products.find((p) => p.id === formData.produitId);
   const selectedTransporteur = transporteurs.find(
     (t) => t.id === formData.transporteurId
