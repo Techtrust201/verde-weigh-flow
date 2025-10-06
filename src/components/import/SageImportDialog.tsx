@@ -58,6 +58,8 @@ export default function SageImportDialog() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewData, setPreviewData] = useState<SageDocument[]>([]);
+  const [showFileContent, setShowFileContent] = useState(false);
+  const [fileContent, setFileContent] = useState<string>("");
   const { toast } = useToast();
 
   const handleFileSelect = useCallback(
@@ -67,6 +69,8 @@ export default function SageImportDialog() {
         setFile(selectedFile);
         setImportResult(null);
         setPreviewData([]);
+        setShowFileContent(false);
+        setFileContent("");
       }
     },
     []
@@ -78,6 +82,17 @@ export default function SageImportDialog() {
     setIsProcessing(true);
     try {
       const content = await file.text();
+      setFileContent(content);
+
+      // Debug: Afficher les premières lignes du fichier
+      const lines = content.split("\n");
+      console.log("=== DEBUG FICHIER SAGE ===");
+      console.log("Nombre de lignes:", lines.length);
+      console.log("Première ligne (en-tête):", lines[0]);
+      console.log("Deuxième ligne (exemple):", lines[1]);
+      console.log("Troisième ligne (exemple):", lines[2]);
+      console.log("==========================");
+
       const documents = parseSageExport(content);
 
       // Valider chaque document
@@ -199,6 +214,13 @@ L																																																ART0010	1.000	100.00	120.00	20.
       </DialogTrigger>
 
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Import depuis Sage 50</DialogTitle>
+          <DialogDescription>
+            Importez vos documents Sage 50 (bons de livraison, factures) dans
+            l'application
+          </DialogDescription>
+        </DialogHeader>
         <div className="space-y-6">
           {/* Sélection de fichier */}
           <Card>
@@ -219,23 +241,50 @@ L																																																ART0010	1.000	100.00	120.00	20.
                     className="mt-1"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={downloadTemplate}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Template
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={downloadTemplate}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Template
+                  </Button>
+                  {file && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowFileContent(!showFileContent)}
+                      className="gap-2"
+                    >
+                      <Eye className="h-4 w-4" />
+                      {showFileContent ? "Masquer" : "Afficher"} contenu
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {file && (
-                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                  <FileText className="h-4 w-4" />
-                  <span className="text-sm">{file.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    ({(file.size / 1024).toFixed(1)} KB)
-                  </span>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                    <FileText className="h-4 w-4" />
+                    <span className="text-sm">{file.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({(file.size / 1024).toFixed(1)} KB)
+                    </span>
+                  </div>
+
+                  {showFileContent && fileContent && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <h4 className="text-sm font-medium mb-2">
+                        Contenu du fichier (premières lignes) :
+                      </h4>
+                      <pre className="text-xs overflow-auto max-h-40 whitespace-pre-wrap">
+                        {fileContent.split("\n").slice(0, 10).join("\n")}
+                        {fileContent.split("\n").length > 10 &&
+                          "\n... (tronqué)"}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
