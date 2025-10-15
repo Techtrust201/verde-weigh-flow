@@ -40,8 +40,8 @@ export default function ProductsSpace() {
   const [formData, setFormData] = useState<Partial<Product>>({
     nom: "",
     prixHT: undefined,
-    tauxTVA: 20,
-    prixTTC: undefined,
+    tauxTVA: undefined,
+    prixTTC: 0,
     codeProduct: "",
     unite: "tonne",
     isFavorite: false,
@@ -63,9 +63,15 @@ export default function ProductsSpace() {
 
   useEffect(() => {
     // Calculer le prix TTC automatiquement
-    if (formData.prixHT && formData.tauxTVA) {
+    if (
+      formData.prixHT !== undefined &&
+      formData.prixHT !== null &&
+      formData.tauxTVA
+    ) {
       const prixTTC = formData.prixHT * (1 + formData.tauxTVA / 100);
       setFormData((prev) => ({ ...prev, prixTTC }));
+    } else {
+      setFormData((prev) => ({ ...prev, prixTTC: 0 }));
     }
   }, [formData.prixHT, formData.tauxTVA]);
 
@@ -182,7 +188,8 @@ export default function ProductsSpace() {
 
       const productData = {
         ...formData,
-        tva: formData.tauxTVA || 20, // Mapper tauxTVA vers tva pour la compatibilité
+        prixHT: formData.prixHT || 0, // Valeur par défaut si undefined
+        tva: formData.tauxTVA || 20, // Valeur par défaut si undefined
         updatedAt: new Date(),
       } as Product;
 
@@ -256,8 +263,8 @@ export default function ProductsSpace() {
   const resetForm = () => {
     setFormData({
       nom: "",
-      prixHT: 0,
-      tauxTVA: 20,
+      prixHT: undefined,
+      tauxTVA: undefined,
       prixTTC: 0,
       codeProduct: "",
       unite: "tonne",
@@ -328,7 +335,7 @@ export default function ProductsSpace() {
                     onChange={(value) =>
                       setFormData({ ...formData, prixHT: value })
                     }
-                    placeholder="0.00"
+                    placeholder="Entrez un prix"
                     min={0}
                   />
                 </div>
@@ -338,9 +345,9 @@ export default function ProductsSpace() {
                     id="tauxTVA"
                     value={formData.tauxTVA}
                     onChange={(value) =>
-                      setFormData({ ...formData, tauxTVA: value || 20 })
+                      setFormData({ ...formData, tauxTVA: value })
                     }
-                    placeholder="20"
+                    placeholder="Entrez le taux"
                     allowDecimals={false}
                     min={0}
                     max={100}

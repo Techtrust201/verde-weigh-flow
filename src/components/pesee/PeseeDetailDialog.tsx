@@ -162,17 +162,13 @@ export const PeseeDetailDialog = ({
   const handlePrintBoth = async () => {
     setIsPrinting(true);
     try {
-      const { bonContent, invoiceContent } = await handlePrintBothBonAndInvoice(
+      const { bonContent } = await handlePrintBothBonAndInvoice(
         formDataForPrint,
         products,
         transporteurs,
         client
       );
-      setPrintContent(
-        bonContent +
-          '<div style="page-break-before: always;"></div>' +
-          invoiceContent
-      );
+      setPrintContent(bonContent);
       setPrintTitle("Bon de pesée + Facture");
       setPrintPreviewOpen(true);
     } finally {

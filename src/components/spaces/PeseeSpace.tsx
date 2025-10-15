@@ -316,47 +316,32 @@ export default function PeseeSpace() {
         // Récupérer les données client depuis la base
         const client = clients.find((c) => c.id === currentData.clientId);
         if (client) {
-          const { bonContent, invoiceContent } =
-            await handlePrintBothBonAndInvoice(
-              currentData,
-              products,
-              transporteurs,
-              client
-            );
-          setPrintContent(
-            bonContent +
-              '<div style="page-break-before: always;"></div>' +
-              invoiceContent
+          const { bonContent } = await handlePrintBothBonAndInvoice(
+            currentData,
+            products,
+            transporteurs,
+            client
           );
+          setPrintContent(bonContent);
           setPrintTitle("Bon de pesée + Facture");
           setPrintPreviewOpen(true);
         } else {
-          const { bonContent, invoiceContent } =
-            await handlePrintBothBonAndInvoice(
-              currentData,
-              products,
-              transporteurs
-            );
-          setPrintContent(
-            bonContent +
-              '<div style="page-break-before: always;"></div>' +
-              invoiceContent
-          );
-          setPrintTitle("Bon de pesée + Facture");
-          setPrintPreviewOpen(true);
-        }
-      } else {
-        const { bonContent, invoiceContent } =
-          await handlePrintBothBonAndInvoice(
+          const { bonContent } = await handlePrintBothBonAndInvoice(
             currentData,
             products,
             transporteurs
           );
-        setPrintContent(
-          bonContent +
-            '<div style="page-break-before: always;"></div>' +
-            invoiceContent
+          setPrintContent(bonContent);
+          setPrintTitle("Bon de pesée + Facture");
+          setPrintPreviewOpen(true);
+        }
+      } else {
+        const { bonContent } = await handlePrintBothBonAndInvoice(
+          currentData,
+          products,
+          transporteurs
         );
+        setPrintContent(bonContent);
         setPrintTitle("Bon de pesée + Facture");
         setPrintPreviewOpen(true);
       }

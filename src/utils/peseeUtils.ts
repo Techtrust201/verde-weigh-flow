@@ -1,4 +1,10 @@
-import { Product, Transporteur, Client, UserSettings, db } from "@/lib/database";
+import {
+  Product,
+  Transporteur,
+  Client,
+  UserSettings,
+  db,
+} from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
 import { generateInvoiceContent } from "./invoiceUtils";
 
@@ -49,7 +55,9 @@ export const generatePrintContent = async (
     <div class="bon">
       <div class="header">
         <div class="company-info">
-          <div class="company-name">BDV ${userSettings?.siret ? `- SIRET: ${userSettings.siret}` : ''}</div>
+          <div class="company-name">BDV ${
+            userSettings?.siret ? `- SIRET: ${userSettings.siret}` : ""
+          }</div>
           <div class="address">600, chemin de la Levade, Les Iscles</div>
           
           <div class="address">06550 LA ROQUETTE-SUR-SIAGNE</div>
@@ -185,6 +193,7 @@ export const generatePrintContent = async (
           flex-direction: column;
           gap: 3rem;
           padding: 5px;
+          margin-top: 20px; /* Espacement supplémentaire pour éviter le chevauchement avec le timestamp */
         }
         
         .bon { 
@@ -467,6 +476,7 @@ export const generatePrintContent = async (
             flex-direction: column !important;
             gap: 2rem !important;
             padding: 0;
+            margin-top: 20px !important; /* Espacement supplémentaire pour éviter le chevauchement avec le timestamp */
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
@@ -582,7 +592,581 @@ export const handlePrintBothBonAndInvoice = async (
     client || null
   );
 
-  return { bonContent, invoiceContent };
+  // Créer un document unifié avec des styles cohérents
+  const combinedContent = generateCombinedPrintContent(
+    bonContent,
+    invoiceContent
+  );
+
+  return { bonContent: combinedContent, invoiceContent: "" };
+};
+
+// Nouvelle fonction pour générer un contenu combiné avec des styles unifiés
+const generateCombinedPrintContent = (
+  bonContent: string,
+  invoiceContent: string
+): string => {
+  // Extraire le contenu du bon (sans les balises HTML complètes)
+  const bonBodyMatch = bonContent.match(/<body[^>]*>([\s\S]*?)<\/body>/);
+  const bonBodyContent = bonBodyMatch ? bonBodyMatch[1] : bonContent;
+
+  // Extraire le contenu de la facture (sans les balises HTML complètes)
+  const invoiceBodyMatch = invoiceContent.match(
+    /<body[^>]*>([\s\S]*?)<\/body>/
+  );
+  const invoiceBodyContent = invoiceBodyMatch
+    ? invoiceBodyMatch[1]
+    : invoiceContent;
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("fr-FR");
+  const timeStr = now.toLocaleTimeString("fr-FR");
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Bon de pesée + Facture</title>
+      <meta charset="UTF-8">
+      <style>
+        body { 
+          font-family: Arial, sans-serif; 
+          margin: 0; 
+          padding: 0; 
+          background: white;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+        
+        .print-timestamp {
+          position: fixed;
+          top: 5px;
+          right: 10px;
+          font-size: 8px;
+          color: #666;
+          z-index: 1000;
+        }
+        
+        /* Styles pour le bon de pesée */
+        .bon-section {
+          page-break-after: always;
+          width: 100%;
+          max-width: none;
+          margin: 0;
+          padding: 5px;
+          margin-top: 20px; /* Espacement supplémentaire pour éviter le chevauchement avec le timestamp */
+          box-sizing: border-box;
+          position: relative; /* Pour positionner le timestamp relativement à cette section */
+        }
+        
+        .bon-section .print-timestamp {
+          position: absolute;
+          top: 5px;
+          right: 10px;
+          font-size: 8px;
+          color: #666;
+          z-index: 1000;
+        }
+        
+        .bon-section:last-child {
+          page-break-after: auto;
+        }
+        
+        .bon { 
+          border: 2px solid #000; 
+          padding: 12px; 
+          width: 100%;
+          min-height: 320px;
+          max-height: 390px;
+          box-sizing: border-box; 
+          background: white;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          font-size: 10px;
+          position: relative;
+          z-index: 2;
+        }
+        
+        .header { 
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          border-bottom: 1px solid #ccc;
+          padding-bottom: 8px;
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+        
+        .company-info {
+          text-align: left;
+          font-size: 10px;
+          line-height: 1.2;
+          flex: 1;
+          min-width: 120px;
+        }
+        
+        .company-name {
+          font-size: 14px;
+          font-weight: bold;
+          margin-bottom: 5px;
+        }
+        
+        .address, .phone {
+          margin-bottom: 2px;
+        }
+        
+        .document-title { 
+          text-align: center; 
+          flex: 1;
+          min-width: 120px;
+        }
+        
+        .document-title h2 {
+          font-size: 14px;
+          margin: 0 0 5px 0;
+          font-weight: bold;
+        }
+        
+        .document-title p {
+          margin: 2px 0;
+          font-size: 11px;
+        }
+        
+        .content-columns {
+          display: flex;
+          justify-content: space-between;
+          flex-grow: 1;
+          margin: 8px 0;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        
+        .column-left, .column-center, .column-right {
+          flex: 1;
+          min-width: 120px;
+          display: flex;
+          flex-direction: column;
+        }
+        
+        .row { 
+          display: flex; 
+          flex-direction: column;
+          margin: 4px 0; 
+          padding: 3px 0;
+          border-bottom: 1px dotted #ccc;
+          font-size: 10px;
+        }
+        
+        .label { 
+          font-weight: bold; 
+          margin-bottom: 2px;
+          font-size: 9px;
+          color: #555;
+        }
+        
+        .row span:last-child {
+          font-size: 11px;
+          color: #000;
+        }
+        
+        .signature-section {
+          margin-top: auto;
+          padding-top: 6px;
+          border-top: 1px solid #ddd;
+          height: 60px;
+        }
+        
+        .signatures-bottom {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 20px;
+          padding-top: 10px;
+          border-top: 1px solid #ddd;
+        }
+        
+        .signatures-bottom .signature-section {
+          margin-top: 0;
+          border-top: none;
+          height: auto;
+          flex: 1;
+          margin: 0 10px;
+        }
+        
+        .signature-label {
+          font-size: 9px;
+          font-weight: bold;
+          margin-bottom: 5px;
+          color: #555;
+        }
+        
+        .signature-bdv .signature-area {
+          height: 40px;
+          border: 1px solid #ccc;
+          background: #fafafa;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 5px;
+        }
+        
+        .signature-scribble {
+          opacity: 0.8;
+          width: 80px;
+          height: 25px;
+        }
+        
+        .signature-client .signature-line {
+          height: 40px;
+          border: 1px solid #ccc;
+          background: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 5px;
+        }
+        
+        .mention-legale { 
+          background: #f8f8f8; 
+          border: 1px solid #ddd;
+          padding: 6px; 
+          margin: 20px 0 0 0; 
+          font-size: 7px; 
+          text-align: justify; 
+          line-height: 1.1;
+        }
+        
+        .copy-type { 
+          text-align: center; 
+          margin-top: 5px; 
+          font-weight: bold; 
+          font-size: 11px;
+          border: 2px solid #000;
+          padding: 5px;
+          background: #f0f0f0;
+          position: relative;
+          z-index: 1;
+        }
+        
+        /* Styles pour la facture */
+        .invoice-section {
+          width: 100%;
+          padding: 0;
+          margin: 0;
+        }
+        
+        .invoice-container {
+          width: 210mm;
+          min-height: 297mm;
+          padding: 15mm;
+          box-sizing: border-box;
+          background: white;
+        }
+        
+        .invoice-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 20mm;
+          border-bottom: 2px solid #333;
+          padding-bottom: 5mm;
+        }
+        
+        .invoice-company-info {
+          width: 45%;
+        }
+        
+        .invoice-company-name {
+          font-size: 20px;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 3mm;
+        }
+        
+        .invoice-company-details {
+          font-size: 10px;
+          line-height: 1.3;
+          color: #666;
+        }
+        
+        .invoice-info {
+          width: 45%;
+          text-align: right;
+        }
+        
+        .invoice-title {
+          font-size: 24px;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 5mm;
+        }
+        
+        .invoice-number {
+          font-size: 14px;
+          font-weight: bold;
+          color: #666;
+          margin-bottom: 2mm;
+        }
+        
+        .invoice-date {
+          font-size: 11px;
+          color: #666;
+        }
+        
+        .client-section {
+          margin-bottom: 15mm;
+        }
+        
+        .client-title {
+          font-size: 12px;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 3mm;
+          padding: 2mm;
+          background: #f8f8f8;
+          border-left: 4px solid #333;
+        }
+        
+        .client-info {
+          margin-left: 5mm;
+        }
+        
+        .client-line {
+          margin-bottom: 1mm;
+          font-size: 11px;
+        }
+        
+        .details-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 10mm;
+          font-size: 10px;
+        }
+        
+        .details-table th {
+          background: #333;
+          color: white;
+          padding: 3mm;
+          text-align: left;
+          font-weight: bold;
+        }
+        
+        .details-table td {
+          padding: 3mm;
+          border-bottom: 1px solid #ddd;
+        }
+        
+        .details-table .amount {
+          text-align: right;
+          font-weight: bold;
+        }
+        
+        .totals-section {
+          width: 50%;
+          margin-left: auto;
+          margin-bottom: 15mm;
+        }
+        
+        .totals-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+        }
+        
+        .totals-table td {
+          padding: 2mm 3mm;
+          border-bottom: 1px solid #ddd;
+        }
+        
+        .totals-table .label {
+          font-weight: bold;
+        }
+        
+        .totals-table .amount {
+          text-align: right;
+          font-weight: bold;
+        }
+        
+        .total-final {
+          background: #333;
+          color: white;
+          font-size: 12px;
+          font-weight: bold;
+        }
+        
+        .payment-info {
+          background: #f8f8f8;
+          padding: 5mm;
+          margin-bottom: 10mm;
+          border: 1px solid #ddd;
+        }
+        
+        .payment-title {
+          font-weight: bold;
+          margin-bottom: 2mm;
+        }
+        
+        .legal-mentions {
+          font-size: 8px;
+          color: #666;
+          line-height: 1.2;
+          border-top: 1px solid #ddd;
+          padding-top: 5mm;
+        }
+        
+        @media print { 
+          @page { 
+            size: A4 portrait; 
+            margin: 5mm; 
+          } 
+          body { 
+            margin: 0; 
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            background: white !important;
+            height: 100vh;
+            overflow: hidden;
+          }
+          .print-timestamp {
+            position: fixed !important;
+            top: 5px !important;
+            right: 10px !important;
+            font-size: 8px !important;
+            color: #666 !important;
+            z-index: 10000 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+          .bon-section {
+            page-break-after: always !important;
+            page-break-inside: avoid !important;
+            width: 100% !important;
+            margin: 0 !important;
+            margin-top: 20px !important; /* Espacement supplémentaire pour éviter le chevauchement avec le timestamp */
+            padding: 5px !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 9999 !important;
+          }
+          .bon-section .print-timestamp {
+            position: absolute !important;
+            top: 5px !important;
+            right: 10px !important;
+            font-size: 8px !important;
+            color: #666 !important;
+            z-index: 10000 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+          .bon-section:last-child {
+            page-break-after: auto !important;
+          }
+          .invoice-section {
+            page-break-inside: avoid !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: static !important;
+            z-index: 9999 !important;
+          }
+          .bon {
+            width: 100% !important;
+            margin-bottom: 1rem !important;
+            page-break-inside: avoid !important;
+            min-height: 320px !important;
+            max-height: 390px !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 9999 !important;
+            clear: both !important;
+          }
+          .copy-type {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 9999 !important;
+            margin-bottom: 2rem !important;
+            clear: both !important;
+          }
+          .invoice-container {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 15mm !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: static !important;
+            z-index: 9999 !important;
+            page-break-inside: avoid !important;
+          }
+          /* Masquer tous les éléments de l'interface */
+          [data-lov-id],
+          .fixed,
+          .z-50,
+          .bg-black\/80,
+          .inset-0,
+          .translate-x-\[-50\%\],
+          .translate-y-\[-50\%\],
+          .shadow-lg,
+          .border,
+          .bg-background,
+          .p-6,
+          .gap-4,
+          .grid,
+          .w-full,
+          .duration-200,
+          .animate-in,
+          .animate-out,
+          .fade-out-0,
+          .fade-in-0,
+          .zoom-out-95,
+          .zoom-in-95,
+          .slide-out-to-left-1\/2,
+          .slide-out-to-top-\[48\%\],
+          .slide-in-from-left-1\/2,
+          .slide-in-from-top-\[48\%\],
+          .sm\:rounded-lg,
+          .print-preview-dialog,
+          .max-w-4xl,
+          .max-h-\[80vh\],
+          .overflow-hidden {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            position: absolute !important;
+            left: -9999px !important;
+            top: -9999px !important;
+            z-index: -9999 !important;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <!-- Section Bon de pesée avec timestamp -->
+      <div class="bon-section">
+        <div class="print-timestamp">
+          Imprimé le ${dateStr} à ${timeStr}
+        </div>
+        ${bonBodyContent}
+      </div>
+      
+      <!-- Section Facture sans timestamp -->
+      <div class="invoice-section">
+        ${invoiceBodyContent}
+      </div>
+    </body>
+    </html>
+  `;
 };
 
 // Fonction pour obtenir le nom du transporteur pour la sauvegarde
