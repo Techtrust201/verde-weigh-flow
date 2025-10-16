@@ -48,6 +48,7 @@ import SageImportDialog from "@/components/import/SageImportDialog";
 import SageTemplateCreator from "@/components/import/SageTemplateCreator";
 import SageTemplateSelector from "@/components/exports/SageTemplateSelector";
 import SageTemplateManager from "@/components/exports/SageTemplateManager";
+import SageClientImportDialog from "@/components/import/SageClientImportDialog";
 
 export default function ExportsSpace() {
   const [dateDebut, setDateDebut] = useState("");
@@ -360,9 +361,9 @@ export default function ExportsSpace() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Exports CSV</h1>
+          <h1 className="text-2xl font-bold">Imports/Exports Sage</h1>
           <p className="text-muted-foreground">
-            Exportez vos données vers différents formats
+            Importez et exportez vos données vers Sage 50
           </p>
         </div>
         <Button onClick={loadExportLogs} variant="outline">
@@ -441,6 +442,9 @@ export default function ExportsSpace() {
                       </SelectItem>
                       <SelectItem value="sage-ventes">
                         Sage 50 - Import Ventes (.txt)
+                      </SelectItem>
+                      <SelectItem value="sage-bl-complet">
+                        Sage 50 - Bons de livraison complets (.txt)
                       </SelectItem>
                       <SelectItem value="sage-template">
                         Sage 50 - Template personnalisé (.txt)
@@ -874,13 +878,21 @@ export default function ExportsSpace() {
                   </p>
                 </div> */}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <h4 className="font-medium">Import des documents Sage</h4>
                     <p className="text-sm text-muted-foreground">
                       Importez directement vos documents Sage
                     </p>
                     <SageImportDialog />
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Import des clients Sage</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Importez tous vos clients existants depuis Sage
+                    </p>
+                    <SageClientImportDialog />
                   </div>
 
                   <div className="space-y-2">
@@ -919,6 +931,10 @@ export default function ExportsSpace() {
                         Le fichier doit contenir des lignes commençant par "E"
                         (en-tête) et "L" (ligne de détail) séparées par des
                         tabulations.
+                      </p>
+                      <p className="text-sm font-medium mt-2">
+                        💡 Nouveau : Importez vos clients depuis Sage pour
+                        éviter la saisie manuelle !
                       </p>
                     </div>
                   </AlertDescription>

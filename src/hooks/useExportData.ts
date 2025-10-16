@@ -22,6 +22,7 @@ export type ExportFormat =
   | "csv-txt"
   | "sage-articles"
   | "sage-ventes"
+  | "sage-bl-complet"
   | "sage-template";
 
 export const useExportData = () => {
@@ -98,6 +99,13 @@ export const useExportData = () => {
       return generateSageArticlesFormat(products);
     } else if (format === "sage-ventes") {
       return generateSageVentesFormat(
+        pesees,
+        productMap,
+        clientMap,
+        transporteurMap
+      );
+    } else if (format === "sage-bl-complet") {
+      return generateSageBLCompletFormat(
         pesees,
         productMap,
         clientMap,
@@ -315,6 +323,329 @@ export const useExportData = () => {
     ].join("\n");
   };
 
+  const generateSageBLCompletFormat = (
+    pesees: Pesee[],
+    productMap: Map<number, Product>,
+    clientMap: Map<number, Client>,
+    transporteurMap: Map<number, Transporteur>
+  ): string => {
+    // Format Sage 50 complet basé sur import_BL_auto_number.txt
+    // Toutes les 87 colonnes du format Sage 50
+    const headers = [
+      "Type de Ligne",
+      "Type de pièce",
+      "N° pièce",
+      "Date pièce",
+      "Facturation TTC",
+      "Référence pièce",
+      "Remarque",
+      "Code représentant pièce",
+      "Code client",
+      "Nom client",
+      "Forme juridique",
+      "Adresse 1",
+      "Adresse 2",
+      "Adresse 3",
+      "Code postal",
+      "Ville",
+      "Code pays",
+      "Pays",
+      "Mode gestion TVA",
+      "Tarif client",
+      "NII",
+      "Assujetti TPF",
+      "Observations",
+      "Nom contact",
+      "Code mode de paiement",
+      "Date échéance",
+      "Date livraison pièce",
+      "Validée",
+      "Transmise",
+      "Soldée",
+      "Comptabilisée",
+      "Irrécouvrable",
+      "Date irrécouvrabilité",
+      "Libellé irrécouvrable",
+      "Compta. irrécouvrable",
+      "Code affaire pièce",
+      "Type de remise pièce",
+      "Taux remise pièce",
+      "Mt remise pièce",
+      "Taux Escompte",
+      "Statut devis",
+      "Ref. commande",
+      "Pas de retour stock",
+      "Port Sans TVA",
+      "Port Soumis TVA",
+      "Taux TVA Port Soumis",
+      "TVA Port Non Perçue",
+      "Mt total TTC",
+      "Code article",
+      "Quantité",
+      "PU HT",
+      "PU TTC",
+      "Taux TVA",
+      "Ligne commentaire",
+      "Description",
+      "Niveau sous-total",
+      "Taux TPF",
+      "Code dépôt",
+      "Pds Unit. Brut",
+      "Pds Unit. Net",
+      "Qté par colis",
+      "Nbre colis",
+      "Date livraison",
+      "Type remise ligne",
+      "Taux remise ligne",
+      "Mt unit. remise HT",
+      "Mt unit. remise TTC",
+      "PA HT",
+      "PAMP",
+      "Unité",
+      "Référence fournisseur",
+      "Code représentant ligne",
+      "Type Commission Repr.",
+      "Taux commission",
+      "Mt commission",
+      "Code affaire ligne",
+      "Mt unit. Eco-part. TTC",
+      "Qté Livrée",
+      "TVA Non Perçue",
+      "N° ligne",
+      "Options Sage",
+      "Catégorie de TVA",
+      "Motif d'exonération de TVA",
+      "Société de livraison",
+      "Adresse 1 de livraison",
+      "Adresse 2 de livraison",
+      "Adresse 3 de livraison",
+      "CP de livraison",
+      "Ville de livraison",
+      "Code pays de livraison",
+      "Pays de livraison",
+      "Cadre de facturation",
+    ];
+
+    const rows: string[] = [];
+
+    // Générer les lignes pour chaque pesée
+    pesees.forEach((pesee) => {
+      const product = productMap.get(pesee.produitId);
+      const client = pesee.clientId ? clientMap.get(pesee.clientId) : null;
+      const transporteur = pesee.transporteurId
+        ? transporteurMap.get(pesee.transporteurId)
+        : null;
+
+      const dateFormatted = pesee.dateHeure.toLocaleDateString("fr-FR"); // DD/MM/YYYY
+      const prixUnitaireHT = product
+        ? product.prixHT
+        : pesee.prixHT / pesee.net;
+      const prixUnitaireTTC = product
+        ? product.prixTTC
+        : pesee.prixTTC / pesee.net;
+      const tauxTVA = product ? product.tauxTVA : 20;
+
+      // Ligne E (En-tête de la pièce)
+      const ligneE = [
+        "E", // Type de Ligne
+        "Bon de livraison", // Type de pièce
+        "", // N° pièce (auto-généré par Sage)
+        dateFormatted, // Date pièce
+        "", // Facturation TTC
+        "", // Référence pièce
+        "", // Remarque
+        "REP0017", // Code représentant pièce
+        client?.id ? client.id.toString() : "256", // Code client
+        pesee.nomEntreprise, // Nom client
+        "", // Forme juridique
+        client?.adresse || "", // Adresse 1
+        "", // Adresse 2
+        "", // Adresse 3
+        client?.codePostal || "", // Code postal
+        client?.ville || "", // Ville
+        "FRA", // Code pays
+        "France", // Pays
+        "Local", // Mode gestion TVA
+        "Aucun", // Tarif client
+        "", // NII
+        "", // Assujetti TPF
+        "", // Observations
+        "", // Nom contact
+        pesee.moyenPaiement === "Direct" ? "ESP" : "PRVT", // Code mode de paiement
+        dateFormatted, // Date échéance
+        dateFormatted, // Date livraison pièce
+        "", // Validée
+        "", // Transmise
+        "", // Soldée
+        "", // Comptabilisée
+        "", // Irrécouvrable
+        "", // Date irrécouvrabilité
+        "", // Libellé irrécouvrable
+        "", // Compta. irrécouvrable
+        "", // Code affaire pièce
+        "", // Type de remise pièce
+        "", // Taux remise pièce
+        "", // Mt remise pièce
+        "", // Taux Escompte
+        "", // Statut devis
+        "", // Ref. commande
+        "", // Pas de retour stock
+        "", // Port Sans TVA
+        "", // Port Soumis TVA
+        "", // Taux TVA Port Soumis
+        "", // TVA Port Non Perçue
+        pesee.prixTTC.toFixed(2), // Mt total TTC
+        "", // Code article (vide pour ligne E)
+        "", // Quantité (vide pour ligne E)
+        "", // PU HT (vide pour ligne E)
+        "", // PU TTC (vide pour ligne E)
+        "", // Taux TVA (vide pour ligne E)
+        "", // Ligne commentaire
+        "", // Description
+        "", // Niveau sous-total
+        "", // Taux TPF
+        "", // Code dépôt
+        "", // Pds Unit. Brut
+        "", // Pds Unit. Net
+        "", // Qté par colis
+        "", // Nbre colis
+        "", // Date livraison
+        "", // Type remise ligne
+        "", // Taux remise ligne
+        "", // Mt unit. remise HT
+        "", // Mt unit. remise TTC
+        "", // PA HT
+        "", // PAMP
+        "", // Unité
+        "", // Référence fournisseur
+        "", // Code représentant ligne
+        "", // Type Commission Repr.
+        "", // Taux commission
+        "", // Mt commission
+        "", // Code affaire ligne
+        "", // Mt unit. Eco-part. TTC
+        "", // Qté Livrée
+        "", // TVA Non Perçue
+        "", // N° ligne
+        "", // Options Sage
+        "S = Taux de TVA standard", // Catégorie de TVA
+        "", // Motif d'exonération de TVA
+        "", // Société de livraison
+        "", // Adresse 1 de livraison
+        "", // Adresse 2 de livraison
+        "", // Adresse 3 de livraison
+        "", // CP de livraison
+        "", // Ville de livraison
+        "FRA", // Code pays de livraison
+        "France", // Pays de livraison
+        "B1 - Dépôt d'une facture de bien", // Cadre de facturation
+      ];
+
+      rows.push(ligneE.join("\t"));
+
+      // Ligne L (Ligne de détail)
+      const ligneL = [
+        "L", // Type de Ligne
+        "", // Type de pièce (vide pour ligne L)
+        "", // N° pièce (vide pour ligne L)
+        "", // Date pièce (vide pour ligne L)
+        "", // Facturation TTC
+        "", // Référence pièce
+        "", // Remarque
+        "", // Code représentant pièce
+        "", // Code client
+        "", // Nom client
+        "", // Forme juridique
+        "", // Adresse 1
+        "", // Adresse 2
+        "", // Adresse 3
+        "", // Code postal
+        "", // Ville
+        "", // Code pays
+        "", // Pays
+        "", // Mode gestion TVA
+        "", // Tarif client
+        "", // NII
+        "", // Assujetti TPF
+        "", // Observations
+        "", // Nom contact
+        "", // Code mode de paiement
+        "", // Date échéance
+        "", // Date livraison pièce
+        "", // Validée
+        "", // Transmise
+        "", // Soldée
+        "", // Comptabilisée
+        "", // Irrécouvrable
+        "", // Date irrécouvrabilité
+        "", // Libellé irrécouvrable
+        "", // Compta. irrécouvrable
+        "", // Code affaire pièce
+        "", // Type de remise pièce
+        "", // Taux remise pièce
+        "", // Mt remise pièce
+        "", // Taux Escompte
+        "", // Statut devis
+        "", // Ref. commande
+        "", // Pas de retour stock
+        "", // Port Sans TVA
+        "", // Port Soumis TVA
+        "", // Taux TVA Port Soumis
+        "", // TVA Port Non Perçue
+        "", // Mt total TTC (vide pour ligne L)
+        product?.codeProduct || "ART0010", // Code article
+        pesee.net.toFixed(3), // Quantité
+        prixUnitaireHT.toFixed(2), // PU HT
+        prixUnitaireTTC.toFixed(2), // PU TTC
+        tauxTVA.toFixed(2), // Taux TVA
+        "", // Ligne commentaire
+        product?.nom || "VEGETAUX", // Description
+        "0", // Niveau sous-total
+        "", // Taux TPF
+        "", // Code dépôt
+        "", // Pds Unit. Brut
+        "", // Pds Unit. Net
+        "", // Qté par colis
+        "", // Nbre colis
+        dateFormatted, // Date livraison
+        "", // Type remise ligne
+        "", // Taux remise ligne
+        "", // Mt unit. remise HT
+        "", // Mt unit. remise TTC
+        "", // PA HT
+        "", // PAMP
+        "", // Unité
+        "", // Référence fournisseur
+        "REP0017", // Code représentant ligne
+        "", // Type Commission Repr.
+        "", // Taux commission
+        "", // Mt commission
+        "", // Code affaire ligne
+        "", // Mt unit. Eco-part. TTC
+        pesee.net.toFixed(3), // Qté Livrée
+        "", // TVA Non Perçue
+        "1", // N° ligne
+        "", // Options Sage
+        "", // Catégorie de TVA
+        "", // Motif d'exonération de TVA
+        "", // Société de livraison
+        "", // Adresse 1 de livraison
+        "", // Adresse 2 de livraison
+        "", // Adresse 3 de livraison
+        "", // CP de livraison
+        "", // Ville de livraison
+        "", // Code pays de livraison
+        "", // Pays de livraison
+        "", // Cadre de facturation
+      ];
+
+      rows.push(ligneL.join("\t"));
+    });
+
+    const separator = "\t"; // Tabulation pour Sage 50
+    return [headers.join(separator), ...rows].join("\n");
+  };
+
   const exportToCSV = async (
     startDate: Date,
     endDate: Date,
@@ -378,6 +709,8 @@ export const useExportData = () => {
           ? "sage_articles"
           : format === "sage-ventes"
           ? "sage_ventes"
+          : format === "sage-bl-complet"
+          ? "sage_bl_complet"
           : format === "sage-template"
           ? `sage_template_${template?.name.replace(/[^a-zA-Z0-9]/g, "_")}`
           : format === "csv-txt"

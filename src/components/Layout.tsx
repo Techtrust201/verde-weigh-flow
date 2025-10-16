@@ -26,7 +26,7 @@ const spaces = [
   { id: "transporteurs", name: "Transporteurs", icon: User },
   { id: "produits", name: "Produits", icon: Package },
   { id: "historique", name: "Historique", icon: History },
-  { id: "exports", name: "Exports CSV", icon: Download },
+  { id: "exports", name: "Imports/Exports", icon: Download },
   { id: "utilisateur", name: "Utilisateur", icon: User },
   { id: "comptabilite", name: "Comptabilité", icon: Calculator },
 ];
