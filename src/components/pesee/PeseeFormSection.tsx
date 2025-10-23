@@ -694,7 +694,14 @@ export const PeseeFormSection = ({
         </div>
 
         <div>
-          <Label htmlFor="transporteur">Transporteur</Label>
+          <div className="mb-2">
+            <Label htmlFor="transporteur">Transporteur</Label>
+            {currentData?.nomEntreprise && (
+              <p className="text-xs text-muted-foreground mt-1">
+                💡 Par défaut : <span className="font-medium">{currentData.nomEntreprise}</span> (le client)
+              </p>
+            )}
+          </div>
           <div className="flex gap-2">
             <div className="flex-1">
               <Popover
