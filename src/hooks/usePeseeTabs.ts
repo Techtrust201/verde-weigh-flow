@@ -17,7 +17,7 @@ export interface PeseeTabFormData {
   transporteurLibre?: string; // Nouveau champ
   poidsEntree: string;
   poidsSortie: string;
-  moyenPaiement: 'Direct' | 'En compte';
+  moyenPaiement: 'ESP' | 'CB' | 'CHQ' | 'VIR' | 'PRVT' | 'Direct' | 'En compte';
   typeClient: 'particulier' | 'professionnel' | 'micro-entreprise';
   clientId: number;
 }
@@ -57,7 +57,7 @@ export const usePeseeTabs = () => {
         transporteurLibre: "",
         poidsEntree: "",
         poidsSortie: "",
-        moyenPaiement: "Direct",
+        moyenPaiement: "ESP",
         typeClient: "particulier",
         clientId: 0,
       },
@@ -109,7 +109,7 @@ export const usePeseeTabs = () => {
         transporteurLibre: "",
         poidsEntree: "",
         poidsSortie: "",
-        moyenPaiement: "Direct",
+        moyenPaiement: "ESP",
         typeClient: "particulier",
         clientId: 0,
       },

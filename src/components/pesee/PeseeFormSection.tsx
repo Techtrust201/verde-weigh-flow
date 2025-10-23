@@ -145,21 +145,9 @@ export const PeseeFormSection = ({
     }
 
     // Déterminer le mode de paiement à utiliser
-    let moyenPaiement: "Direct" | "En compte" = "Direct";
+    let moyenPaiement = "ESP"; // Par défaut Espèces
     if (client.modePaiementPreferentiel) {
-      // Mapper les codes Sage vers les valeurs de l'app
-      // ESP, CB, CHQ → Direct
-      // VIR, PRVT → En compte
-      const codesPaiementDirect = ["ESP", "CB", "CHQ"];
-      const codesPaiementCompte = ["VIR", "PRVT"];
-
-      if (codesPaiementDirect.includes(client.modePaiementPreferentiel)) {
-        moyenPaiement = "Direct";
-      } else if (
-        codesPaiementCompte.includes(client.modePaiementPreferentiel)
-      ) {
-        moyenPaiement = "En compte";
-      }
+      moyenPaiement = client.modePaiementPreferentiel;
     }
 
     updateCurrentTab({
@@ -172,7 +160,7 @@ export const PeseeFormSection = ({
       plaque: client.plaques?.[0] || "",
       chantier: client.chantiers?.[0] || "",
       transporteurId: transporteurId,
-      moyenPaiement: moyenPaiement, // Auto-complétion du mode de paiement
+      moyenPaiement: moyenPaiement as any, // Auto-complétion du mode de paiement
     });
 
     setClientSelectorOpen(false);
@@ -208,7 +196,7 @@ export const PeseeFormSection = ({
       typeClient: "particulier",
       plaque: "",
       chantier: "",
-      moyenPaiement: "Direct",
+      moyenPaiement: "ESP",
     });
     setTransporteurLibre("");
   };
@@ -250,19 +238,24 @@ export const PeseeFormSection = ({
           />
         </div>
         <div>
-          <Label htmlFor="moyenPaiement">Moyen de paiement</Label>
+          <Label htmlFor="moyenPaiement">Mode de paiement</Label>
           <Select
-            value={currentData?.moyenPaiement || "Direct"}
-            onValueChange={(value: "Direct" | "En compte") =>
-              updateCurrentTab({ moyenPaiement: value })
+            value={currentData?.moyenPaiement || "ESP"}
+            onValueChange={(value) =>
+              updateCurrentTab({ moyenPaiement: value as any })
             }
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Direct">Direct</SelectItem>
-              <SelectItem value="En compte">En compte</SelectItem>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="ESP">💶 Espèces (ESP)</SelectItem>
+              <SelectItem value="CB">💳 Carte bancaire (CB)</SelectItem>
+              <SelectItem value="CHQ">🏦 Chèque (CHQ)</SelectItem>
+              <SelectItem value="VIR">📤 Virement (VIR)</SelectItem>
+              <SelectItem value="PRVT">📋 Prélèvement (PRVT)</SelectItem>
+              <SelectItem value="Direct">💵 Direct</SelectItem>
+              <SelectItem value="En compte">📊 En compte</SelectItem>
             </SelectContent>
           </Select>
         </div>

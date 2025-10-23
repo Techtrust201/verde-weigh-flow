@@ -116,7 +116,7 @@ export const PeseeDetailDialog = ({
     produitId: pesee.produitId,
     poidsEntree: pesee.poidsEntree.toString(),
     poidsSortie: pesee.poidsSortie.toString(),
-    moyenPaiement: pesee.moyenPaiement as "Direct" | "En compte",
+    moyenPaiement: pesee.moyenPaiement as any,
     clientId: pesee.clientId || 0,
     transporteurId: pesee.transporteurId || 0,
     transporteurLibre: pesee.transporteurLibre || "",
@@ -221,7 +221,7 @@ export const PeseeDetailDialog = ({
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">
-                      Moyen de paiement
+                      Mode de paiement
                     </label>
                     <p className="mt-1">{pesee.moyenPaiement}</p>
                   </div>

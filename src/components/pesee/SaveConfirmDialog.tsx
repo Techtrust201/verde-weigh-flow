@@ -13,7 +13,7 @@ interface SaveConfirmDialogProps {
   onConfirm: () => void;
   onConfirmAndPrint: () => void;
   onConfirmPrintAndInvoice?: () => void;
-  moyenPaiement: "Direct" | "En compte";
+  moyenPaiement: 'ESP' | 'CB' | 'CHQ' | 'VIR' | 'PRVT' | 'Direct' | 'En compte';
 }
 
 export const SaveConfirmDialog = ({
@@ -24,6 +24,9 @@ export const SaveConfirmDialog = ({
   onConfirmPrintAndInvoice,
   moyenPaiement,
 }: SaveConfirmDialogProps) => {
+  // Déterminer si c'est un paiement direct (afficher la facture)
+  const isPaiementDirect = ['ESP', 'CB', 'CHQ', 'Direct'].includes(moyenPaiement);
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -38,14 +41,14 @@ export const SaveConfirmDialog = ({
               <Printer className="h-4 w-4 mr-2" />
               Imprimer le Bon de pesée
             </Button>
-            {moyenPaiement === "Direct" && (
+            {isPaiementDirect && (
               <Button onClick={onConfirm} variant="outline">
                 <Save className="h-4 w-4 mr-2" />
                 <FileText className="h-4 w-4 mr-2" />
                 Imprimer la facture
               </Button>
             )}
-            {moyenPaiement === "Direct" && onConfirmPrintAndInvoice && (
+            {isPaiementDirect && onConfirmPrintAndInvoice && (
               <Button onClick={onConfirmPrintAndInvoice} variant="secondary">
                 <Save className="h-4 w-4 mr-2" />
                 <Printer className="h-4 w-4 mr-2" />

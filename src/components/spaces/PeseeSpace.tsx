@@ -695,7 +695,7 @@ export default function PeseeSpace() {
         onConfirm={handleSaveAndPrintInvoice}
         onConfirmAndPrint={handleSaveAndPrint}
         onConfirmPrintAndInvoice={handleSavePrintBonAndInvoice}
-        moyenPaiement={currentData?.moyenPaiement || "Direct"}
+        moyenPaiement={currentData?.moyenPaiement || "ESP"}
       />
 
       {/* Print Preview Dialog */}
