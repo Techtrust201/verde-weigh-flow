@@ -144,6 +144,24 @@ export const PeseeFormSection = ({
       setTransporteurLibre("");
     }
 
+    // Déterminer le mode de paiement à utiliser
+    let moyenPaiement: "Direct" | "En compte" = "Direct";
+    if (client.modePaiementPreferentiel) {
+      // Mapper les codes Sage vers les valeurs de l'app
+      // ESP, CB, CHQ → Direct
+      // VIR, PRVT → En compte
+      const codesPaiementDirect = ["ESP", "CB", "CHQ"];
+      const codesPaiementCompte = ["VIR", "PRVT"];
+
+      if (codesPaiementDirect.includes(client.modePaiementPreferentiel)) {
+        moyenPaiement = "Direct";
+      } else if (
+        codesPaiementCompte.includes(client.modePaiementPreferentiel)
+      ) {
+        moyenPaiement = "En compte";
+      }
+    }
+
     updateCurrentTab({
       clientId: client.id!,
       nomEntreprise: client.raisonSociale,
@@ -154,6 +172,7 @@ export const PeseeFormSection = ({
       plaque: client.plaques?.[0] || "",
       chantier: client.chantiers?.[0] || "",
       transporteurId: transporteurId,
+      moyenPaiement: moyenPaiement, // Auto-complétion du mode de paiement
     });
 
     setClientSelectorOpen(false);

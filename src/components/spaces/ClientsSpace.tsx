@@ -1,16 +1,54 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Edit, Plus, Search, Trash2, User, Building, Briefcase, Filter } from 'lucide-react';
-import { Client, db, Transporteur, Product } from '@/lib/database';
-import { useToast } from '@/hooks/use-toast';
-import ClientForm from '@/components/forms/ClientForm';
-import PreferentialPricingSection from '@/components/forms/PreferentialPricingSection';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Edit,
+  Plus,
+  Search,
+  Trash2,
+  User,
+  Building,
+  Briefcase,
+  Filter,
+  CheckSquare,
+  Square,
+  X,
+} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Client, db, Transporteur, Product } from "@/lib/database";
+import { useToast } from "@/hooks/use-toast";
+import ClientForm from "@/components/forms/ClientForm";
+import PreferentialPricingSection from "@/components/forms/PreferentialPricingSection";
 
 export default function ClientsSpace() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -19,29 +57,32 @@ export default function ClientsSpace() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [transporteurFilter, setTransporteurFilter] = useState<string>('all');
-  const [villeFilter, setVilleFilter] = useState<string>('all');
-  
+  const [selectedClientIds, setSelectedClientIds] = useState<Set<number>>(
+    new Set()
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [transporteurFilter, setTransporteurFilter] = useState<string>("all");
+  const [villeFilter, setVilleFilter] = useState<string>("all");
+
   const [formData, setFormData] = useState<Partial<Client>>({
-    typeClient: 'particulier',
-    prenom: '',
-    nom: '',
-    raisonSociale: '',
-    siret: '',
-    codeNAF: '',
-    activite: '',
-    adresse: '',
-    codePostal: '',
-    ville: '',
-    representantLegal: '',
-    telephone: '',
-    email: '',
+    typeClient: "particulier",
+    prenom: "",
+    nom: "",
+    raisonSociale: "",
+    siret: "",
+    codeNAF: "",
+    activite: "",
+    adresse: "",
+    codePostal: "",
+    ville: "",
+    representantLegal: "",
+    telephone: "",
+    email: "",
     plaques: [],
     chantiers: [],
-    tarifsPreferentiels: {}
+    tarifsPreferentiels: {},
   });
   const { toast } = useToast();
 
@@ -53,32 +94,77 @@ export default function ClientsSpace() {
 
   const loadClients = async () => {
     try {
-      const clientsData = await db.clients.orderBy('createdAt').reverse().toArray();
-      setClients(clientsData);
+      const clientsData = await db.clients
+        .orderBy("createdAt")
+        .reverse()
+        .toArray();
+
+      // Corriger les types de clients
+      const correctedClients = clientsData.map((client) => {
+        // Si le type est déjà correct, ne pas le modifier
+        if (
+          client.typeClient === "particulier" ||
+          client.typeClient === "professionnel" ||
+          client.typeClient === "micro-entreprise"
+        ) {
+          return client;
+        }
+
+        // Sinon, corriger le type
+        const typeLower = String(client.typeClient || "")
+          .toLowerCase()
+          .trim();
+        let correctedType:
+          | "particulier"
+          | "professionnel"
+          | "micro-entreprise" = "professionnel"; // Par défaut
+
+        if (typeLower.includes("particulier")) {
+          correctedType = "particulier";
+        } else if (typeLower.includes("micro")) {
+          correctedType = "micro-entreprise";
+        }
+
+        // Mettre à jour dans la base de données
+        db.clients.update(client.id!, {
+          typeClient: correctedType,
+        } as Partial<Client>);
+
+        // Retourner le client avec le type corrigé
+        return {
+          ...client,
+          typeClient: correctedType,
+        };
+      });
+
+      setClients(correctedClients);
     } catch (error) {
-      console.error('Erreur lors du chargement des clients:', error);
+      console.error("Erreur lors du chargement des clients:", error);
     }
   };
 
   const loadTransporteurs = async () => {
     try {
-      const transporteursData = await db.transporteurs.orderBy('createdAt').reverse().toArray();
+      const transporteursData = await db.transporteurs
+        .orderBy("createdAt")
+        .reverse()
+        .toArray();
       setTransporteurs(transporteursData);
     } catch (error) {
-      console.error('Erreur lors du chargement des transporteurs:', error);
+      console.error("Erreur lors du chargement des transporteurs:", error);
     }
   };
 
   const loadProducts = async () => {
     try {
-      const productsData = await db.products.orderBy('nom').toArray();
+      const productsData = await db.products.orderBy("nom").toArray();
       setProducts(productsData);
     } catch (error) {
-      console.error('Erreur lors du chargement des produits:', error);
+      console.error("Erreur lors du chargement des produits:", error);
     }
   };
 
-  const filteredClients = clients.filter(client => {
+  const filteredClients = clients.filter((client) => {
     const searchFields = [
       client.raisonSociale,
       client.siret,
@@ -87,35 +173,44 @@ export default function ClientsSpace() {
       client.ville,
       client.telephone,
       ...(client.plaques || []),
-      ...(client.chantiers || [])
-    ].filter(Boolean).join(' ').toLowerCase();
+      ...(client.chantiers || []),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
     const matchesSearch = searchFields.includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || client.typeClient === typeFilter;
-    const matchesTransporteur = transporteurFilter === 'all' || client.transporteurId?.toString() === transporteurFilter;
-    const matchesVille = villeFilter === 'all' || client.ville === villeFilter;
+    const matchesType =
+      typeFilter === "all" || client.typeClient === typeFilter;
+    const matchesTransporteur =
+      transporteurFilter === "all" ||
+      client.transporteurId?.toString() === transporteurFilter;
+    const matchesVille = villeFilter === "all" || client.ville === villeFilter;
 
     return matchesSearch && matchesType && matchesTransporteur && matchesVille;
   });
 
-  const uniqueVilles = [...new Set(clients.map(c => c.ville).filter(Boolean))].sort();
+  const uniqueVilles = [
+    ...new Set(clients.map((c) => c.ville).filter(Boolean)),
+  ].sort();
 
   const validateForm = () => {
     if (!formData.typeClient) {
       toast({
         title: "Erreur",
         description: "Le type de client est obligatoire.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
 
-    if (formData.typeClient === 'particulier') {
+    if (formData.typeClient === "particulier") {
       if (!formData.prenom || !formData.nom) {
         toast({
           title: "Erreur",
-          description: "Le prénom et le nom sont obligatoires pour un particulier.",
-          variant: "destructive"
+          description:
+            "Le prénom et le nom sont obligatoires pour un particulier.",
+          variant: "destructive",
         });
         return false;
       }
@@ -125,46 +220,47 @@ export default function ClientsSpace() {
         toast({
           title: "Erreur",
           description: "La raison sociale est obligatoire.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return false;
       }
-      
-      if (formData.typeClient === 'professionnel' && !formData.siret) {
+
+      if (formData.typeClient === "professionnel" && !formData.siret) {
         toast({
           title: "Erreur",
           description: "Le SIRET est obligatoire pour un professionnel.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return false;
       }
-      
+
       // Adresse obligatoire pour les professionnels et micro-entreprises (requis pour Sage/Track Déchet)
       if (!formData.adresse) {
         toast({
           title: "Erreur",
           description: "L'adresse est obligatoire pour les entreprises.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return false;
       }
-      
+
       // Ville et code postal obligatoires pour les entreprises
       if (!formData.ville || !formData.codePostal) {
         toast({
           title: "Erreur",
-          description: "La ville et le code postal sont obligatoires pour les entreprises.",
-          variant: "destructive"
+          description:
+            "La ville et le code postal sont obligatoires pour les entreprises.",
+          variant: "destructive",
         });
         return false;
       }
-      
+
       // Activité obligatoire pour les entreprises (requis pour Sage)
       if (!formData.activite) {
         toast({
           title: "Erreur",
           description: "L'activité est obligatoire pour les entreprises.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return false;
       }
@@ -172,14 +268,15 @@ export default function ClientsSpace() {
 
     // Validation des tarifs préférentiels
     if (formData.tarifsPreferentiels) {
-      const hasInvalidPricing = Object.values(formData.tarifsPreferentiels).some(
-        tarif => !tarif.prixHT || tarif.prixHT <= 0
-      );
+      const hasInvalidPricing = Object.values(
+        formData.tarifsPreferentiels
+      ).some((tarif) => !tarif.prixHT || tarif.prixHT <= 0);
       if (hasInvalidPricing) {
         toast({
           title: "Erreur",
-          description: "Tous les tarifs préférentiels doivent avoir un prix HT valide.",
-          variant: "destructive"
+          description:
+            "Tous les tarifs préférentiels doivent avoir un prix HT valide.",
+          variant: "destructive",
         });
         return false;
       }
@@ -194,33 +291,34 @@ export default function ClientsSpace() {
     try {
       const clientData = {
         ...formData,
-        raisonSociale: formData.typeClient === 'particulier' 
-          ? `${formData.prenom} ${formData.nom}` 
-          : formData.raisonSociale,
-        telephone: formData.telephone || '',
+        raisonSociale:
+          formData.typeClient === "particulier"
+            ? `${formData.prenom} ${formData.nom}`
+            : formData.raisonSociale,
+        telephone: formData.telephone || "",
         plaques: formData.plaques || [],
         chantiers: formData.chantiers || [],
-        tarifsPreferentiels: formData.tarifsPreferentiels || {}
+        tarifsPreferentiels: formData.tarifsPreferentiels || {},
       };
 
       if (selectedClient) {
         await db.clients.update(selectedClient.id!, {
           ...clientData,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
         toast({
           title: "Succès",
-          description: "Client modifié avec succès."
+          description: "Client modifié avec succès.",
         });
       } else {
         await db.clients.add({
           ...clientData,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         } as Client);
         toast({
           title: "Succès",
-          description: "Client créé avec succès."
+          description: "Client créé avec succès.",
         });
       }
 
@@ -229,33 +327,33 @@ export default function ClientsSpace() {
       setIsCreateDialogOpen(false);
       setIsEditDialogOpen(false);
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+      console.error("Erreur lors de la sauvegarde:", error);
       toast({
         title: "Erreur",
         description: "Une erreur s'est produite lors de la sauvegarde.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const resetForm = () => {
     setFormData({
-      typeClient: 'particulier',
-      prenom: '',
-      nom: '',
-      raisonSociale: '',
-      siret: '',
-      codeNAF: '',
-      activite: '',
-      adresse: '',
-      codePostal: '',
-      ville: '',
-      representantLegal: '',
-      telephone: '',
-      email: '',
+      typeClient: "particulier",
+      prenom: "",
+      nom: "",
+      raisonSociale: "",
+      siret: "",
+      codeNAF: "",
+      activite: "",
+      adresse: "",
+      codePostal: "",
+      ville: "",
+      representantLegal: "",
+      telephone: "",
+      email: "",
       plaques: [],
       chantiers: [],
-      tarifsPreferentiels: {}
+      tarifsPreferentiels: {},
     });
     setSelectedClient(null);
   };
@@ -266,26 +364,81 @@ export default function ClientsSpace() {
       ...client,
       plaques: client.plaques || [],
       chantiers: client.chantiers || [],
-      tarifsPreferentiels: client.tarifsPreferentiels || {}
+      tarifsPreferentiels: client.tarifsPreferentiels || {},
     });
     setIsEditDialogOpen(true);
   };
 
   const handleDelete = async (client: Client) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce client ?')) {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce client ?")) {
       try {
         await db.clients.delete(client.id!);
         toast({
           title: "Succès",
-          description: "Client supprimé avec succès."
+          description: "Client supprimé avec succès.",
         });
         loadClients();
       } catch (error) {
-        console.error('Erreur lors de la suppression:', error);
+        console.error("Erreur lors de la suppression:", error);
         toast({
           title: "Erreur",
           description: "Une erreur s'est produite lors de la suppression.",
-          variant: "destructive"
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Fonctions de gestion de sélection multiple
+  const toggleClientSelection = (clientId: number) => {
+    const newSelection = new Set(selectedClientIds);
+    if (newSelection.has(clientId)) {
+      newSelection.delete(clientId);
+    } else {
+      newSelection.add(clientId);
+    }
+    setSelectedClientIds(newSelection);
+  };
+
+  const selectAllClients = () => {
+    setSelectedClientIds(new Set(filteredClients.map((client) => client.id!)));
+  };
+
+  const deselectAllClients = () => {
+    setSelectedClientIds(new Set());
+  };
+
+  const deleteSelectedClients = async () => {
+    if (selectedClientIds.size === 0) {
+      toast({
+        title: "Aucune sélection",
+        description: "Veuillez sélectionner au moins un client à supprimer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmMessage = `Êtes-vous sûr de vouloir supprimer ${selectedClientIds.size} client(s) ? Cette action est irréversible.`;
+    if (window.confirm(confirmMessage)) {
+      try {
+        const deletePromises = Array.from(selectedClientIds).map((id) =>
+          db.clients.delete(id)
+        );
+        await Promise.all(deletePromises);
+
+        toast({
+          title: "Succès",
+          description: `${selectedClientIds.size} client(s) supprimé(s) avec succès.`,
+        });
+
+        setSelectedClientIds(new Set());
+        loadClients();
+      } catch (error) {
+        console.error("Erreur lors de la suppression multiple:", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur s'est produite lors de la suppression.",
+          variant: "destructive",
         });
       }
     }
@@ -293,11 +446,11 @@ export default function ClientsSpace() {
 
   const getClientTypeIcon = (type: string) => {
     switch (type) {
-      case 'particulier':
+      case "particulier":
         return <User className="h-4 w-4" />;
-      case 'professionnel':
+      case "professionnel":
         return <Building className="h-4 w-4" />;
-      case 'micro-entreprise':
+      case "micro-entreprise":
         return <Briefcase className="h-4 w-4" />;
       default:
         return <User className="h-4 w-4" />;
@@ -306,17 +459,22 @@ export default function ClientsSpace() {
 
   const getClientTypeBadge = (type: string) => {
     const variants = {
-      'particulier': 'secondary',
-      'professionnel': 'default',
-      'micro-entreprise': 'outline'
+      particulier: "secondary",
+      professionnel: "default",
+      "micro-entreprise": "outline",
     } as const;
-    
+
     return (
-      <Badge variant={variants[type as keyof typeof variants] || 'secondary'} className="flex items-center gap-1">
+      <Badge
+        variant={variants[type as keyof typeof variants] || "secondary"}
+        className="flex items-center gap-1"
+      >
         {getClientTypeIcon(type)}
-        {type === 'particulier' ? 'Particulier' : 
-         type === 'professionnel' ? 'Professionnel' : 
-         'Micro-entreprise'}
+        {type === "particulier"
+          ? "Particulier"
+          : type === "professionnel"
+          ? "Professionnel"
+          : "Micro-entreprise"}
       </Badge>
     );
   };
@@ -326,7 +484,7 @@ export default function ClientsSpace() {
     if (plaques.length === 0) return null;
 
     const [firstPlaque, ...otherPlaques] = plaques.sort();
-    
+
     return (
       <div className="flex items-center gap-2">
         <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
@@ -345,10 +503,14 @@ export default function ClientsSpace() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Gestion des Clients</h2>
-          <p className="text-muted-foreground">Gérez vos clients particuliers et professionnels</p>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Gestion des Clients
+          </h2>
+          <p className="text-muted-foreground">
+            Gérez vos clients particuliers et professionnels
+          </p>
         </div>
-        
+
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm}>
@@ -361,8 +523,8 @@ export default function ClientsSpace() {
               <DialogTitle>Nouveau client</DialogTitle>
             </DialogHeader>
             <div className="space-y-6">
-              <ClientForm 
-                formData={formData} 
+              <ClientForm
+                formData={formData}
                 onFormDataChange={setFormData}
                 transporteurs={transporteurs}
               />
@@ -373,12 +535,13 @@ export default function ClientsSpace() {
               />
             </div>
             <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
                 Annuler
               </Button>
-              <Button onClick={handleSave}>
-                Créer
-              </Button>
+              <Button onClick={handleSave}>Créer</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -402,7 +565,7 @@ export default function ClientsSpace() {
               className="flex-1"
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium">Type de client</label>
@@ -414,21 +577,29 @@ export default function ClientsSpace() {
                   <SelectItem value="all">Tous les types</SelectItem>
                   <SelectItem value="particulier">Particulier</SelectItem>
                   <SelectItem value="professionnel">Professionnel</SelectItem>
-                  <SelectItem value="micro-entreprise">Micro-entreprise</SelectItem>
+                  <SelectItem value="micro-entreprise">
+                    Micro-entreprise
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
               <label className="text-sm font-medium">Transporteur</label>
-              <Select value={transporteurFilter} onValueChange={setTransporteurFilter}>
+              <Select
+                value={transporteurFilter}
+                onValueChange={setTransporteurFilter}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les transporteurs</SelectItem>
                   {transporteurs.map((transporteur) => (
-                    <SelectItem key={transporteur.id} value={transporteur.id!.toString()}>
+                    <SelectItem
+                      key={transporteur.id}
+                      value={transporteur.id!.toString()}
+                    >
                       {transporteur.prenom} {transporteur.nom}
                     </SelectItem>
                   ))}
@@ -458,40 +629,148 @@ export default function ClientsSpace() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Clients ({filteredClients.length})</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Clients ({filteredClients.length})</CardTitle>
+            {selectedClientIds.size > 0 && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">
+                  {selectedClientIds.size} sélectionné(s)
+                </Badge>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={deleteSelectedClients}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer sélectionnés
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAllClients}
+                disabled={filteredClients.length === 0}
+              >
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Tout sélectionner
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={deselectAllClients}
+                disabled={selectedClientIds.size === 0}
+              >
+                <Square className="h-4 w-4 mr-2" />
+                Désélectionner tout
+              </Button>
+            </div>
+            {selectedClientIds.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={deleteSelectedClients}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Supprimer {selectedClientIds.size} client(s)
+              </Button>
+            )}
+          </div>
+
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={
+                      filteredClients.length > 0 &&
+                      selectedClientIds.size === filteredClients.length
+                    }
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        selectAllClients();
+                      } else {
+                        deselectAllClients();
+                      }
+                    }}
+                  />
+                </TableHead>
+                <TableHead className="w-16">Code</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Raison Sociale</TableHead>
-                <TableHead>SIRET</TableHead>
+                <TableHead className="w-32">SIRET</TableHead>
+                <TableHead className="w-28">TVA Intra</TableHead>
+                <TableHead className="w-40">RIB</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Adresse</TableHead>
                 <TableHead>Plaque(s)</TableHead>
                 <TableHead>Transporteur</TableHead>
                 <TableHead>Tarifs Préf.</TableHead>
+                <TableHead className="w-32">Mode Paiement</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredClients.map((client) => {
-                const transporteur = transporteurs.find(t => t.id === client.transporteurId);
-                const hasPrefPricing = client.tarifsPreferentiels && Object.keys(client.tarifsPreferentiels).length > 0;
-                
+                const transporteur = transporteurs.find(
+                  (t) => t.id === client.transporteurId
+                );
+                const hasPrefPricing =
+                  client.tarifsPreferentiels &&
+                  Object.keys(client.tarifsPreferentiels).length > 0;
+
                 return (
                   <TableRow key={client.id}>
-                    <TableCell>{getClientTypeBadge(client.typeClient)}</TableCell>
-                    <TableCell className="font-medium">{client.raisonSociale}</TableCell>
-                    <TableCell>{client.siret}</TableCell>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedClientIds.has(client.id!)}
+                        onCheckedChange={() =>
+                          toggleClientSelection(client.id!)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {client.codeClient || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {getClientTypeBadge(client.typeClient)}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {client.raisonSociale}
+                    </TableCell>
+                    <TableCell className="text-sm font-mono">
+                      {client.siret || "-"}
+                    </TableCell>
+                    <TableCell className="text-sm font-mono">
+                      {client.tvaIntracom || "-"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {client.nomBanque ? (
+                        <div>
+                          <div className="font-medium">{client.nomBanque}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {client.codeBanque} {client.codeGuichet}{" "}
+                            {client.numeroCompte}
+                          </div>
+                        </div>
+                      ) : (
+                        "N/A"
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         {client.telephone && (
                           <div className="text-sm">{client.telephone}</div>
                         )}
                         {client.email && (
-                          <div className="text-sm text-muted-foreground">{client.email}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {client.email}
+                          </div>
                         )}
                       </div>
                     </TableCell>
@@ -499,13 +778,13 @@ export default function ClientsSpace() {
                       <div className="text-sm">
                         {client.adresse && <div>{client.adresse}</div>}
                         {client.codePostal && client.ville && (
-                          <div className="text-muted-foreground">{client.codePostal} {client.ville}</div>
+                          <div className="text-muted-foreground">
+                            {client.codePostal} {client.ville}
+                          </div>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {renderPlaques(client)}
-                    </TableCell>
+                    <TableCell>{renderPlaques(client)}</TableCell>
                     <TableCell>
                       {transporteur && (
                         <Badge variant="secondary">
@@ -516,8 +795,18 @@ export default function ClientsSpace() {
                     <TableCell>
                       {hasPrefPricing && (
                         <Badge variant="outline" className="text-green-600">
-                          {Object.keys(client.tarifsPreferentiels!).length} produit(s)
+                          {Object.keys(client.tarifsPreferentiels!).length}{" "}
+                          produit(s)
                         </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {client.modePaiementPreferentiel ? (
+                        <Badge variant="secondary">
+                          {client.modePaiementPreferentiel}
+                        </Badge>
+                      ) : (
+                        "-"
                       )}
                     </TableCell>
                     <TableCell>
@@ -552,8 +841,8 @@ export default function ClientsSpace() {
             <DialogTitle>Modifier le client</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <ClientForm 
-              formData={formData} 
+            <ClientForm
+              formData={formData}
               onFormDataChange={setFormData}
               isEditing={true}
               transporteurs={transporteurs}
@@ -565,12 +854,13 @@ export default function ClientsSpace() {
             />
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               Annuler
             </Button>
-            <Button onClick={handleSave}>
-              Sauvegarder
-            </Button>
+            <Button onClick={handleSave}>Sauvegarder</Button>
           </div>
         </DialogContent>
       </Dialog>

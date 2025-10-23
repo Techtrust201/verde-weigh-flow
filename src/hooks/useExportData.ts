@@ -723,13 +723,68 @@ export const useExportData = () => {
       }_${endDate.toISOString().split("T")[0]}_${now.getTime()}.${extension}`;
 
       // Télécharger le fichier avec l'encodage approprié
-      const encoding = format.startsWith("sage-") ? "windows-1252" : "utf-8";
       let blob: Blob;
 
       if (format.startsWith("sage-")) {
-        // Encodage UTF-8 pour Sage 50 (plus compatible avec les caractères spéciaux)
-        blob = new Blob([content], {
-          type: "text/plain;charset=utf-8",
+        // Encodage Windows-1252 (ANSI) pour Sage 50
+        // Convertir le contenu UTF-8 en Windows-1252
+        const encoder = new TextEncoder();
+        const utf8Array = encoder.encode(content);
+
+        // Créer un tableau pour Windows-1252
+        const win1252Array = new Uint8Array(utf8Array.length);
+        let outputIndex = 0;
+
+        for (let i = 0; i < content.length; i++) {
+          const charCode = content.charCodeAt(i);
+
+          // Caractères ASCII standards (0-127) - passage direct
+          if (charCode < 128) {
+            win1252Array[outputIndex++] = charCode;
+          }
+          // Caractères spéciaux français (128-255) - mapping Windows-1252
+          else {
+            // Mapping des caractères accentués français vers Windows-1252
+            const win1252Map: { [key: number]: number } = {
+              0x00c0: 0xc0, // À
+              0x00c2: 0xc2, // Â
+              0x00c7: 0xc7, // Ç
+              0x00c8: 0xc8, // È
+              0x00c9: 0xc9, // É
+              0x00ca: 0xca, // Ê
+              0x00cb: 0xcb, // Ë
+              0x00ce: 0xce, // Î
+              0x00cf: 0xcf, // Ï
+              0x00d4: 0xd4, // Ô
+              0x00d9: 0xd9, // Ù
+              0x00db: 0xdb, // Û
+              0x00dc: 0xdc, // Ü
+              0x00e0: 0xe0, // à
+              0x00e2: 0xe2, // â
+              0x00e7: 0xe7, // ç
+              0x00e8: 0xe8, // è
+              0x00e9: 0xe9, // é
+              0x00ea: 0xea, // ê
+              0x00eb: 0xeb, // ë
+              0x00ee: 0xee, // î
+              0x00ef: 0xef, // ï
+              0x00f4: 0xf4, // ô
+              0x00f9: 0xf9, // ù
+              0x00fb: 0xfb, // û
+              0x00fc: 0xfc, // ü
+              0x0153: 0x9c, // œ
+              0x0152: 0x8c, // Œ
+              0x20ac: 0x80, // €
+            };
+
+            win1252Array[outputIndex++] = win1252Map[charCode] || 0x3f; // ? si non trouvé
+          }
+        }
+
+        // Créer le blob avec les octets Windows-1252
+        const finalArray = win1252Array.slice(0, outputIndex);
+        blob = new Blob([finalArray], {
+          type: "text/plain;charset=windows-1252",
         });
       } else {
         // UTF-8 avec BOM pour Excel

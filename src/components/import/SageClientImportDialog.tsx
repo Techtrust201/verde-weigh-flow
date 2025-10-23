@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -26,7 +25,8 @@ import {
   Users,
   CheckCircle,
   AlertCircle,
-  Download,
+  Check,
+  RefreshCw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { db, Client } from "@/lib/database";
@@ -34,17 +34,29 @@ import { db, Client } from "@/lib/database";
 interface ParsedClient {
   codeClient: string;
   nomClient: string;
+  societe?: string; // Raison sociale
   formeJuridique?: string;
   adresse1?: string;
   adresse2?: string;
   adresse3?: string;
   codePostal?: string;
   ville?: string;
-  codePays?: string;
   pays?: string;
-  siret?: string;
-  email?: string;
+  codePays?: string; // Code du pays
   telephone?: string;
+  portable?: string;
+  email?: string;
+  siret?: string;
+  representant?: string; // Nom du représentant
+  nomRepresentant?: string; // Nom complet du représentant
+  modePaiement?: string; // Code du mode de paiement (ESP, VIR, etc.)
+  modePaiementLibelle?: string; // Libellé du mode de paiement
+  typeClient?: string; // Type de client (Professionnel, Particulier, etc.)
+  tvaIntracom?: string; // Numéro TVA intracommunautaire
+  nomBanque?: string; // Nom de la banque
+  codeBanque?: string; // Code banque
+  codeGuichet?: string; // Code guichet
+  numeroCompte?: string; // Numéro de compte
 }
 
 interface ImportResult {
@@ -61,6 +73,33 @@ export default function SageClientImportDialog() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
+
+  // Fonction pour corriger l'encodage des caractères spéciaux
+  const fixEncoding = (text: string | undefined): string => {
+    if (!text) return "";
+
+    return text
+      .replace(/�/g, "é") // Corriger les é mal encodés
+      .replace(/�/g, "è") // Corriger les è mal encodés
+      .replace(/�/g, "à") // Corriger les à mal encodés
+      .replace(/�/g, "ç") // Corriger les ç mal encodés
+      .replace(/�/g, "ù") // Corriger les ù mal encodés
+      .replace(/�/g, "ê") // Corriger les ê mal encodés
+      .replace(/�/g, "î") // Corriger les î mal encodés
+      .replace(/�/g, "ô") // Corriger les ô mal encodés
+      .replace(/�/g, "û") // Corriger les û mal encodés
+      .replace(/�/g, "â") // Corriger les â mal encodés
+      .replace(/�/g, "É") // Corriger les É mal encodés
+      .replace(/�/g, "È") // Corriger les È mal encodés
+      .replace(/�/g, "À") // Corriger les À mal encodés
+      .replace(/�/g, "Ç") // Corriger les Ç mal encodés
+      .replace(/�/g, "Ù") // Corriger les Ù mal encodés
+      .replace(/�/g, "Ê") // Corriger les Ê mal encodés
+      .replace(/�/g, "Î") // Corriger les Î mal encodés
+      .replace(/�/g, "Ô") // Corriger les Ô mal encodés
+      .replace(/�/g, "Û") // Corriger les Û mal encodés
+      .replace(/�/g, "Â"); // Corriger les Â mal encodés
+  };
 
   const handleFileSelect = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +122,9 @@ export default function SageClientImportDialog() {
     // Parse l'en-tête pour obtenir les noms de colonnes
     const headerLine = lines[0];
     const columns = headerLine.split("\t");
+    const typeClientIndex = columns.findIndex(
+      (col) => col.trim() === "Type de client"
+    );
 
     const clients: ParsedClient[] = [];
 
@@ -97,8 +139,46 @@ export default function SageClientImportDialog() {
         rowData[col] = values[index] || "";
       });
 
-      // Extraire uniquement les lignes E (en-tête de document)
-      if (rowData["Type de Ligne"] === "E") {
+      // Vérifier si c'est un fichier d'export de clients Sage (pas un fichier de BL)
+      // Si on trouve "Code" et "Nom" comme colonnes, c'est un export clients
+      if (rowData["Code"] && rowData["Nom"]) {
+        const client: ParsedClient = {
+          codeClient: rowData["Code"] || "",
+          nomClient: rowData["Nom"] || "",
+          societe: rowData["Soci�t�"] || "", // Gérer l'encodage mal fait
+          formeJuridique: rowData["Forme juridique"],
+          adresse1: rowData["Adresse 1"],
+          adresse2: rowData["Adresse 2"],
+          adresse3: rowData["Adresse 3"],
+          codePostal: rowData["Code Postal"],
+          ville: rowData["Ville"],
+          pays: rowData["Pays"],
+          telephone: rowData["T�l�phone"], // Gérer l'encodage mal fait
+          portable: rowData["Portable"],
+          email: rowData["E-mail"],
+          siret: rowData["SIRET"],
+          representant: rowData["Repr�sentant"], // Gérer l'encodage mal fait
+          nomRepresentant: rowData["Nom Repr�sentant"], // Gérer l'encodage mal fait
+          modePaiement: rowData["Mode de paiement"], // ESP, VIR, PRVT, CB, CHQ
+          modePaiementLibelle: rowData["Libell� mode de paiement"], // Gérer l'encodage mal fait
+          typeClient:
+            (typeClientIndex >= 0 ? values[typeClientIndex] || "" : "")
+              .replace(/^["']|["']$/g, "")
+              .trim() || "",
+          tvaIntracom: rowData["N� TVA intracom"], // TVA intracommunautaire
+          nomBanque: rowData["Nom Banque"], // Nom de la banque
+          codeBanque: rowData["Code Banque"], // Code banque
+          codeGuichet: rowData["Code Guichet"], // Code guichet
+          numeroCompte: rowData["Num�ro Compte"], // Numéro de compte
+        };
+
+        // Ajouter le client si les données minimales sont présentes
+        if (client.codeClient && client.nomClient) {
+          clients.push(client);
+        }
+      }
+      // Sinon, vérifier si c'est un fichier de BL (format ancien)
+      else if (rowData["Type de Ligne"] === "E") {
         const client: ParsedClient = {
           codeClient: rowData["Code client"] || "",
           nomClient: rowData["Nom client"] || "",
@@ -171,7 +251,7 @@ export default function SageClientImportDialog() {
         });
       }
     } catch (error) {
-      console.error("Erreur lors du traitement du fichier:", error);
+      console.error("Erreur lors du traitement du fichier");
       toast({
         title: "Erreur de traitement",
         description: "Impossible de traiter le fichier. Vérifiez le format.",
@@ -189,6 +269,7 @@ export default function SageClientImportDialog() {
     try {
       let imported = 0;
       let skipped = 0;
+      let newPaymentMethods = 0;
 
       for (const parsedClient of importResult.clients) {
         // Vérifier si le client existe déjà (par code client ou nom)
@@ -205,16 +286,82 @@ export default function SageClientImportDialog() {
           continue;
         }
 
-        // Créer le client
+        // Si un mode de paiement est présent, vérifier s'il existe dans la table
+        if (parsedClient.modePaiement && parsedClient.modePaiementLibelle) {
+          const existingMethod = await db.paymentMethods
+            .filter((pm) => pm.code === parsedClient.modePaiement)
+            .first();
+
+          if (!existingMethod) {
+            // Créer le nouveau mode de paiement
+            await db.paymentMethods.add({
+              code: parsedClient.modePaiement,
+              libelle: parsedClient.modePaiementLibelle,
+              active: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+            newPaymentMethods++;
+          }
+        }
+
+        // Déterminer le type de client
+        let typeClient: "particulier" | "professionnel" | "micro-entreprise" =
+          "professionnel";
+        if (parsedClient.typeClient) {
+          const typeLower = parsedClient.typeClient.toLowerCase().trim();
+          if (typeLower.includes("particulier")) {
+            typeClient = "particulier";
+          } else if (typeLower.includes("micro")) {
+            typeClient = "micro-entreprise";
+          }
+        }
+
+        // Construire l'adresse complète avec correction d'encodage
+        let adresseComplete = fixEncoding(parsedClient.adresse1) || "";
+        if (parsedClient.adresse2) {
+          adresseComplete +=
+            (adresseComplete ? ", " : "") + fixEncoding(parsedClient.adresse2);
+        }
+        if (parsedClient.adresse3) {
+          adresseComplete +=
+            (adresseComplete ? ", " : "") + fixEncoding(parsedClient.adresse3);
+        }
+
+        // Créer le client avec toutes les données extraites et corrigées
         const newClient: Client = {
-          typeClient: "professionnel", // Par défaut professionnel pour les imports Sage
-          raisonSociale: parsedClient.nomClient,
-          siret: parsedClient.codeClient,
-          adresse: parsedClient.adresse1 || "",
-          codePostal: parsedClient.codePostal || "",
-          ville: parsedClient.ville || "",
-          plaques: [], // Vide par défaut
-          chantiers: [], // Vide par défaut
+          typeClient: typeClient,
+          raisonSociale:
+            fixEncoding(parsedClient.societe) ||
+            fixEncoding(parsedClient.nomClient),
+          prenom: fixEncoding(parsedClient.representant) || undefined,
+          nom: fixEncoding(parsedClient.nomRepresentant) || undefined,
+          siret: parsedClient.siret || undefined,
+          adresse: adresseComplete,
+          codePostal: fixEncoding(parsedClient.codePostal) || "",
+          ville: fixEncoding(parsedClient.ville) || "",
+          email: fixEncoding(parsedClient.email) || undefined,
+          telephone:
+            fixEncoding(parsedClient.telephone) ||
+            fixEncoding(parsedClient.portable) ||
+            undefined,
+          modePaiementPreferentiel: parsedClient.modePaiement, // Mode de paiement importé
+          plaques: [], // Vide par défaut - sera rempli manuellement
+          chantiers: [], // Vide par défaut - sera rempli manuellement
+
+          // Nouveaux champs importés depuis Sage
+          codeClient: parsedClient.codeClient,
+          tvaIntracom: parsedClient.tvaIntracom || undefined,
+          nomBanque: fixEncoding(parsedClient.nomBanque) || undefined,
+          codeBanque: parsedClient.codeBanque || undefined,
+          codeGuichet: parsedClient.codeGuichet || undefined,
+          numeroCompte: parsedClient.numeroCompte || undefined,
+
+          // Champs pour Track Déchet
+          codeNAF: undefined, // Sera rempli manuellement si nécessaire
+          activite: undefined, // Sera rempli manuellement si nécessaire
+          representantLegal: undefined, // Sera rempli manuellement si nécessaire
+
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -225,14 +372,18 @@ export default function SageClientImportDialog() {
 
       toast({
         title: "Import terminé",
-        description: `${imported} client(s) importé(s), ${skipped} déjà existant(s)`,
+        description: `${imported} client(s) importé(s), ${skipped} déjà existant(s)${
+          newPaymentMethods > 0
+            ? `, ${newPaymentMethods} mode(s) de paiement créé(s)`
+            : ""
+        }`,
       });
 
       setIsOpen(false);
       setFile(null);
       setImportResult(null);
     } catch (error) {
-      console.error("Erreur lors de l'import:", error);
+      console.error("Erreur lors de l'import");
       toast({
         title: "Erreur d'import",
         description: "Impossible d'importer les clients",
@@ -326,14 +477,20 @@ export default function SageClientImportDialog() {
 
               {/* Aperçu des clients */}
               {importResult.clients.length > 0 && (
-                <div className="border rounded-lg max-h-96 overflow-y-auto">
+                <div className="border rounded-lg max-h-[500px] overflow-y-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 bg-white z-10">
                       <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Nom</TableHead>
-                        <TableHead>Adresse</TableHead>
-                        <TableHead>Ville</TableHead>
+                        <TableHead className="w-16">Code</TableHead>
+                        <TableHead>Nom/Société</TableHead>
+                        <TableHead className="w-24">Type</TableHead>
+                        <TableHead className="w-32">SIRET</TableHead>
+                        <TableHead className="w-28">TVA Intra</TableHead>
+                        <TableHead className="w-40">RIB</TableHead>
+                        <TableHead className="w-48">Adresse</TableHead>
+                        <TableHead className="w-40">Contact</TableHead>
+                        <TableHead className="w-32">Mode Paiement</TableHead>
+                        <TableHead className="w-24">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -345,13 +502,92 @@ export default function SageClientImportDialog() {
                               {client.codeClient}
                             </TableCell>
                             <TableCell className="font-medium">
-                              {client.nomClient}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {client.adresse1}
+                              <div>
+                                <div>
+                                  {fixEncoding(client.societe) ||
+                                    fixEncoding(client.nomClient)}
+                                </div>
+                                {client.representant && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {fixEncoding(client.representant)}
+                                  </div>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell className="text-sm">
-                              {client.codePostal} {client.ville}
+                              <Badge variant="outline">
+                                {fixEncoding(client.typeClient) || "Non défini"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm font-mono">
+                              {fixEncoding(client.siret) || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-sm font-mono">
+                              {fixEncoding(client.tvaIntracom) || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {fixEncoding(client.nomBanque) &&
+                              fixEncoding(client.codeBanque) ? (
+                                <div>
+                                  <div className="font-medium">
+                                    {fixEncoding(client.nomBanque)}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {fixEncoding(client.codeBanque)}{" "}
+                                    {fixEncoding(client.codeGuichet)}{" "}
+                                    {fixEncoding(client.numeroCompte)}
+                                  </div>
+                                </div>
+                              ) : (
+                                "N/A"
+                              )}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              <div>
+                                {fixEncoding(client.adresse1)}
+                                {client.adresse2 && (
+                                  <div>{fixEncoding(client.adresse2)}</div>
+                                )}
+                                <div className="font-medium">
+                                  {fixEncoding(client.codePostal)}{" "}
+                                  {fixEncoding(client.ville)}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              <div>
+                                {client.telephone && (
+                                  <div>📞 {fixEncoding(client.telephone)}</div>
+                                )}
+                                {client.portable && (
+                                  <div>📱 {fixEncoding(client.portable)}</div>
+                                )}
+                                {client.email && (
+                                  <div>✉️ {fixEncoding(client.email)}</div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {client.modePaiement && (
+                                <Badge variant="secondary">
+                                  {fixEncoding(client.modePaiement)} -{" "}
+                                  {fixEncoding(client.modePaiementLibelle)}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleImport()}
+                                disabled={isImporting}
+                              >
+                                {isImporting ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Check className="h-4 w-4" />
+                                )}
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -445,4 +681,3 @@ export default function SageClientImportDialog() {
     </Dialog>
   );
 }
-

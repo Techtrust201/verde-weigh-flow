@@ -18,12 +18,20 @@ export interface Client {
   plaques?: string[]; // Support des plaques multiples
   chantiers: string[];
   transporteurId?: number;
+  modePaiementPreferentiel?: string; // Code du mode de paiement (ESP, VIR, PRVT, CB, CHQ)
   tarifsPreferentiels?: {
     [productId: number]: {
       prixHT?: number;
       prixTTC?: number;
     };
   };
+  // Champs importés depuis Sage
+  codeClient?: string; // Code client Sage
+  tvaIntracom?: string; // N° TVA intracommunautaire
+  nomBanque?: string; // Nom de la banque
+  codeBanque?: string; // Code banque
+  codeGuichet?: string; // Code guichet
+  numeroCompte?: string; // Numéro de compte
   // Track Déchet - Supprimé car maintenant géré uniquement au niveau produit
   createdAt: Date;
   updatedAt: Date;
@@ -168,6 +176,15 @@ export interface Tax {
   updatedAt: Date;
 }
 
+export interface PaymentMethod {
+  id?: number;
+  code: string; // ESP, VIR, PRVT, CB, CHQ, etc.
+  libelle: string; // Espèce, Virement, Prélèvement, etc.
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Config {
   id?: number;
   key: string;
@@ -246,6 +263,7 @@ class AppDatabase extends Dexie {
   exportLogs!: Table<ExportLog>;
   sageTemplates!: Table<SageTemplate>;
   taxes!: Table<Tax>;
+  paymentMethods!: Table<PaymentMethod>;
 
   constructor() {
     super("AppDatabase");
@@ -386,6 +404,52 @@ class AppDatabase extends Dexie {
       sageTemplates: "++id, name, isActive, createdAt, updatedAt",
       taxes: "++id, nom, taux, active, createdAt, updatedAt",
     });
+
+    // Version 8 - Ajout de la table payment_methods et modePaiementPreferentiel aux clients
+    this.version(8).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      taxes: "++id, nom, taux, active, createdAt, updatedAt",
+      paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
+    });
+
+    // Version 9 - Ajout des champs Sage supplémentaires aux clients
+    this.version(9).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, codeClient, tvaIntracom, modePaiementPreferentiel, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      taxes: "++id, nom, taux, active, createdAt, updatedAt",
+      paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
+    });
   }
 }
 
@@ -491,6 +555,48 @@ export const initializeSampleData = async () => {
     ];
 
     await db.taxes.bulkAdd(sampleTaxes);
+
+    // Créer des modes de paiement par défaut (basés sur le fichier Sage)
+    const samplePaymentMethods: PaymentMethod[] = [
+      {
+        code: "ESP",
+        libelle: "Espèce",
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        code: "VIR",
+        libelle: "Virement",
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        code: "PRVT",
+        libelle: "Prélèvement",
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        code: "CB",
+        libelle: "Carte bancaire",
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        code: "CHQ",
+        libelle: "Chèque",
+        active: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    await db.paymentMethods.bulkAdd(samplePaymentMethods);
+
     console.log("Données d'exemple initialisées avec succès");
   } catch (error) {
     console.error("Erreur lors de l'initialisation des données:", error);

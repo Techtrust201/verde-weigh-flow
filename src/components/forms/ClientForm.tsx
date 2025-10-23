@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Trash2, AlertCircle } from "lucide-react";
-import { Client, Transporteur } from "@/lib/database";
+import { Client, Transporteur, PaymentMethod, db } from "@/lib/database";
 import { CityPostalInput } from "@/components/ui/city-postal-input";
 import { validateEmail, getEmailError } from "@/utils/validation";
 
@@ -28,6 +28,22 @@ export default function ClientForm({
   transporteurs = [],
 }: ClientFormProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+
+  useEffect(() => {
+    loadPaymentMethods();
+  }, []);
+
+  const loadPaymentMethods = async () => {
+    try {
+      const methods = await db.paymentMethods
+        .filter((pm) => pm.active)
+        .toArray();
+      setPaymentMethods(methods);
+    } catch (error) {
+      console.error("Erreur chargement modes de paiement:", error);
+    }
+  };
 
   const handleEmailChange = (email: string) => {
     onFormDataChange({ ...formData, email });
@@ -424,6 +440,35 @@ export default function ClientForm({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="modePaiement">Mode de paiement préférentiel</Label>
+        <Select
+          value={formData.modePaiementPreferentiel || "none"}
+          onValueChange={(value) =>
+            onFormDataChange({
+              ...formData,
+              modePaiementPreferentiel: value === "none" ? undefined : value,
+            })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un mode de paiement" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Aucun (défaut: Direct)</SelectItem>
+            {paymentMethods?.map((method) => (
+              <SelectItem key={method.id} value={method.code}>
+                {method.code} - {method.libelle}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">
+          Ce mode de paiement sera automatiquement sélectionné lors des pesées
+          avec ce client
+        </p>
       </div>
     </div>
   );
