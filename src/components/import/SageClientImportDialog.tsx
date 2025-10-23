@@ -625,19 +625,25 @@ export default function SageClientImportDialog() {
 
               {/* Boutons d'import et annulation */}
               {importResult.success && (
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <Button
                     onClick={() => {
                       setFile(null);
                       setImportResult(null);
                     }}
                     disabled={isImporting}
-                    variant="destructive"
-                    className="gap-2"
+                    variant="outline"
+                    size="lg"
+                    className="sm:w-auto order-2 sm:order-1"
                   >
                     Annuler
                   </Button>
-                  <Button onClick={handleImport} disabled={isImporting} className="flex-1 gap-2">
+                  <Button 
+                    onClick={handleImport} 
+                    disabled={isImporting} 
+                    size="lg"
+                    className="flex-1 gap-2 order-1 sm:order-2"
+                  >
                     {isImporting ? (
                       <>
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
