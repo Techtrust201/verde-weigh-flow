@@ -216,6 +216,7 @@ export function TrackDechetDialog({
   // Si Track Déchet n'est pas applicable
   if (!isApplicable) {
     let missingRequirements: string[] = [];
+    let guidanceMessage = "";
 
     if (client?.typeClient === "particulier") {
       missingRequirements.push(
@@ -223,12 +224,24 @@ export function TrackDechetDialog({
       );
     } else if (!product?.trackDechetEnabled) {
       missingRequirements.push("Track Déchet n'est pas activé pour ce produit");
+      guidanceMessage = "Activez Track Déchet dans la gestion des produits (Espace Produits → Modifier le produit → Section Track Déchet)";
     } else {
       // Utiliser les erreurs de validation détaillées
       missingRequirements =
         validationErrors.length > 0
           ? validationErrors
           : ["Impossible de valider les données pour Track Déchet"];
+      
+      // Déterminer le message de guidage selon les erreurs
+      if (validationErrors.some(err => err.includes("SIRET client"))) {
+        guidanceMessage = "Modifiez le client dans l'Espace Clients et ajoutez son SIRET dans les informations principales.";
+      } else if (validationErrors.some(err => err.includes("Adresse client"))) {
+        guidanceMessage = "Modifiez le client dans l'Espace Clients et complétez son adresse.";
+      } else if (validationErrors.some(err => err.includes("Code NAF") || err.includes("Activité") || err.includes("Représentant"))) {
+        guidanceMessage = "Modifiez le client dans l'Espace Clients, puis ouvrez la section 'Informations Track Déchets (optionnel)' en bas du formulaire pour compléter les champs manquants.";
+      } else if (validationErrors.some(err => err.toLowerCase().includes("entreprise"))) {
+        guidanceMessage = "Complétez vos informations d'entreprise dans l'Espace Utilisateur → Paramètres Entreprise.";
+      }
     }
 
     return (
@@ -243,34 +256,28 @@ export function TrackDechetDialog({
           </DialogHeader>
 
           <div className="space-y-4">
-            <ul className="space-y-2">
-              {missingRequirements.map((requirement, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                  <span className="text-sm">{requirement}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h4 className="font-medium text-red-900 mb-2 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Informations manquantes
+              </h4>
+              <ul className="space-y-2 mb-3">
+                {missingRequirements.map((requirement, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                    <span className="text-sm text-red-800">{requirement}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-            {missingRequirements.length === 1 &&
-              missingRequirements[0].includes(
-                "Track Déchet n'est pas activé"
-              ) && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-xs text-blue-700">
-                    💡 Activez Track Déchet pour ce produit dans la gestion des
-                    produits pour pouvoir générer des BSD automatiquement.
-                  </p>
-                </div>
-              )}
-
-            {missingRequirements.some((req) =>
-              req.includes("votre entreprise")
-            ) && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                <p className="text-xs text-amber-700">
-                  💡 Complétez vos informations d'entreprise dans l'espace
-                  "Utilisateur" pour utiliser Track Déchet.
+            {guidanceMessage && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                  💡 Comment corriger
+                </h4>
+                <p className="text-sm text-blue-800">
+                  {guidanceMessage}
                 </p>
               </div>
             )}

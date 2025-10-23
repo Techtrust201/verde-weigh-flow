@@ -9,10 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Trash2, AlertCircle, ChevronDown } from "lucide-react";
 import { Client, Transporteur, PaymentMethod, db } from "@/lib/database";
 import { CityPostalInput } from "@/components/ui/city-postal-input";
 import { validateEmail, getEmailError } from "@/utils/validation";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface ClientFormProps {
   formData: Partial<Client>;
@@ -29,6 +34,7 @@ export default function ClientForm({
 }: ClientFormProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [isTrackDechetOpen, setIsTrackDechetOpen] = useState(false);
 
   useEffect(() => {
     loadPaymentMethods();
@@ -276,58 +282,78 @@ export default function ClientForm({
       {/* Section Track Déchets - Visible uniquement pour professionnels et micro-entreprises */}
       {(formData.typeClient === "professionnel" ||
         formData.typeClient === "micro-entreprise") && (
-        <div className="border-t pt-4">
-          <h3 className="text-sm font-medium text-primary mb-3">
-            Informations Track Déchets
-          </h3>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label htmlFor="codeNAF">Code NAF *</Label>
-              <Input
-                id="codeNAF"
-                value={formData.codeNAF || ""}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, codeNAF: e.target.value })
-                }
-                placeholder="Ex: 4673Z (Commerce de gros de matériaux de construction)"
-                required
+        <Collapsible
+          open={isTrackDechetOpen}
+          onOpenChange={setIsTrackDechetOpen}
+          className="border rounded-lg"
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full flex items-center justify-between p-4 hover:bg-accent"
+            >
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium">
+                  Informations Track Déchets (optionnel)
+                </h3>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${
+                  isTrackDechetOpen ? "rotate-180" : ""
+                }`}
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Code d'activité principale de l'entreprise (obligatoire pour
-                Track Déchets)
-              </p>
-            </div>
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-4">
+              Ces informations sont nécessaires uniquement si vous effectuez des pesées avec des déchets nécessitant un suivi Track Déchet
+            </p>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label htmlFor="codeNAF">Code NAF</Label>
+                <Input
+                  id="codeNAF"
+                  value={formData.codeNAF || ""}
+                  onChange={(e) =>
+                    onFormDataChange({ ...formData, codeNAF: e.target.value })
+                  }
+                  placeholder="Ex: 4673Z (Commerce de gros de matériaux de construction)"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Code d'activité principale de l'entreprise
+                </p>
+              </div>
 
-            <div>
-              <Label htmlFor="representantLegal">Représentant légal *</Label>
-              <Input
-                id="representantLegal"
-                value={formData.representantLegal || ""}
-                onChange={(e) =>
-                  onFormDataChange({
-                    ...formData,
-                    representantLegal: e.target.value,
-                  })
-                }
-                placeholder="Nom et prénom du représentant légal"
-                required
-              />
-            </div>
+              <div>
+                <Label htmlFor="representantLegal">Représentant légal</Label>
+                <Input
+                  id="representantLegal"
+                  value={formData.representantLegal || ""}
+                  onChange={(e) =>
+                    onFormDataChange({
+                      ...formData,
+                      representantLegal: e.target.value,
+                    })
+                  }
+                  placeholder="Nom et prénom du représentant légal"
+                />
+              </div>
 
-            <div>
-              <Label htmlFor="activite">Activité *</Label>
-              <Input
-                id="activite"
-                value={formData.activite || ""}
-                onChange={(e) =>
-                  onFormDataChange({ ...formData, activite: e.target.value })
-                }
-                placeholder="Description de l'activité principale"
-                required
-              />
+              <div>
+                <Label htmlFor="activite">Activité</Label>
+                <Input
+                  id="activite"
+                  value={formData.activite || ""}
+                  onChange={(e) =>
+                    onFormDataChange({ ...formData, activite: e.target.value })
+                  }
+                  placeholder="Description de l'activité principale"
+                />
+              </div>
             </div>
-          </div>
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       {/* Gestion des plaques multiples */}
