@@ -372,7 +372,15 @@ export default function ClientForm({
               onChange={(e) => updatePlaque(index, e.target.value)}
               placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
               className="font-mono"
+              list={`plaques-datalist-${index}`}
             />
+            <datalist id={`plaques-datalist-${index}`}>
+              {Array.from(new Set(
+                formData.plaques?.filter(p => p && p !== plaque) || []
+              )).map((p, i) => (
+                <option key={i} value={p} />
+              ))}
+            </datalist>
             <Button
               type="button"
               variant="outline"
@@ -404,7 +412,7 @@ export default function ClientForm({
           </div>
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          Format recommandé : AB-123-CD
+          Format recommandé : AB-123-CD. Les plaques suggérées proviennent de vos clients existants.
         </p>
       </div>
 
@@ -427,7 +435,15 @@ export default function ClientForm({
               value={chantier}
               onChange={(e) => updateChantier(index, e.target.value)}
               placeholder="Nom du chantier"
+              list={`chantiers-datalist-${index}`}
             />
+            <datalist id={`chantiers-datalist-${index}`}>
+              {Array.from(new Set(
+                formData.chantiers?.filter(c => c && c !== chantier) || []
+              )).map((c, i) => (
+                <option key={i} value={c} />
+              ))}
+            </datalist>
             <Button
               type="button"
               variant="outline"
@@ -438,6 +454,9 @@ export default function ClientForm({
             </Button>
           </div>
         ))}
+        <p className="text-xs text-muted-foreground mt-1">
+          Les chantiers suggérés proviennent de vos clients existants.
+        </p>
       </div>
 
       <div>
