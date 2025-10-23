@@ -477,26 +477,106 @@ export default function SageClientImportDialog() {
 
               {/* Aperçu des clients */}
               {importResult.clients.length > 0 && (
-                <div className="border rounded-lg max-h-[500px] overflow-y-auto">
-                  <Table>
-                    <TableHeader className="sticky top-0 bg-white z-10">
-                      <TableRow>
-                        <TableHead className="w-16">Code</TableHead>
-                        <TableHead>Nom/Société</TableHead>
-                        <TableHead className="w-24">Type</TableHead>
-                        <TableHead className="w-32">SIRET</TableHead>
-                        <TableHead className="w-28">TVA Intra</TableHead>
-                        <TableHead className="w-40">RIB</TableHead>
-                        <TableHead className="w-48">Adresse</TableHead>
-                        <TableHead className="w-40">Contact</TableHead>
-                        <TableHead className="w-32">Mode Paiement</TableHead>
-                        <TableHead className="w-24">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {importResult.clients
-                        .slice(0, 50)
-                        .map((client, index) => (
+                <>
+                  {/* Vue mobile - Cards */}
+                  <div className="md:hidden space-y-3 max-h-[500px] overflow-y-auto">
+                    {importResult.clients.slice(0, 50).map((client, index) => (
+                      <div
+                        key={index}
+                        className="border rounded-lg p-4 space-y-3 bg-card"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-base break-words">
+                              {fixEncoding(client.societe) || fixEncoding(client.nomClient)}
+                            </div>
+                            {client.representant && (
+                              <div className="text-sm text-muted-foreground">
+                                {fixEncoding(client.representant)}
+                              </div>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="shrink-0">
+                            {fixEncoding(client.typeClient) || "Non défini"}
+                          </Badge>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Code:</span>
+                            <div className="font-mono">{client.codeClient}</div>
+                          </div>
+                          {client.siret && (
+                            <div>
+                              <span className="text-muted-foreground">SIRET:</span>
+                              <div className="font-mono text-xs break-all">
+                                {fixEncoding(client.siret)}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {(client.codePostal || client.ville) && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Adresse:</span>
+                            <div>
+                              {fixEncoding(client.adresse1)}
+                              {client.adresse2 && <div>{fixEncoding(client.adresse2)}</div>}
+                              <div className="font-medium">
+                                {fixEncoding(client.codePostal)} {fixEncoding(client.ville)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {(client.telephone || client.portable || client.email) && (
+                          <div className="text-sm space-y-1">
+                            {client.telephone && (
+                              <div>📞 {fixEncoding(client.telephone)}</div>
+                            )}
+                            {client.portable && (
+                              <div>📱 {fixEncoding(client.portable)}</div>
+                            )}
+                            {client.email && (
+                              <div className="break-all">✉️ {fixEncoding(client.email)}</div>
+                            )}
+                          </div>
+                        )}
+
+                        {client.modePaiement && (
+                          <div>
+                            <Badge variant="secondary" className="text-xs">
+                              {fixEncoding(client.modePaiement)} - {fixEncoding(client.modePaiementLibelle)}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {importResult.clients.length > 50 && (
+                      <div className="p-2 text-center text-sm text-muted-foreground">
+                        ... et {importResult.clients.length - 50} autre(s) client(s)
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Vue desktop - Table */}
+                  <div className="hidden md:block border rounded-lg max-h-[500px] overflow-x-auto overflow-y-auto">
+                    <Table>
+                      <TableHeader className="sticky top-0 bg-background z-10">
+                        <TableRow>
+                          <TableHead className="w-20">Code</TableHead>
+                          <TableHead className="min-w-[200px]">Nom/Société</TableHead>
+                          <TableHead className="w-32">Type</TableHead>
+                          <TableHead className="w-36">SIRET</TableHead>
+                          <TableHead className="w-32">TVA Intra</TableHead>
+                          <TableHead className="min-w-[180px]">RIB</TableHead>
+                          <TableHead className="min-w-[200px]">Adresse</TableHead>
+                          <TableHead className="min-w-[160px]">Contact</TableHead>
+                          <TableHead className="min-w-[140px]">Mode Paiement</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {importResult.clients.slice(0, 50).map((client, index) => (
                           <TableRow key={index}>
                             <TableCell className="font-mono text-xs">
                               {client.codeClient}
@@ -504,8 +584,7 @@ export default function SageClientImportDialog() {
                             <TableCell className="font-medium">
                               <div>
                                 <div>
-                                  {fixEncoding(client.societe) ||
-                                    fixEncoding(client.nomClient)}
+                                  {fixEncoding(client.societe) || fixEncoding(client.nomClient)}
                                 </div>
                                 {client.representant && (
                                   <div className="text-xs text-muted-foreground">
@@ -526,16 +605,13 @@ export default function SageClientImportDialog() {
                               {fixEncoding(client.tvaIntracom) || "N/A"}
                             </TableCell>
                             <TableCell className="text-sm">
-                              {fixEncoding(client.nomBanque) &&
-                              fixEncoding(client.codeBanque) ? (
+                              {fixEncoding(client.nomBanque) && fixEncoding(client.codeBanque) ? (
                                 <div>
                                   <div className="font-medium">
                                     {fixEncoding(client.nomBanque)}
                                   </div>
                                   <div className="text-xs text-muted-foreground">
-                                    {fixEncoding(client.codeBanque)}{" "}
-                                    {fixEncoding(client.codeGuichet)}{" "}
-                                    {fixEncoding(client.numeroCompte)}
+                                    {fixEncoding(client.codeBanque)} {fixEncoding(client.codeGuichet)} {fixEncoding(client.numeroCompte)}
                                   </div>
                                 </div>
                               ) : (
@@ -545,61 +621,37 @@ export default function SageClientImportDialog() {
                             <TableCell className="text-sm text-muted-foreground">
                               <div>
                                 {fixEncoding(client.adresse1)}
-                                {client.adresse2 && (
-                                  <div>{fixEncoding(client.adresse2)}</div>
-                                )}
+                                {client.adresse2 && <div>{fixEncoding(client.adresse2)}</div>}
                                 <div className="font-medium">
-                                  {fixEncoding(client.codePostal)}{" "}
-                                  {fixEncoding(client.ville)}
+                                  {fixEncoding(client.codePostal)} {fixEncoding(client.ville)}
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell className="text-sm">
                               <div>
-                                {client.telephone && (
-                                  <div>📞 {fixEncoding(client.telephone)}</div>
-                                )}
-                                {client.portable && (
-                                  <div>📱 {fixEncoding(client.portable)}</div>
-                                )}
-                                {client.email && (
-                                  <div>✉️ {fixEncoding(client.email)}</div>
-                                )}
+                                {client.telephone && <div>📞 {fixEncoding(client.telephone)}</div>}
+                                {client.portable && <div>📱 {fixEncoding(client.portable)}</div>}
+                                {client.email && <div>✉️ {fixEncoding(client.email)}</div>}
                               </div>
                             </TableCell>
                             <TableCell className="text-sm">
                               {client.modePaiement && (
                                 <Badge variant="secondary">
-                                  {fixEncoding(client.modePaiement)} -{" "}
-                                  {fixEncoding(client.modePaiementLibelle)}
+                                  {fixEncoding(client.modePaiement)} - {fixEncoding(client.modePaiementLibelle)}
                                 </Badge>
                               )}
                             </TableCell>
-                            <TableCell className="text-center">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleImport()}
-                                disabled={isImporting}
-                              >
-                                {isImporting ? (
-                                  <RefreshCw className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Check className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </TableCell>
                           </TableRow>
                         ))}
-                    </TableBody>
-                  </Table>
-                  {importResult.clients.length > 50 && (
-                    <div className="p-2 text-center text-sm text-muted-foreground">
-                      ... et {importResult.clients.length - 50} autre(s)
-                      client(s)
-                    </div>
-                  )}
-                </div>
+                      </TableBody>
+                    </Table>
+                    {importResult.clients.length > 50 && (
+                      <div className="p-2 text-center text-sm text-muted-foreground">
+                        ... et {importResult.clients.length - 50} autre(s) client(s)
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
 
               {/* Erreurs */}
