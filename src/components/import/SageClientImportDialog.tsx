@@ -4,14 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -20,14 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Upload,
-  Users,
-  CheckCircle,
-  AlertCircle,
-  Check,
-  RefreshCw,
-} from "lucide-react";
+import { Upload, Users, CheckCircle, AlertCircle, Check, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { db, Client } from "@/lib/database";
 
@@ -101,16 +87,13 @@ export default function SageClientImportDialog() {
       .replace(/�/g, "Â"); // Corriger les Â mal encodés
   };
 
-  const handleFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const selectedFile = event.target.files?.[0];
-      if (selectedFile) {
-        setFile(selectedFile);
-        setImportResult(null);
-      }
-    },
-    []
-  );
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setImportResult(null);
+    }
+  }, []);
 
   const parseSageClientFile = (content: string): ParsedClient[] => {
     const lines = content.split("\n").filter((line) => line.trim());
@@ -122,9 +105,7 @@ export default function SageClientImportDialog() {
     // Parse l'en-tête pour obtenir les noms de colonnes
     const headerLine = lines[0];
     const columns = headerLine.split("\t");
-    const typeClientIndex = columns.findIndex(
-      (col) => col.trim() === "Type de client"
-    );
+    const typeClientIndex = columns.findIndex((col) => col.trim() === "Type de client");
 
     const clients: ParsedClient[] = [];
 
@@ -162,9 +143,7 @@ export default function SageClientImportDialog() {
           modePaiement: rowData["Mode de paiement"], // ESP, VIR, PRVT, CB, CHQ
           modePaiementLibelle: rowData["Libell� mode de paiement"], // Gérer l'encodage mal fait
           typeClient:
-            (typeClientIndex >= 0 ? values[typeClientIndex] || "" : "")
-              .replace(/^["']|["']$/g, "")
-              .trim() || "",
+            (typeClientIndex >= 0 ? values[typeClientIndex] || "" : "").replace(/^["']|["']$/g, "").trim() || "",
           tvaIntracom: rowData["N� TVA intracom"], // TVA intracommunautaire
           nomBanque: rowData["Nom Banque"], // Nom de la banque
           codeBanque: rowData["Code Banque"], // Code banque
@@ -193,11 +172,7 @@ export default function SageClientImportDialog() {
         };
 
         // Ne pas ajouter les doublons
-        const exists = clients.some(
-          (c) =>
-            c.codeClient === client.codeClient &&
-            c.nomClient === client.nomClient
-        );
+        const exists = clients.some((c) => c.codeClient === client.codeClient && c.nomClient === client.nomClient);
         if (!exists && client.codeClient && client.nomClient) {
           clients.push(client);
         }
@@ -274,11 +249,7 @@ export default function SageClientImportDialog() {
       for (const parsedClient of importResult.clients) {
         // Vérifier si le client existe déjà (par code client ou nom)
         const existingClient = await db.clients
-          .filter(
-            (c) =>
-              c.raisonSociale === parsedClient.nomClient ||
-              c.siret === parsedClient.codeClient
-          )
+          .filter((c) => c.raisonSociale === parsedClient.nomClient || c.siret === parsedClient.codeClient)
           .first();
 
         if (existingClient) {
@@ -288,9 +259,7 @@ export default function SageClientImportDialog() {
 
         // Si un mode de paiement est présent, vérifier s'il existe dans la table
         if (parsedClient.modePaiement && parsedClient.modePaiementLibelle) {
-          const existingMethod = await db.paymentMethods
-            .filter((pm) => pm.code === parsedClient.modePaiement)
-            .first();
+          const existingMethod = await db.paymentMethods.filter((pm) => pm.code === parsedClient.modePaiement).first();
 
           if (!existingMethod) {
             // Créer le nouveau mode de paiement
@@ -306,8 +275,7 @@ export default function SageClientImportDialog() {
         }
 
         // Déterminer le type de client
-        let typeClient: "particulier" | "professionnel" | "micro-entreprise" =
-          "professionnel";
+        let typeClient: "particulier" | "professionnel" | "micro-entreprise" = "professionnel";
         if (parsedClient.typeClient) {
           const typeLower = parsedClient.typeClient.toLowerCase().trim();
           if (typeLower.includes("particulier")) {
@@ -320,20 +288,16 @@ export default function SageClientImportDialog() {
         // Construire l'adresse complète avec correction d'encodage
         let adresseComplete = fixEncoding(parsedClient.adresse1) || "";
         if (parsedClient.adresse2) {
-          adresseComplete +=
-            (adresseComplete ? ", " : "") + fixEncoding(parsedClient.adresse2);
+          adresseComplete += (adresseComplete ? ", " : "") + fixEncoding(parsedClient.adresse2);
         }
         if (parsedClient.adresse3) {
-          adresseComplete +=
-            (adresseComplete ? ", " : "") + fixEncoding(parsedClient.adresse3);
+          adresseComplete += (adresseComplete ? ", " : "") + fixEncoding(parsedClient.adresse3);
         }
 
         // Créer le client avec toutes les données extraites et corrigées
         const newClient: Client = {
           typeClient: typeClient,
-          raisonSociale:
-            fixEncoding(parsedClient.societe) ||
-            fixEncoding(parsedClient.nomClient),
+          raisonSociale: fixEncoding(parsedClient.societe) || fixEncoding(parsedClient.nomClient),
           prenom: fixEncoding(parsedClient.representant) || undefined,
           nom: fixEncoding(parsedClient.nomRepresentant) || undefined,
           siret: parsedClient.siret || undefined,
@@ -341,10 +305,7 @@ export default function SageClientImportDialog() {
           codePostal: fixEncoding(parsedClient.codePostal) || "",
           ville: fixEncoding(parsedClient.ville) || "",
           email: fixEncoding(parsedClient.email) || undefined,
-          telephone:
-            fixEncoding(parsedClient.telephone) ||
-            fixEncoding(parsedClient.portable) ||
-            undefined,
+          telephone: fixEncoding(parsedClient.telephone) || fixEncoding(parsedClient.portable) || undefined,
           modePaiementPreferentiel: parsedClient.modePaiement, // Mode de paiement importé
           plaques: [], // Vide par défaut - sera rempli manuellement
           chantiers: [], // Vide par défaut - sera rempli manuellement
@@ -373,9 +334,7 @@ export default function SageClientImportDialog() {
       toast({
         title: "Import terminé",
         description: `${imported} client(s) importé(s), ${skipped} déjà existant(s)${
-          newPaymentMethods > 0
-            ? `, ${newPaymentMethods} mode(s) de paiement créé(s)`
-            : ""
+          newPaymentMethods > 0 ? `, ${newPaymentMethods} mode(s) de paiement créé(s)` : ""
         }`,
       });
 
@@ -406,18 +365,14 @@ export default function SageClientImportDialog() {
       <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Import de clients depuis Sage 50</DialogTitle>
-          <DialogDescription>
-            Importez vos clients existants depuis un fichier d'export Sage 50
-          </DialogDescription>
+          <DialogDescription>Importez vos clients existants depuis un fichier d'export Sage 50</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 overflow-y-auto overflow-x-hidden flex-1 px-1">
           {/* Sélection de fichier */}
           <div className="space-y-4">
             <div>
-              <Label htmlFor="client-file-upload">
-                Fichier d'export Sage (.txt)
-              </Label>
+              <Label htmlFor="client-file-upload">Fichier d'export Sage (.txt)</Label>
               <Input
                 id="client-file-upload"
                 type="file"
@@ -431,8 +386,7 @@ export default function SageClientImportDialog() {
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Fichier sélectionné : {file.name} (
-                  {(file.size / 1024).toFixed(1)} KB)
+                  Fichier sélectionné : {file.name} ({(file.size / 1024).toFixed(1)} KB)
                 </AlertDescription>
               </Alert>
             )}
@@ -440,11 +394,7 @@ export default function SageClientImportDialog() {
 
           {/* Traitement */}
           {file && !importResult && (
-            <Button
-              onClick={processFile}
-              disabled={isProcessing}
-              className="w-full gap-2"
-            >
+            <Button onClick={processFile} disabled={isProcessing} className="w-full gap-2">
               {isProcessing ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -463,11 +413,7 @@ export default function SageClientImportDialog() {
           {importResult && (
             <div className="space-y-4">
               <Alert variant={importResult.success ? "default" : "destructive"}>
-                {importResult.success ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <AlertCircle className="h-4 w-4" />
-                )}
+                {importResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                 <AlertDescription>
                   {importResult.success
                     ? `${importResult.clients.length} client(s) prêt(s) à être importé(s)`
@@ -481,19 +427,14 @@ export default function SageClientImportDialog() {
                   {/* Vue mobile - Cards */}
                   <div className="md:hidden space-y-3 max-h-[500px] overflow-y-auto">
                     {importResult.clients.slice(0, 50).map((client, index) => (
-                      <div
-                        key={index}
-                        className="border rounded-lg p-4 space-y-3 bg-card"
-                      >
+                      <div key={index} className="border rounded-lg p-4 space-y-3 bg-card">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-base break-words">
                               {fixEncoding(client.societe) || fixEncoding(client.nomClient)}
                             </div>
                             {client.representant && (
-                              <div className="text-sm text-muted-foreground">
-                                {fixEncoding(client.representant)}
-                              </div>
+                              <div className="text-sm text-muted-foreground">{fixEncoding(client.representant)}</div>
                             )}
                           </div>
                           <Badge variant="outline" className="shrink-0">
@@ -509,9 +450,7 @@ export default function SageClientImportDialog() {
                           {client.siret && (
                             <div>
                               <span className="text-muted-foreground">SIRET:</span>
-                              <div className="font-mono text-xs break-all">
-                                {fixEncoding(client.siret)}
-                              </div>
+                              <div className="font-mono text-xs break-all">{fixEncoding(client.siret)}</div>
                             </div>
                           )}
                         </div>
@@ -531,15 +470,9 @@ export default function SageClientImportDialog() {
 
                         {(client.telephone || client.portable || client.email) && (
                           <div className="text-sm space-y-1">
-                            {client.telephone && (
-                              <div>📞 {fixEncoding(client.telephone)}</div>
-                            )}
-                            {client.portable && (
-                              <div>📱 {fixEncoding(client.portable)}</div>
-                            )}
-                            {client.email && (
-                              <div className="break-all">✉️ {fixEncoding(client.email)}</div>
-                            )}
+                            {client.telephone && <div>📞 {fixEncoding(client.telephone)}</div>}
+                            {client.portable && <div>📱 {fixEncoding(client.portable)}</div>}
+                            {client.email && <div className="break-all">✉️ {fixEncoding(client.email)}</div>}
                           </div>
                         )}
 
@@ -562,90 +495,81 @@ export default function SageClientImportDialog() {
                   {/* Vue desktop - Table */}
                   <div className="hidden md:block border rounded-lg max-h-[500px] overflow-auto">
                     <div className="min-w-[1200px]">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-background z-10">
-                        <TableRow>
-                          <TableHead className="w-20">Code</TableHead>
-                          <TableHead className="min-w-[200px]">Nom/Société</TableHead>
-                          <TableHead className="w-32">Type</TableHead>
-                          <TableHead className="w-36">SIRET</TableHead>
-                          <TableHead className="w-32">TVA Intra</TableHead>
-                          <TableHead className="min-w-[180px]">RIB</TableHead>
-                          <TableHead className="min-w-[200px]">Adresse</TableHead>
-                          <TableHead className="min-w-[160px]">Contact</TableHead>
-                          <TableHead className="min-w-[140px]">Mode Paiement</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {importResult.clients.slice(0, 50).map((client, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-mono text-xs">
-                              {client.codeClient}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              <div>
-                                <div>
-                                  {fixEncoding(client.societe) || fixEncoding(client.nomClient)}
-                                </div>
-                                {client.representant && (
-                                  <div className="text-xs text-muted-foreground">
-                                    {fixEncoding(client.representant)}
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <Badge variant="outline">
-                                {fixEncoding(client.typeClient) || "Non défini"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm font-mono">
-                              {fixEncoding(client.siret) || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-sm font-mono">
-                              {fixEncoding(client.tvaIntracom) || "N/A"}
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {fixEncoding(client.nomBanque) && fixEncoding(client.codeBanque) ? (
-                                <div>
-                                  <div className="font-medium">
-                                    {fixEncoding(client.nomBanque)}
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {fixEncoding(client.codeBanque)} {fixEncoding(client.codeGuichet)} {fixEncoding(client.numeroCompte)}
-                                  </div>
-                                </div>
-                              ) : (
-                                "N/A"
-                              )}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              <div>
-                                {fixEncoding(client.adresse1)}
-                                {client.adresse2 && <div>{fixEncoding(client.adresse2)}</div>}
-                                <div className="font-medium">
-                                  {fixEncoding(client.codePostal)} {fixEncoding(client.ville)}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              <div>
-                                {client.telephone && <div>📞 {fixEncoding(client.telephone)}</div>}
-                                {client.portable && <div>📱 {fixEncoding(client.portable)}</div>}
-                                {client.email && <div>✉️ {fixEncoding(client.email)}</div>}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {client.modePaiement && (
-                                <Badge variant="secondary">
-                                  {fixEncoding(client.modePaiement)} - {fixEncoding(client.modePaiementLibelle)}
-                                </Badge>
-                              )}
-                            </TableCell>
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                          <TableRow>
+                            <TableHead className="w-20">Code</TableHead>
+                            <TableHead className="min-w-[200px]">Nom/Société</TableHead>
+                            <TableHead className="w-32">Type</TableHead>
+                            <TableHead className="w-36">SIRET</TableHead>
+                            <TableHead className="w-32">TVA Intra</TableHead>
+                            <TableHead className="min-w-[180px]">RIB</TableHead>
+                            <TableHead className="min-w-[200px]">Adresse</TableHead>
+                            <TableHead className="min-w-[160px]">Contact</TableHead>
+                            <TableHead className="min-w-[140px]">Mode Paiement</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {importResult.clients.slice(0, 50).map((client, index) => (
+                            <TableRow key={index}>
+                              <TableCell className="font-mono text-xs">{client.codeClient}</TableCell>
+                              <TableCell className="font-medium">
+                                <div>
+                                  <div>{fixEncoding(client.societe) || fixEncoding(client.nomClient)}</div>
+                                  {client.representant && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {fixEncoding(client.representant)}
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                <Badge variant="outline">{fixEncoding(client.typeClient) || "Non défini"}</Badge>
+                              </TableCell>
+                              <TableCell className="text-sm font-mono">{fixEncoding(client.siret) || "N/A"}</TableCell>
+                              <TableCell className="text-sm font-mono">
+                                {fixEncoding(client.tvaIntracom) || "N/A"}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {fixEncoding(client.nomBanque) && fixEncoding(client.codeBanque) ? (
+                                  <div>
+                                    <div className="font-medium">{fixEncoding(client.nomBanque)}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {fixEncoding(client.codeBanque)} {fixEncoding(client.codeGuichet)}{" "}
+                                      {fixEncoding(client.numeroCompte)}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  "N/A"
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                <div>
+                                  {fixEncoding(client.adresse1)}
+                                  {client.adresse2 && <div>{fixEncoding(client.adresse2)}</div>}
+                                  <div className="font-medium">
+                                    {fixEncoding(client.codePostal)} {fixEncoding(client.ville)}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                <div>
+                                  {client.telephone && <div>📞 {fixEncoding(client.telephone)}</div>}
+                                  {client.portable && <div>📱 {fixEncoding(client.portable)}</div>}
+                                  {client.email && <div>✉️ {fixEncoding(client.email)}</div>}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {client.modePaiement && (
+                                  <Badge variant="secondary">
+                                    {fixEncoding(client.modePaiement)} - {fixEncoding(client.modePaiementLibelle)}
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                     {importResult.clients.length > 50 && (
                       <div className="p-2 text-center text-sm text-muted-foreground">
@@ -662,9 +586,7 @@ export default function SageClientImportDialog() {
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
                     <div className="space-y-2">
-                      <p className="font-medium">
-                        Erreurs ({importResult.errors.length})
-                      </p>
+                      <p className="font-medium">Erreurs ({importResult.errors.length})</p>
                       <ul className="text-sm space-y-1">
                         {importResult.errors.slice(0, 5).map((error, index) => (
                           <li key={index} className="flex items-start gap-2">
@@ -673,10 +595,7 @@ export default function SageClientImportDialog() {
                           </li>
                         ))}
                         {importResult.errors.length > 5 && (
-                          <li className="text-xs">
-                            ... et {importResult.errors.length - 5} autre(s)
-                            erreur(s)
-                          </li>
+                          <li className="text-xs">... et {importResult.errors.length - 5} autre(s) erreur(s)</li>
                         )}
                       </ul>
                     </div>
@@ -690,18 +609,14 @@ export default function SageClientImportDialog() {
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
                     <div className="space-y-2">
-                      <p className="font-medium">
-                        Avertissements ({importResult.warnings.length})
-                      </p>
+                      <p className="font-medium">Avertissements ({importResult.warnings.length})</p>
                       <ul className="text-sm space-y-1">
-                        {importResult.warnings
-                          .slice(0, 5)
-                          .map((warning, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <span className="text-orange-500">•</span>
-                              <span>{warning}</span>
-                            </li>
-                          ))}
+                        {importResult.warnings.slice(0, 5).map((warning, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-orange-500">•</span>
+                            <span>{warning}</span>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </AlertDescription>
@@ -712,10 +627,17 @@ export default function SageClientImportDialog() {
               {importResult.success && (
                 <div className="flex gap-3">
                   <Button
-                    onClick={handleImport}
+                    onClick={() => {
+                      setFile(null);
+                      setImportResult(null);
+                    }}
                     disabled={isImporting}
-                    className="flex-1 gap-2"
+                    variant="destructive"
+                    className="gap-2"
                   >
+                    Annuler
+                  </Button>
+                  <Button onClick={handleImport} disabled={isImporting} className="flex-1 gap-2">
                     {isImporting ? (
                       <>
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -727,17 +649,6 @@ export default function SageClientImportDialog() {
                         Importer {importResult.clients.length} client(s)
                       </>
                     )}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setFile(null);
-                      setImportResult(null);
-                    }}
-                    disabled={isImporting}
-                    variant="destructive"
-                    className="gap-2"
-                  >
-                    Annuler
                   </Button>
                 </div>
               )}
