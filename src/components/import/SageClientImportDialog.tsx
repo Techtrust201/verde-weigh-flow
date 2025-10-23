@@ -403,7 +403,7 @@ export default function SageClientImportDialog() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Import de clients depuis Sage 50</DialogTitle>
           <DialogDescription>
@@ -411,7 +411,7 @@ export default function SageClientImportDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-y-auto overflow-x-hidden flex-1 px-1">
           {/* Sélection de fichier */}
           <div className="space-y-4">
             <div>
