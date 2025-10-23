@@ -245,6 +245,12 @@ export const PeseeDetailDialog = ({
                     </label>
                     <p className="mt-1">{pesee.nomEntreprise}</p>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Type de client
+                    </label>
+                    <p className="mt-1 capitalize">{pesee.typeClient}</p>
+                  </div>
                   {pesee.chantier && (
                     <div>
                       <label className="text-sm font-medium text-gray-500">
