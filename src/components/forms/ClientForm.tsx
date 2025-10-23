@@ -128,98 +128,31 @@ export default function ClientForm({
         </Select>
       </div>
 
-      {formData.typeClient === "particulier" ? (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="prenom">Prénom *</Label>
-            <Input
-              id="prenom"
-              value={formData.prenom || ""}
-              onChange={(e) =>
-                onFormDataChange({ ...formData, prenom: e.target.value })
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="nom">Nom *</Label>
-            <Input
-              id="nom"
-              value={formData.nom || ""}
-              onChange={(e) =>
-                onFormDataChange({ ...formData, nom: e.target.value })
-              }
-            />
-          </div>
-        </div>
-      ) : (
-        <div>
-          <Label htmlFor="raisonSociale">Raison Sociale *</Label>
-          <Input
-            id="raisonSociale"
-            value={formData.raisonSociale || ""}
-            onChange={(e) =>
-              onFormDataChange({ ...formData, raisonSociale: e.target.value })
-            }
-          />
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="siret">
-            SIRET {formData.typeClient !== "particulier" ? "*" : "(optionnel)"}
-          </Label>
-          <Input
-            id="siret"
-            value={formData.siret || ""}
-            onChange={(e) =>
-              onFormDataChange({ ...formData, siret: e.target.value })
-            }
-            required={formData.typeClient !== "particulier"}
-          />
-        </div>
-        {formData.typeClient !== "particulier" && (
-          <div>
-            <Label htmlFor="codeNAF">Code NAF</Label>
-            <Input
-              id="codeNAF"
-              value={formData.codeNAF || ""}
-              onChange={(e) =>
-                onFormDataChange({ ...formData, codeNAF: e.target.value })
-              }
-            />
-          </div>
-        )}
+      <div>
+        <Label htmlFor="raisonSociale">
+          {formData.typeClient === "particulier" 
+            ? "Raison sociale (nom et prénom de l'individu) *"
+            : "Raison Sociale *"}
+        </Label>
+        <Input
+          id="raisonSociale"
+          value={formData.raisonSociale || ""}
+          onChange={(e) =>
+            onFormDataChange({ ...formData, raisonSociale: e.target.value })
+          }
+        />
       </div>
 
-      {formData.typeClient !== "particulier" && (
-        <>
-          <div>
-            <Label htmlFor="activite">Activité *</Label>
-            <Input
-              id="activite"
-              value={formData.activite || ""}
-              onChange={(e) =>
-                onFormDataChange({ ...formData, activite: e.target.value })
-              }
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="representantLegal">Représentant Légal</Label>
-            <Input
-              id="representantLegal"
-              value={formData.representantLegal || ""}
-              onChange={(e) =>
-                onFormDataChange({
-                  ...formData,
-                  representantLegal: e.target.value,
-                })
-              }
-            />
-          </div>
-        </>
-      )}
+      <div>
+        <Label htmlFor="siret">SIRET (optionnel)</Label>
+        <Input
+          id="siret"
+          value={formData.siret || ""}
+          onChange={(e) =>
+            onFormDataChange({ ...formData, siret: e.target.value })
+          }
+        />
+      </div>
 
       <div className="grid grid-cols-1 gap-4">
         <div>
