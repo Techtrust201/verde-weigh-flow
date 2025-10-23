@@ -560,7 +560,8 @@ export default function SageClientImportDialog() {
                   </div>
 
                   {/* Vue desktop - Table */}
-                  <div className="hidden md:block border rounded-lg max-h-[500px] overflow-x-auto overflow-y-auto">
+                  <div className="hidden md:block border rounded-lg max-h-[500px] overflow-auto">
+                    <div className="min-w-[1200px]">
                     <Table>
                       <TableHeader className="sticky top-0 bg-background z-10">
                         <TableRow>
@@ -645,6 +646,7 @@ export default function SageClientImportDialog() {
                         ))}
                       </TableBody>
                     </Table>
+                    </div>
                     {importResult.clients.length > 50 && (
                       <div className="p-2 text-center text-sm text-muted-foreground">
                         ... et {importResult.clients.length - 50} autre(s) client(s)
@@ -706,25 +708,38 @@ export default function SageClientImportDialog() {
                 </Alert>
               )}
 
-              {/* Bouton d'import */}
+              {/* Boutons d'import et annulation */}
               {importResult.success && (
-                <Button
-                  onClick={handleImport}
-                  disabled={isImporting}
-                  className="w-full gap-2"
-                >
-                  {isImporting ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                      Import en cours...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4" />
-                      Importer {importResult.clients.length} client(s)
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleImport}
+                    disabled={isImporting}
+                    className="flex-1 gap-2"
+                  >
+                    {isImporting ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Import en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4" />
+                        Importer {importResult.clients.length} client(s)
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setFile(null);
+                      setImportResult(null);
+                    }}
+                    disabled={isImporting}
+                    variant="destructive"
+                    className="gap-2"
+                  >
+                    Annuler
+                  </Button>
+                </div>
               )}
             </div>
           )}
