@@ -393,9 +393,23 @@ export const PeseeFormSection = ({
                                     <span className="font-semibold text-gray-900 truncate">
                                       {client.raisonSociale}
                                     </span>
-                                    {client.siret && (
-                                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                                        SIRET
+                                    <span className={cn(
+                                      "text-xs px-2 py-1 rounded-full font-medium",
+                                      client.typeClient === "particulier" 
+                                        ? "bg-blue-100 text-blue-700" 
+                                        : client.typeClient === "professionnel"
+                                        ? "bg-purple-100 text-purple-700"
+                                        : "bg-orange-100 text-orange-700"
+                                    )}>
+                                      {client.typeClient === "particulier" 
+                                        ? "👤 Particulier" 
+                                        : client.typeClient === "professionnel"
+                                        ? "🏢 Pro"
+                                        : "💼 Micro"}
+                                    </span>
+                                    {client.modePaiementPreferentiel && (
+                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                        💳 {client.modePaiementPreferentiel}
                                       </span>
                                     )}
                                   </div>
