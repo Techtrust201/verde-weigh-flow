@@ -203,7 +203,6 @@ export default function ClientForm({
                 onFormDataChange({ ...formData, activite: e.target.value })
               }
               required
-              placeholder="Description de l'activité principale"
             />
           </div>
           <div>
@@ -217,7 +216,6 @@ export default function ClientForm({
                   representantLegal: e.target.value,
                 })
               }
-              placeholder="Nom et prénom du représentant légal"
             />
           </div>
         </>
@@ -281,6 +279,82 @@ export default function ClientForm({
         />
       </div>
 
+      {/* Section Track Déchets - Visible uniquement pour professionnels et micro-entreprises */}
+      {(formData.typeClient === "professionnel" ||
+        formData.typeClient === "micro-entreprise") && (
+        <Collapsible
+          open={isTrackDechetOpen}
+          onOpenChange={setIsTrackDechetOpen}
+          className="border rounded-lg"
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full flex items-center justify-between p-4 hover:bg-accent"
+            >
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium">
+                  Informations Track Déchets (optionnel)
+                </h3>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${
+                  isTrackDechetOpen ? "rotate-180" : ""
+                }`}
+              />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4">
+            <p className="text-xs text-muted-foreground mb-4">
+              Ces informations sont nécessaires uniquement si vous effectuez des pesées avec des déchets nécessitant un suivi Track Déchet
+            </p>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label htmlFor="codeNAF">Code NAF</Label>
+                <Input
+                  id="codeNAF"
+                  value={formData.codeNAF || ""}
+                  onChange={(e) =>
+                    onFormDataChange({ ...formData, codeNAF: e.target.value })
+                  }
+                  placeholder="Ex: 4673Z (Commerce de gros de matériaux de construction)"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Code d'activité principale de l'entreprise
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="representantLegal">Représentant légal</Label>
+                <Input
+                  id="representantLegal"
+                  value={formData.representantLegal || ""}
+                  onChange={(e) =>
+                    onFormDataChange({
+                      ...formData,
+                      representantLegal: e.target.value,
+                    })
+                  }
+                  placeholder="Nom et prénom du représentant légal"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="activite">Activité</Label>
+                <Input
+                  id="activite"
+                  value={formData.activite || ""}
+                  onChange={(e) =>
+                    onFormDataChange({ ...formData, activite: e.target.value })
+                  }
+                  placeholder="Description de l'activité principale"
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       {/* Gestion des plaques multiples */}
       <div>
