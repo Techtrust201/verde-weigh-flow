@@ -44,18 +44,34 @@ import {
   Search,
   Trash2,
   User,
+  Users,
   Building,
   Briefcase,
   Filter,
   CheckSquare,
   Square,
   X,
+  LayoutGrid,
+  LayoutList,
+  MoreVertical,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Client, db, Transporteur, Product } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
 import ClientForm from "@/components/forms/ClientForm";
 import PreferentialPricingSection from "@/components/forms/PreferentialPricingSection";
+import ClientStatsCards from "./ClientStatsCards";
+import ClientCardGrid from "./ClientCardGrid";
+import BulkActionsBar from "./BulkActionsBar";
+import EmptyClientState from "./EmptyClientState";
+import ClientQuickFilters from "./ClientQuickFilters";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function ClientsSpace() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -68,6 +84,11 @@ export default function ClientsSpace() {
     new Set()
   );
   const [pageSize, setPageSize] = useState(20);
+  const [viewMode, setViewMode] = useState<"cards" | "table">(() => {
+    return (localStorage.getItem("clientsViewMode") as "cards" | "table") || "cards";
+  });
+  const [quickFilter, setQuickFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Configuration des filtres pour le tableau des clients
   const clientFilterConfigs: FilterConfig[] = [
@@ -303,21 +324,89 @@ export default function ClientsSpace() {
     }
   };
 
-  // Utilisation du hook de filtrage avec pagination
+  // Utilisation du hook de filtrage SANS pagination (on pagine après les filtres rapides)
   const {
     filteredData: sortedClients,
-    paginatedData: paginatedClients,
     filters,
     setFilters,
-    currentPage,
-    totalPages,
-    goToPage,
   } = useTableFilters(
     clients,
     clientFilterConfigs,
     getClientFieldValue,
-    pageSize
+    999999 // Pas de pagination dans le hook, on pagine manuellement après
   );
+
+  // Gestion du changement de vue
+  const handleViewModeChange = (mode: "cards" | "table") => {
+    setViewMode(mode);
+    localStorage.setItem("clientsViewMode", mode);
+  };
+
+  // Gestion des filtres rapides
+  const handleQuickFilterChange = (filter: string) => {
+    setQuickFilter(filter);
+  };
+
+  // Appliquer les filtres rapides et la recherche
+  const getFilteredClients = () => {
+    let filtered = [...sortedClients];
+
+    // Filtre rapide
+    if (quickFilter === "favorites") {
+      filtered = filtered.filter((c) => !c.siret || c.siret.trim() === "");
+    } else if (quickFilter === "professionals") {
+      filtered = filtered.filter(
+        (c) => c.typeClient === "professionnel" || c.typeClient === "micro-entreprise"
+      );
+    } else if (quickFilter === "particuliers") {
+      filtered = filtered.filter((c) => c.typeClient === "particulier");
+    } else if (quickFilter === "trackDechet") {
+      filtered = filtered.filter((c) => c.siret && c.siret.trim() !== "");
+    } else if (quickFilter === "withSiret") {
+      filtered = filtered.filter((c) => c.siret && c.siret.trim() !== "");
+    }
+
+    // Recherche
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.raisonSociale?.toLowerCase().includes(query) ||
+          c.prenom?.toLowerCase().includes(query) ||
+          c.nom?.toLowerCase().includes(query) ||
+          c.codeClient?.toLowerCase().includes(query) ||
+          c.telephone?.toLowerCase().includes(query) ||
+          c.email?.toLowerCase().includes(query) ||
+          c.ville?.toLowerCase().includes(query) ||
+          c.siret?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  };
+
+  const displayedClients = getFilteredClients();
+
+  // Pagination manuelle après filtrage
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(displayedClients.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedClients = displayedClients.slice(startIndex, endIndex);
+
+  // Reset à la page 1 quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [quickFilter, searchQuery, filters, clients]);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  // Fonction pour gérer le clic sur les stats
+  const handleStatClick = (filterType: string) => {
+    setQuickFilter(filterType);
+  };
 
   // Mettre à jour les options des transporteurs dans la config des filtres
   useEffect(() => {
@@ -679,7 +768,8 @@ export default function ClientsSpace() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header avec titre et bouton */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
             Gestion des Clients
@@ -691,8 +781,8 @@ export default function ClientsSpace() {
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={resetForm} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
               Nouveau client
             </Button>
           </DialogTrigger>
@@ -725,6 +815,56 @@ export default function ClientsSpace() {
         </Dialog>
       </div>
 
+      {/* Statistiques */}
+      <ClientStatsCards clients={clients} onStatClick={handleStatClick} />
+
+      {/* Barre de recherche et toggle vue */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un client par nom, code, ville, téléphone..."
+                className="pl-10 h-12 text-base"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === "cards" ? "default" : "outline"}
+                size="icon"
+                onClick={() => handleViewModeChange("cards")}
+                className="h-12 w-12"
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="icon"
+                onClick={() => handleViewModeChange("table")}
+                className="h-12 w-12"
+              >
+                <LayoutList className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filtres rapides */}
+      <ClientQuickFilters
+        activeFilter={quickFilter}
+        onFilterChange={handleQuickFilterChange}
+        onClearFilters={() => {
+          setQuickFilter("all");
+          setSearchQuery("");
+        }}
+      />
+
+      {/* Filtres avancés */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -744,228 +884,117 @@ export default function ClientsSpace() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Clients ({sortedClients.length})</CardTitle>
-            {selectedClientIds.size > 0 && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">
-                  {selectedClientIds.size} sélectionné(s)
-                </Badge>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={deleteSelectedClients}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer sélectionnés
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={selectAllClients}
-                disabled={paginatedClients.length === 0}
-              >
-                <CheckSquare className="h-4 w-4 mr-2" />
-                Tout sélectionner
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={deselectAllClients}
-                disabled={selectedClientIds.size === 0}
-              >
-                <Square className="h-4 w-4 mr-2" />
-                Désélectionner tout
-              </Button>
+      {/* Contenu des clients */}
+      {displayedClients.length === 0 && clients.length === 0 ? (
+        <EmptyClientState onCreateClient={() => {
+          resetForm();
+          setIsCreateDialogOpen(true);
+        }} />
+      ) : (
+        <>
+          {viewMode === "cards" ? (
+            <div>
+              {displayedClients.length === 0 ? (
+                <Card className="border-dashed border-2">
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Aucun client trouvé</h3>
+                    <p className="text-muted-foreground mb-4">Aucun client ne correspond à vos critères.</p>
+                    <Button variant="outline" onClick={() => { setQuickFilter("all"); setSearchQuery(""); setFilters({}); }}>
+                      Réinitialiser les filtres
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ClientCardGrid
+                  clients={paginatedClients}
+                  selectedClientIds={selectedClientIds}
+                  onSelect={toggleClientSelection}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onToggleFavorite={() => {}}
+                />
+              )}
             </div>
-            {selectedClientIds.size > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={deleteSelectedClients}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer {selectedClientIds.size} client(s)
-              </Button>
-            )}
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={
-                      sortedClients.length > 0 &&
-                      selectedClientIds.size === sortedClients.length
-                    }
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        selectAllClients();
-                      } else {
-                        deselectAllClients();
-                      }
-                    }}
-                  />
-                </TableHead>
-                <TableHead className="w-16">Code</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Raison Sociale</TableHead>
-                <TableHead className="w-32">SIRET</TableHead>
-                <TableHead className="w-28">TVA Intra</TableHead>
-                <TableHead className="w-40">RIB</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Adresse</TableHead>
-                <TableHead>Plaque(s)</TableHead>
-                <TableHead>Transporteur</TableHead>
-                <TableHead>Tarifs Préf.</TableHead>
-                <TableHead className="w-32">Mode Paiement</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedClients.map((client) => {
-                const transporteur = transporteurs.find(
-                  (t) => t.id === client.transporteurId
-                );
-                const hasPrefPricing =
-                  client.tarifsPreferentiels &&
-                  Object.keys(client.tarifsPreferentiels).length > 0;
-
-                return (
-                  <TableRow key={client.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedClientIds.has(client.id!)}
-                        onCheckedChange={() =>
-                          toggleClientSelection(client.id!)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {client.codeClient || "-"}
-                    </TableCell>
-                    <TableCell>
-                      {getClientTypeBadge(client.typeClient)}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {client.raisonSociale}
-                    </TableCell>
-                    <TableCell className="text-sm font-mono">
-                      {client.siret || "-"}
-                    </TableCell>
-                    <TableCell className="text-sm font-mono">
-                      {client.tvaIntracom || "-"}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {client.nomBanque ? (
-                        <div>
-                          <div className="font-medium">{client.nomBanque}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {client.codeBanque} {client.codeGuichet}{" "}
-                            {client.numeroCompte}
-                          </div>
-                        </div>
-                      ) : (
-                        "N/A"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        {client.telephone && (
-                          <div className="text-sm">{client.telephone}</div>
-                        )}
-                        {client.email && (
-                          <div className="text-sm text-muted-foreground">
-                            {client.email}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {client.adresse && <div>{client.adresse}</div>}
-                        {client.codePostal && client.ville && (
-                          <div className="text-muted-foreground">
-                            {client.codePostal} {client.ville}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{renderPlaques(client)}</TableCell>
-                    <TableCell>
-                      {transporteur && (
-                        <Badge variant="secondary">
-                          {transporteur.prenom} {transporteur.nom}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {hasPrefPricing && (
-                        <Badge variant="outline" className="text-green-600">
-                          {Object.keys(client.tarifsPreferentiels!).length}{" "}
-                          produit(s)
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {client.modePaiementPreferentiel ? (
-                        <Badge variant="secondary">
-                          {client.modePaiementPreferentiel}
-                        </Badge>
-                      ) : (
-                        "-"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(client)}
-                        >
-                          <Edit className="h-4 w-4" />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Clients ({displayedClients.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {displayedClients.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Aucun client trouvé</h3>
+                    <p className="text-muted-foreground mb-4">Aucun client ne correspond à vos critères.</p>
+                    <Button variant="outline" onClick={() => { setQuickFilter("all"); setSearchQuery(""); setFilters({}); }}>
+                      Réinitialiser les filtres
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={selectAllClients} disabled={paginatedClients.length === 0}>
+                          <CheckSquare className="h-4 w-4 mr-2" />Tout sélectionner
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(client)}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="outline" size="sm" onClick={deselectAllClients} disabled={selectedClientIds.size === 0}>
+                          <Square className="h-4 w-4 mr-2" />Désélectionner
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"><Checkbox checked={paginatedClients.length > 0 && paginatedClients.every((c) => selectedClientIds.has(c.id!))} onCheckedChange={(checked) => { if (checked) selectAllClients(); else deselectAllClients(); }} /></TableHead>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Nom / Raison Sociale</TableHead>
+                          <TableHead>Contact</TableHead>
+                          <TableHead>Ville</TableHead>
+                          <TableHead className="w-24">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedClients.map((client) => (
+                          <TableRow key={client.id}>
+                            <TableCell><Checkbox checked={selectedClientIds.has(client.id!)} onCheckedChange={() => toggleClientSelection(client.id!)} /></TableCell>
+                            <TableCell className="font-mono text-xs">{client.codeClient}</TableCell>
+                            <TableCell>{getClientTypeBadge(client.typeClient)}</TableCell>
+                            <TableCell className="font-medium">{client.typeClient === "particulier" ? `${client.prenom} ${client.nom}` : client.raisonSociale}</TableCell>
+                            <TableCell className="text-sm">{client.telephone}</TableCell>
+                            <TableCell>{client.ville}</TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEdit(client)}><Edit className="h-4 w-4 mr-2" />Modifier</DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleDelete(client)} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Supprimer</DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
 
-      {/* Pagination */}
-      {sortedClients.length > 0 && (
+      {displayedClients.length > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
-              totalItems={sortedClients.length}
-              pageSize={pageSize}
-            />
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} totalItems={displayedClients.length} pageSize={pageSize} />
           </CardContent>
         </Card>
       )}
+
+      <BulkActionsBar selectedCount={selectedClientIds.size} onDelete={deleteSelectedClients} onMarkFavorites={() => {}} onClear={() => setSelectedClientIds(new Set())} />
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
