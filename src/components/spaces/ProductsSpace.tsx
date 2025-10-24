@@ -537,6 +537,23 @@ export default function ProductsSpace() {
                   </div>
                 </div>
 
+                {/* Obligations légales - toujours visible */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-sm text-amber-900 mb-2">
+                    ⚖️ Obligations légales Track Déchets
+                  </h4>
+                  <div className="text-xs text-amber-800 space-y-2">
+                    <p>
+                      <strong>Déchets inertes ou non dangereux :</strong> Pas d'obligation de passer par Trackdéchets. 
+                      Vous pouvez gérer vos pesées via votre registre interne.
+                    </p>
+                    <p>
+                      <strong>Si vous choisissez Trackdéchets :</strong> Chaque acteur (producteur, transporteur, destinataire) 
+                      doit avoir un compte sur la plateforme. Impossible de valider une pesée si un des acteur est non inscrit.
+                    </p>
+                  </div>
+                </div>
+
                 {formData.trackDechetEnabled && (
                   <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
                     <div className="grid grid-cols-2 gap-4">
@@ -700,24 +717,8 @@ export default function ProductsSpace() {
                       </div>
                     </div>
 
-                    {/* Informations légales et guide */}
+                    {/* Guide des termes */}
                     <div className="space-y-3 mt-4">
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                        <h4 className="font-semibold text-sm text-amber-900 mb-2">
-                          ⚖️ Obligations légales Track Déchets
-                        </h4>
-                        <div className="text-xs text-amber-800 space-y-2">
-                          <p>
-                            <strong>Déchets inertes ou non dangereux :</strong> Pas d'obligation de passer par Trackdéchets. 
-                            Vous pouvez gérer vos pesées via votre registre interne.
-                          </p>
-                          <p>
-                            <strong>Si vous choisissez Trackdéchets :</strong> Chaque acteur (producteur, transporteur, destinataire) 
-                            doit avoir un compte sur la plateforme. Impossible de valider une pesée si un des acteur est non inscrit.
-                          </p>
-                        </div>
-                      </div>
-
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h4 className="font-semibold text-sm text-blue-900 mb-3">
                           📚 Guide des termes Track Déchets
@@ -1116,6 +1117,23 @@ export default function ProductsSpace() {
                 </div>
               </div>
 
+              {/* Obligations légales - toujours visible */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-sm text-amber-900 mb-2">
+                  ⚖️ Obligations légales Track Déchets
+                </h4>
+                <div className="text-xs text-amber-800 space-y-2">
+                  <p>
+                    <strong>Déchets inertes ou non dangereux :</strong> Pas d'obligation de passer par Trackdéchets. 
+                    Vous pouvez gérer vos pesées via votre registre interne.
+                  </p>
+                  <p>
+                    <strong>Si vous choisissez Trackdéchets :</strong> Chaque acteur (producteur, transporteur, destinataire) 
+                    doit avoir un compte sur la plateforme. Impossible de valider une pesée si un des acteur est non inscrit.
+                  </p>
+                </div>
+              </div>
+
               {formData.trackDechetEnabled && (
                 <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
                   <div className="grid grid-cols-2 gap-4">
@@ -1278,24 +1296,8 @@ export default function ProductsSpace() {
                     </div>
                   </div>
 
-                  {/* Informations légales et guide */}
+                  {/* Guide des termes */}
                   <div className="space-y-3 mt-4">
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-sm text-amber-900 mb-2">
-                        ⚖️ Obligations légales Track Déchets
-                      </h4>
-                      <div className="text-xs text-amber-800 space-y-2">
-                        <p>
-                          <strong>Déchets inertes ou non dangereux :</strong> Pas d'obligation de passer par Trackdéchets. 
-                          Vous pouvez gérer vos pesées via votre registre interne.
-                        </p>
-                        <p>
-                          <strong>Si vous choisissez Trackdéchets :</strong> Chaque acteur (producteur, transporteur, destinataire) 
-                          doit avoir un compte sur la plateforme. Impossible de valider une pesée si un des acteur est non inscrit.
-                        </p>
-                      </div>
-                    </div>
-
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <h4 className="font-semibold text-sm text-blue-900 mb-3">
                         📚 Guide des termes Track Déchets
