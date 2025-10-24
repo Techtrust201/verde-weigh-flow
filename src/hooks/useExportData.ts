@@ -449,7 +449,7 @@ export const useExportData = () => {
       const ligneE = [
         "E", // Type de Ligne
         "Bon de livraison", // Type de pièce
-        "", // N° pièce (auto-généré par Sage)
+        pesee.numeroBon, // N° pièce (numéro BL séquentiel)
         dateFormatted, // Date pièce
         "", // Facturation TTC
         "", // Référence pièce

@@ -8,7 +8,7 @@ import { db, Pesee, Client, Transporteur } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
 import { usePeseeData } from "@/hooks/usePeseeData";
 import { useTransporteurData } from "@/hooks/useTransporteurData";
-import { usePeseeTabs } from "@/hooks/usePeseeTabs";
+import { usePeseeTabs, PeseeTab } from "@/hooks/usePeseeTabs";
 import { PeseeFormSection } from "@/components/pesee/PeseeFormSection";
 import { ProductWeightSection } from "@/components/pesee/ProductWeightSection";
 import { RecentPeseesTab } from "@/components/pesee/RecentPeseesTab";
@@ -20,6 +20,7 @@ import { isTrackDechetApplicable } from "@/utils/trackdechetValidation";
 import { normalizeClientCode } from "@/utils/clientCodeUtils";
 
 export default function PeseeSpace() {
+  const { toast } = useToast();
   const { pesees, clients, products, loadData } = usePeseeData();
   const { transporteurs, loadTransporteurs } = useTransporteurData();
   const {
@@ -31,6 +32,7 @@ export default function PeseeSpace() {
     updateCurrentTab,
     getCurrentTabData,
     generateBonNumber,
+    generateUniqueBLNumber,
     getTabLabel,
   } = usePeseeTabs();
   const [showRecentTab, setShowRecentTab] = useState(false);
@@ -40,6 +42,19 @@ export default function PeseeSpace() {
     useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [newChantier, setNewChantier] = useState("");
+  const [newTransporteurForm, setNewTransporteurForm] = useState<
+    Partial<Transporteur>
+  >({
+    prenom: "",
+    nom: "",
+    siret: "",
+    adresse: "",
+    codePostal: "",
+    ville: "",
+    email: "",
+    telephone: "",
+    plaque: "",
+  });
   const [newClientForm, setNewClientForm] = useState<Partial<Client>>({
     typeClient: "particulier",
     raisonSociale: "",
@@ -55,20 +70,73 @@ export default function PeseeSpace() {
   const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
   const [printContent, setPrintContent] = useState("");
   const [printTitle, setPrintTitle] = useState("");
-  const [newTransporteurForm, setNewTransporteurForm] = useState<
-    Partial<Transporteur>
-  >({
-    prenom: "",
-    nom: "",
-    siret: "",
-    adresse: "",
-    codePostal: "",
-    ville: "",
-    email: "",
-    telephone: "",
-    plaque: "",
-  });
-  const { toast } = useToast();
+  const [validationErrors, setValidationErrors] = useState<{
+    plaque?: boolean;
+    nomEntreprise?: boolean;
+    chantier?: boolean;
+    produitId?: boolean;
+  }>({});
+
+  // Fonction pour vérifier si l'adresse client est complète
+  const isClientAddressComplete = (client: Client): boolean => {
+    return Boolean(
+      client.adresse &&
+        client.adresse.trim() !== "" &&
+        client.codePostal &&
+        client.codePostal.trim() !== "" &&
+        client.ville &&
+        client.ville.trim() !== ""
+    );
+  };
+
+  // Fonction wrapper pour effacer les erreurs de validation
+  const updateCurrentTabWithValidation = (
+    updates: Partial<PeseeTab["formData"]>
+  ) => {
+    updateCurrentTab(updates);
+
+    // Effacer les erreurs de validation quand l'utilisateur commence à remplir les champs
+    const newErrors = { ...validationErrors };
+    let hasChanges = false;
+
+    if (updates.plaque && updates.plaque.trim() !== "") {
+      newErrors.plaque = false;
+      hasChanges = true;
+    }
+
+    if (updates.nomEntreprise && updates.nomEntreprise.trim() !== "") {
+      newErrors.nomEntreprise = false;
+      hasChanges = true;
+    }
+
+    if (updates.chantier && updates.chantier.trim() !== "") {
+      newErrors.chantier = false;
+      hasChanges = true;
+    }
+
+    if (updates.produitId && updates.produitId !== 0) {
+      newErrors.produitId = false;
+      hasChanges = true;
+    }
+
+    if (hasChanges) {
+      setValidationErrors(newErrors);
+    }
+  };
+
+  // Wrapper pour createNewTab asynchrone
+  const handleCreateNewTab = async () => {
+    try {
+      await createNewTab();
+    } catch (error) {
+      console.error("Erreur lors de la création d'un nouvel onglet:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer un nouvel onglet.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const generateNextClientCode = async (): Promise<string> => {
     try {
@@ -487,16 +555,39 @@ export default function PeseeSpace() {
 
   const savePesee = async (): Promise<boolean> => {
     const currentData = getCurrentTabData();
+
+    // Réinitialiser les erreurs de validation
+    setValidationErrors({});
+
     try {
+      // Vérifier les champs obligatoires et marquer les erreurs
+      const errors: typeof validationErrors = {};
+      let hasErrors = false;
+
+      if (!currentData?.plaque || currentData.plaque.trim() === "") {
+        errors.plaque = true;
+        hasErrors = true;
+      }
+
       if (
-        !currentData?.numeroBon ||
-        !currentData?.plaque ||
         !currentData?.nomEntreprise ||
-        !currentData?.produitId
+        currentData.nomEntreprise.trim() === ""
       ) {
+        errors.nomEntreprise = true;
+        hasErrors = true;
+      }
+
+      if (!currentData?.produitId || currentData.produitId === 0) {
+        errors.produitId = true;
+        hasErrors = true;
+      }
+
+      if (hasErrors) {
+        setValidationErrors(errors);
         toast({
           title: "Erreur",
-          description: "Veuillez remplir tous les champs obligatoires.",
+          description:
+            "Veuillez remplir tous les champs obligatoires marqués en rouge.",
           variant: "destructive",
         });
         return false;
@@ -504,28 +595,38 @@ export default function PeseeSpace() {
 
       // Vérification du chantier obligatoire avec suggestion automatique
       if (!currentData?.chantier || currentData.chantier.trim() === "") {
+        errors.chantier = true;
+        setValidationErrors(errors);
+
         // Essayer de suggérer l'adresse du client
         if (currentData.clientId) {
           const client = clients.find((c) => c.id === currentData.clientId);
-          if (client && client.adresse && client.codePostal && client.ville) {
+          if (client && isClientAddressComplete(client)) {
             // Suggérer l'adresse complète
             const suggestedChantier = `${client.adresse}, ${client.codePostal} ${client.ville}`;
-            
+
             // Auto-remplir avec la suggestion
             updateCurrentTab({ chantier: suggestedChantier });
-            
+
             toast({
-              title: "Chantier suggéré",
-              description: "Le chantier a été automatiquement rempli avec l'adresse principale du client. Vous pouvez le modifier si nécessaire.",
+              title: "Chantier suggéré automatiquement",
+              description:
+                "Chantier suggéré à partir de l'adresse principale du client. Vous pouvez le remplacer si nécessaire.",
               variant: "default",
             });
-            
+
             return false; // Empêcher la sauvegarde pour permettre à l'utilisateur de vérifier
           } else {
             // Le client n'a pas d'adresse complète
+            const client = clients.find((c) => c.id === currentData.clientId);
+            const hasPartialAddress =
+              client && (client.adresse || client.codePostal || client.ville);
+
             toast({
               title: "Chantier obligatoire",
-              description: "Impossible de valider la pesée : aucun chantier sélectionné et aucune adresse client disponible. Ajoutez une adresse au client ou sélectionnez un chantier existant.",
+              description: hasPartialAddress
+                ? "Impossible de valider la pesée : aucun chantier sélectionné et adresse client incomplète. Complétez l'adresse du client ou sélectionnez un chantier existant."
+                : "Impossible de valider la pesée : aucun chantier sélectionné et aucune adresse client disponible. Ajoutez une adresse au client ou sélectionnez un chantier existant.",
               variant: "destructive",
             });
             return false;
@@ -534,11 +635,23 @@ export default function PeseeSpace() {
           // Pas de client sélectionné
           toast({
             title: "Chantier obligatoire",
-            description: "Le chantier est obligatoire pour valider la pesée. Veuillez en sélectionner un.",
+            description:
+              "Le chantier est obligatoire pour valider la pesée. Veuillez en sélectionner un.",
             variant: "destructive",
           });
           return false;
         }
+      }
+
+      // Validation finale côté serveur - aucune pesée ne peut être sauvegardée sans chantier
+      if (!currentData?.chantier || currentData.chantier.trim() === "") {
+        toast({
+          title: "Erreur de validation",
+          description:
+            "Le chantier est obligatoire pour sauvegarder une pesée.",
+          variant: "destructive",
+        });
+        return false;
       }
 
       const selectedProduct = products.find(
@@ -587,8 +700,12 @@ export default function PeseeSpace() {
         }
       }
 
+      // Générer un numéro BL unique basé sur la BDD
+      const uniqueNumeroBon = await generateUniqueBLNumber();
+
       const peseeData: Pesee = {
         ...currentData,
+        numeroBon: uniqueNumeroBon, // Utiliser le numéro BL unique généré
         dateHeure: new Date(),
         poidsEntree,
         // déjà en tonnes
@@ -615,7 +732,7 @@ export default function PeseeSpace() {
 
       toast({
         title: "Pesée enregistrée",
-        description: `Bon n°${currentData.numeroBon} créé avec succès.`,
+        description: `Bon n°${uniqueNumeroBon} créé avec succès.`,
       });
       updateCurrentTab({
         numeroBon: generateBonNumber(),
@@ -758,7 +875,7 @@ export default function PeseeSpace() {
                     setActiveTabId(tabId);
                   }
                 }}
-                onNewTab={createNewTab}
+                onNewTab={handleCreateNewTab}
                 maxVisibleTabs={5}
                 className="flex-1"
               />
@@ -793,7 +910,7 @@ export default function PeseeSpace() {
                   currentData={tab.formData}
                   clients={clients}
                   transporteurs={transporteurs}
-                  updateCurrentTab={updateCurrentTab}
+                  updateCurrentTab={updateCurrentTabWithValidation}
                   onAddClient={prepareNewClientForm}
                   isAddClientDialogOpen={isAddClientDialogOpen}
                   setIsAddClientDialogOpen={setIsAddClientDialogOpen}
@@ -815,12 +932,14 @@ export default function PeseeSpace() {
                   setNewTransporteurForm={setNewTransporteurForm}
                   handleAddNewTransporteur={handleAddNewTransporteur}
                   validateNewTransporteur={validateNewTransporteur}
+                  validationErrors={validationErrors}
                 />
 
                 <ProductWeightSection
                   currentData={tab.formData}
                   products={products}
-                  updateCurrentTab={updateCurrentTab}
+                  updateCurrentTab={updateCurrentTabWithValidation}
+                  validationErrors={validationErrors}
                 />
 
                 <div className="flex justify-end space-x-3 pt-4 border-t">

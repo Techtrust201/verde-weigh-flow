@@ -12,17 +12,25 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Calculator, Info } from "lucide-react";
 import { Product, Client, db } from "@/lib/database";
+import { cn } from "@/lib/utils";
 
 interface ProductWeightSectionProps {
   currentData: any;
   products: Product[];
   updateCurrentTab: (updates: any) => void;
+  validationErrors?: {
+    plaque?: boolean;
+    nomEntreprise?: boolean;
+    chantier?: boolean;
+    produitId?: boolean;
+  };
 }
 
 export const ProductWeightSection = ({
   currentData,
   products,
   updateCurrentTab,
+  validationErrors = {},
 }: ProductWeightSectionProps) => {
   const [client, setClient] = useState<Client | null>(null);
   const [calculatedCost, setCalculatedCost] = useState<{
@@ -193,14 +201,27 @@ export const ProductWeightSection = ({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="produit">Produit *</Label>
+              <Label
+                htmlFor="produit"
+                className={cn(validationErrors.produitId && "text-red-600")}
+              >
+                Produit *
+                {validationErrors.produitId && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
+              </Label>
               <Select
                 value={currentData?.produitId?.toString() || ""}
                 onValueChange={(value) =>
                   updateCurrentTab({ produitId: parseInt(value) })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger
+                  className={cn(
+                    validationErrors.produitId &&
+                      "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+                  )}
+                >
                   <SelectValue placeholder="Sélectionner un produit" />
                 </SelectTrigger>
                 <SelectContent>
@@ -216,6 +237,11 @@ export const ProductWeightSection = ({
                   ))}
                 </SelectContent>
               </Select>
+              {validationErrors.produitId && (
+                <p className="text-red-600 text-sm mt-1">
+                  Ce champ est obligatoire
+                </p>
+              )}
               {hasPrefPricing && (
                 <div className="mt-1 flex items-center gap-1">
                   <Info className="h-3 w-3 text-blue-500" />

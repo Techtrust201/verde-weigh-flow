@@ -69,6 +69,12 @@ interface PeseeFormSectionProps {
   setNewTransporteurForm: (form: Partial<Transporteur>) => void;
   handleAddNewTransporteur: () => void;
   validateNewTransporteur: () => boolean;
+  validationErrors?: {
+    plaque?: boolean;
+    nomEntreprise?: boolean;
+    chantier?: boolean;
+    produitId?: boolean;
+  };
 }
 
 export const PeseeFormSection = ({
@@ -95,12 +101,25 @@ export const PeseeFormSection = ({
   setNewTransporteurForm,
   handleAddNewTransporteur,
   validateNewTransporteur,
+  validationErrors = {},
 }: PeseeFormSectionProps) => {
   const [clientSelectorOpen, setClientSelectorOpen] = useState(false);
   const [clientSearchValue, setClientSearchValue] = useState("");
   const [transporteurLibre, setTransporteurLibre] = useState("");
   const [transporteurSelectorOpen, setTransporteurSelectorOpen] =
     useState(false);
+
+  // Fonction pour vérifier si l'adresse client est complète
+  const isClientAddressComplete = (client: Client): boolean => {
+    return Boolean(
+      client.adresse &&
+        client.adresse.trim() !== "" &&
+        client.codePostal &&
+        client.codePostal.trim() !== "" &&
+        client.ville &&
+        client.ville.trim() !== ""
+    );
+  };
   const [transporteurSearchValue, setTransporteurSearchValue] = useState("");
 
   const selectedClient = clients.find((c) => c.id === currentData?.clientId);
@@ -594,10 +613,22 @@ export const PeseeFormSection = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="nomEntreprise">{getEntrepriseLabel()}</Label>
+          <Label
+            htmlFor="nomEntreprise"
+            className={cn(validationErrors.nomEntreprise && "text-red-600")}
+          >
+            {getEntrepriseLabel()}
+            {validationErrors.nomEntreprise && (
+              <span className="text-red-500 ml-1">*</span>
+            )}
+          </Label>
           <Input
             id="nomEntreprise"
-            className=" placeholder:text-black"
+            className={cn(
+              "placeholder:text-black",
+              validationErrors.nomEntreprise &&
+                "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+            )}
             value={currentData?.nomEntreprise || ""}
             onChange={(e) => handleNomEntrepriseChange(e.target.value)}
             placeholder={
@@ -606,9 +637,22 @@ export const PeseeFormSection = ({
                 : "Nom de l'entreprise..."
             }
           />
+          {validationErrors.nomEntreprise && (
+            <p className="text-red-600 text-sm mt-1">
+              Ce champ est obligatoire
+            </p>
+          )}
         </div>
         <div>
-          <Label htmlFor="plaque">Plaque *</Label>
+          <Label
+            htmlFor="plaque"
+            className={cn(validationErrors.plaque && "text-red-600")}
+          >
+            Plaque *
+            {validationErrors.plaque && (
+              <span className="text-red-500 ml-1">*</span>
+            )}
+          </Label>
           <Combobox
             options={(() => {
               if (currentData?.clientId) {
@@ -629,7 +673,16 @@ export const PeseeFormSection = ({
             placeholder="Sélectionner ou saisir une plaque..."
             searchPlaceholder="Rechercher ou saisir une plaque..."
             emptyText="Aucune plaque trouvée. Vous pouvez saisir directement."
+            className={cn(
+              validationErrors.plaque &&
+                "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+            )}
           />
+          {validationErrors.plaque && (
+            <p className="text-red-600 text-sm mt-1">
+              Ce champ est obligatoire
+            </p>
+          )}
         </div>
         <div>
           <ChantierAutocomplete
@@ -647,8 +700,10 @@ export const PeseeFormSection = ({
             isSuggested={(() => {
               // Vérifier si le chantier actuel correspond à l'adresse du client (donc si c'est une suggestion)
               if (currentData?.clientId && currentData?.chantier) {
-                const client = clients.find((c) => c.id === currentData.clientId);
-                if (client && client.adresse && client.codePostal && client.ville) {
+                const client = clients.find(
+                  (c) => c.id === currentData.clientId
+                );
+                if (client && isClientAddressComplete(client)) {
                   const suggestedChantier = `${client.adresse}, ${client.codePostal} ${client.ville}`;
                   return currentData.chantier === suggestedChantier;
                 }
@@ -657,13 +712,16 @@ export const PeseeFormSection = ({
             })()}
             suggestedValue={(() => {
               if (currentData?.clientId) {
-                const client = clients.find((c) => c.id === currentData.clientId);
-                if (client && client.adresse && client.codePostal && client.ville) {
+                const client = clients.find(
+                  (c) => c.id === currentData.clientId
+                );
+                if (client && isClientAddressComplete(client)) {
                   return `${client.adresse}, ${client.codePostal} ${client.ville}`;
                 }
               }
               return undefined;
             })()}
+            validationError={validationErrors.chantier}
           />
         </div>
 
