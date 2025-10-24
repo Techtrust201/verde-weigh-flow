@@ -25,6 +25,8 @@ interface ClientFormProps {
   onFormDataChange: (data: Partial<Client>) => void;
   isEditing?: boolean;
   transporteurs?: Transporteur[];
+  trackDechetEnabled?: boolean;
+  onTrackDechetToggle?: (enabled: boolean) => void;
 }
 
 export default function ClientForm({
@@ -32,10 +34,12 @@ export default function ClientForm({
   onFormDataChange,
   isEditing = false,
   transporteurs = [],
+  trackDechetEnabled,
+  onTrackDechetToggle,
 }: ClientFormProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [isTrackDechetEnabled, setIsTrackDechetEnabled] = useState(false);
+  const [localTrackDechetEnabled, setLocalTrackDechetEnabled] = useState<boolean>(trackDechetEnabled ?? false);
 
   useEffect(() => {
     loadPaymentMethods();
@@ -224,12 +228,15 @@ export default function ClientForm({
             </div>
             <Switch
               id="trackdechet-toggle"
-              checked={isTrackDechetEnabled}
-              onCheckedChange={setIsTrackDechetEnabled}
+              checked={trackDechetEnabled ?? localTrackDechetEnabled}
+              onCheckedChange={(checked) => {
+                setLocalTrackDechetEnabled(checked);
+                onTrackDechetToggle?.(checked);
+              }}
             />
           </div>
 
-          {isTrackDechetEnabled && (
+          {(trackDechetEnabled ?? localTrackDechetEnabled) && (
             <div className="grid grid-cols-1 gap-4 pt-4 border-t">
               <div>
                 <Label htmlFor="codeNAF">Code NAF</Label>
