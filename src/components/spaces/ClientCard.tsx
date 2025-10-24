@@ -42,9 +42,18 @@ export default function ClientCard({
     return "Professionnel";
   };
 
-  const displayName = client.typeClient === "particulier"
-    ? `${client.prenom} ${client.nom}`.trim()
-    : client.raisonSociale;
+  const getDisplayName = () => {
+    if (client.typeClient === "particulier") {
+      const fullName = `${client.prenom || ""} ${client.nom || ""}`.trim();
+      if (fullName) return fullName;
+    }
+    
+    if (client.raisonSociale) return client.raisonSociale;
+    
+    return "Sans nom";
+  };
+
+  const displayName = getDisplayName();
 
   return (
     <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:border-primary/50 animate-fade-in">
