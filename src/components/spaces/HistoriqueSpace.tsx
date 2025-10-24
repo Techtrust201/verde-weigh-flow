@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileText, Calendar, Eye, Trash2 } from "lucide-react";
 import { db, Pesee, Product, Transporteur } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +16,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TrackDechetStatsCards } from "@/components/trackdechet/TrackDechetStatsCards";
+import { TrackDechetTimelineItem } from "@/components/trackdechet/TrackDechetTimelineItem";
+import { TrackDechetFilters } from "@/components/trackdechet/TrackDechetFilters";
+import { useTrackDechetHistory } from "@/hooks/useTrackDechetHistory";
+import { useTrackDechetStats } from "@/hooks/useTrackDechetStats";
 
 export default function HistoriqueSpace() {
   const [pesees, setPesees] = useState<Pesee[]>([]);
@@ -216,16 +222,24 @@ export default function HistoriqueSpace() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Historique</h1>
-        <div className="flex space-x-2">
-          <Button onClick={exportToCSV} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-        </div>
       </div>
 
-      {/* Filters */}
-      <Card>
+      <Tabs defaultValue="pesees" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="pesees">Pesées</TabsTrigger>
+          <TabsTrigger value="trackdechet">Track Déchet</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pesees" className="space-y-6">
+          <div className="flex justify-end">
+            <Button onClick={exportToCSV} variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
+
+          {/* Filters */}
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
             <Calendar className="h-5 w-5 mr-2" />
@@ -396,6 +410,63 @@ export default function HistoriqueSpace() {
         onConfirm={confirmDeletePesee}
         variant="destructive"
       />
+        </TabsContent>
+
+        <TabsContent value="trackdechet" className="space-y-6">
+          <TrackDechetTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function TrackDechetTab() {
+  const { history, loading, refresh } = useTrackDechetHistory();
+  const { stats } = useTrackDechetStats();
+  const [filters, setFilters] = useState({
+    status: "all",
+    client: "",
+    search: "",
+  });
+
+  const filteredHistory = history.filter((item) => {
+    if (filters.status !== "all" && item.bsdStatus !== filters.status) return false;
+    if (filters.client && item.clientName?.toLowerCase().includes(filters.client.toLowerCase()) === false) return false;
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      return (
+        item.numeroBon.toLowerCase().includes(searchLower) ||
+        item.plaque?.toLowerCase().includes(searchLower) ||
+        item.bsdReadableId?.toLowerCase().includes(searchLower)
+      );
+    }
+    return true;
+  });
+
+  return (
+    <div className="space-y-6">
+      <TrackDechetStatsCards stats={stats} />
+      <TrackDechetFilters filters={filters} onFiltersChange={setFilters} />
+      
+      {loading ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            Chargement...
+          </CardContent>
+        </Card>
+      ) : filteredHistory.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            Aucune pesée avec Track Déchet trouvée
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredHistory.map((item) => (
+            <TrackDechetTimelineItem key={item.id} item={item} onRefresh={refresh} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
