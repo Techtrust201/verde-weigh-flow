@@ -537,6 +537,80 @@ export default function ProductsSpace() {
                   </div>
                 </div>
 
+                {/* Informations légales et guide */}
+                <div className="space-y-3 mb-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-sm text-amber-900 mb-2">
+                      ⚖️ Obligations légales Track Déchets
+                    </h4>
+                    <div className="text-xs text-amber-800 space-y-2">
+                      <p>
+                        <strong>Déchets inertes ou non dangereux :</strong> Pas d'obligation de passer par Trackdéchets. 
+                        Vous pouvez gérer vos pesées via votre registre interne.
+                      </p>
+                      <p>
+                        <strong>Si vous choisissez Trackdéchets :</strong> Chaque acteur (producteur, transporteur, destinataire) 
+                        doit avoir un compte sur la plateforme. Impossible de valider une pesée si un des acteur est non inscrit.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-sm text-blue-900 mb-3">
+                      📚 Guide des termes Track Déchets
+                    </h4>
+                    <div className="text-xs text-blue-800 space-y-3">
+                      <div>
+                        <strong>Code déchet :</strong> Code européen à 6 chiffres identifiant la nature du déchet 
+                        (ex: 170101 pour béton, 160111* pour amiante). L'astérisque (*) indique un déchet dangereux.
+                      </div>
+                      <div>
+                        <strong>Catégorie déchet :</strong> Classification selon la dangerosité :
+                        <ul className="list-disc ml-5 mt-1 space-y-1">
+                          <li><strong>Inerte :</strong> Déchets stables (béton, tuiles, briques...)</li>
+                          <li><strong>Non-dangereux :</strong> Déchets sans risque particulier (bois, plastique...)</li>
+                          <li><strong>Dangereux :</strong> Déchets présentant un risque (amiante, produits chimiques...)</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <strong>Consistance :</strong> État physique du déchet lors du transport (Solide, Liquide, Gazeux, Pâteux). 
+                        Obligatoire pour Track Déchets.
+                      </div>
+                      <div>
+                        <strong>Soumis à l'ADR :</strong> ADR = Accord européen relatif au transport international des marchandises 
+                        Dangereuses par Route. Indiquez "Oui" si votre déchet est classé matière dangereuse nécessitant des précautions 
+                        spéciales de transport.
+                      </div>
+                      <div>
+                        <strong>Code ONU :</strong> Numéro d'identification des matières dangereuses pour le transport (ex: UN 3082). 
+                        Obligatoire uniquement si le déchet est soumis à l'ADR.
+                      </div>
+                      <div>
+                        <strong>Numéro CAP :</strong> Certificat d'Acceptation Préalable délivré par l'installation de destination. 
+                        Il certifie que le site accepte de recevoir ce type de déchet. Obligatoire pour les déchets dangereux, 
+                        optionnel pour les autres.
+                      </div>
+                      <div>
+                        <strong>Conditionnement Type :</strong> Mode de transport du déchet :
+                        <ul className="list-disc ml-5 mt-1 space-y-1">
+                          <li><strong>Benne :</strong> Conteneur ouvert ou fermé</li>
+                          <li><strong>Citerne :</strong> Pour liquides ou pulvérulents</li>
+                          <li><strong>Fût :</strong> Conteneur cylindrique fermé</li>
+                          <li><strong>GRV :</strong> Grand Récipient pour Vrac (conteneur intermédiaire)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {formData.trackDechetEnabled && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-xs text-green-800 font-medium">
+                        ✓ Les pesées de ce produit généreront automatiquement un BSD Track Déchets
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 {formData.trackDechetEnabled && (
                   <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
                     <div className="grid grid-cols-2 gap-4">
@@ -1042,6 +1116,80 @@ export default function ProductsSpace() {
                     À suivre dans Track Déchets
                   </Label>
                 </div>
+              </div>
+
+              {/* Informations légales et guide */}
+              <div className="space-y-3 mb-4">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-sm text-amber-900 mb-2">
+                    ⚖️ Obligations légales Track Déchets
+                  </h4>
+                  <div className="text-xs text-amber-800 space-y-2">
+                    <p>
+                      <strong>Déchets inertes ou non dangereux :</strong> Pas d'obligation de passer par Trackdéchets. 
+                      Vous pouvez gérer vos pesées via votre registre interne.
+                    </p>
+                    <p>
+                      <strong>Si vous choisissez Trackdéchets :</strong> Chaque acteur (producteur, transporteur, destinataire) 
+                      doit avoir un compte sur la plateforme. Impossible de valider une pesée si un des acteur est non inscrit.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-sm text-blue-900 mb-3">
+                    📚 Guide des termes Track Déchets
+                  </h4>
+                  <div className="text-xs text-blue-800 space-y-3">
+                    <div>
+                      <strong>Code déchet :</strong> Code européen à 6 chiffres identifiant la nature du déchet 
+                      (ex: 170101 pour béton, 160111* pour amiante). L'astérisque (*) indique un déchet dangereux.
+                    </div>
+                    <div>
+                      <strong>Catégorie déchet :</strong> Classification selon la dangerosité :
+                      <ul className="list-disc ml-5 mt-1 space-y-1">
+                        <li><strong>Inerte :</strong> Déchets stables (béton, tuiles, briques...)</li>
+                        <li><strong>Non-dangereux :</strong> Déchets sans risque particulier (bois, plastique...)</li>
+                        <li><strong>Dangereux :</strong> Déchets présentant un risque (amiante, produits chimiques...)</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <strong>Consistance :</strong> État physique du déchet lors du transport (Solide, Liquide, Gazeux, Pâteux). 
+                      Obligatoire pour Track Déchets.
+                    </div>
+                    <div>
+                      <strong>Soumis à l'ADR :</strong> ADR = Accord européen relatif au transport international des marchandises 
+                      Dangereuses par Route. Indiquez "Oui" si votre déchet est classé matière dangereuse nécessitant des précautions 
+                      spéciales de transport.
+                    </div>
+                    <div>
+                      <strong>Code ONU :</strong> Numéro d'identification des matières dangereuses pour le transport (ex: UN 3082). 
+                      Obligatoire uniquement si le déchet est soumis à l'ADR.
+                    </div>
+                    <div>
+                      <strong>Numéro CAP :</strong> Certificat d'Acceptation Préalable délivré par l'installation de destination. 
+                      Il certifie que le site accepte de recevoir ce type de déchet. Obligatoire pour les déchets dangereux, 
+                      optionnel pour les autres.
+                    </div>
+                    <div>
+                      <strong>Conditionnement Type :</strong> Mode de transport du déchet :
+                      <ul className="list-disc ml-5 mt-1 space-y-1">
+                        <li><strong>Benne :</strong> Conteneur ouvert ou fermé</li>
+                        <li><strong>Citerne :</strong> Pour liquides ou pulvérulents</li>
+                        <li><strong>Fût :</strong> Conteneur cylindrique fermé</li>
+                        <li><strong>GRV :</strong> Grand Récipient pour Vrac (conteneur intermédiaire)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {formData.trackDechetEnabled && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-xs text-green-800 font-medium">
+                      ✓ Les pesées de ce produit généreront automatiquement un BSD Track Déchets
+                    </p>
+                  </div>
+                )}
               </div>
 
               {formData.trackDechetEnabled && (
