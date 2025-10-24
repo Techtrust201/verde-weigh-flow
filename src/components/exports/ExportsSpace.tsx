@@ -49,6 +49,7 @@ import SageTemplateCreator from "@/components/import/SageTemplateCreator";
 import SageTemplateSelector from "@/components/exports/SageTemplateSelector";
 import SageTemplateManager from "@/components/exports/SageTemplateManager";
 import SageClientImportDialog from "@/components/import/SageClientImportDialog";
+import SageArticleImportDialog from "@/components/import/SageArticleImportDialog";
 
 export default function ExportsSpace() {
   const [dateDebut, setDateDebut] = useState("");
@@ -896,22 +897,30 @@ export default function ExportsSpace() {
                   </div>
 
                   <div className="space-y-2">
-                    <h4 className="font-medium">Créer un template</h4>
+                    <h4 className="font-medium">Import des articles Sage</h4>
                     <p className="text-sm text-muted-foreground">
-                      Apprenez le format Sage et créez un template réutilisable
+                      Importez tous vos articles existants depuis Sage
                     </p>
-                    <Button
-                      onClick={() => {
-                        setEditingTemplate(null);
-                        setShowTemplateCreator(true);
-                      }}
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Créer un template
-                    </Button>
+                    <SageArticleImportDialog />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium">Créer un template</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Apprenez le format Sage et créez un template réutilisable
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setEditingTemplate(null);
+                      setShowTemplateCreator(true);
+                    }}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Créer un template
+                  </Button>
                 </div>
 
                 {/* Section de gestion des templates */}
