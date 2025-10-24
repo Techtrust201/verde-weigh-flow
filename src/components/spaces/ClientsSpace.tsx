@@ -89,7 +89,7 @@ export default function ClientsSpace() {
   });
   const [quickFilter, setQuickFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [trackDechetEnabled, setTrackDechetEnabled] = useState(false);
   // Configuration des filtres pour le tableau des clients
   const clientFilterConfigs: FilterConfig[] = [
     {
@@ -516,14 +516,22 @@ export default function ClientsSpace() {
         return false;
       }
 
-      // Activité obligatoire pour les entreprises (requis pour Sage)
-      if (!formData.activite) {
-        toast({
-          title: "Erreur",
-          description: "L'activité est obligatoire pour les entreprises.",
-          variant: "destructive",
-        });
-        return false;
+      // Champs Track Déchet obligatoires uniquement si le toggle est activé
+      if (trackDechetEnabled) {
+        const missingFields = [
+          !formData.codeNAF ? "Code NAF" : null,
+          !formData.representantLegal ? "Représentant légal" : null,
+          !formData.activite ? "Activité" : null,
+        ].filter(Boolean) as string[];
+
+        if (missingFields.length > 0) {
+          toast({
+            title: "Erreur",
+            description: `Informations Track Déchets incomplètes: ${missingFields.join(", ")}.`,
+            variant: "destructive",
+          });
+          return false;
+        }
       }
     }
 
@@ -831,6 +839,8 @@ export default function ClientsSpace() {
                 formData={formData}
                 onFormDataChange={setFormData}
                 transporteurs={transporteurs}
+                trackDechetEnabled={trackDechetEnabled}
+                onTrackDechetToggle={setTrackDechetEnabled}
               />
               <PreferentialPricingSection
                 formData={formData}
@@ -1115,6 +1125,8 @@ export default function ClientsSpace() {
               onFormDataChange={setFormData}
               isEditing={true}
               transporteurs={transporteurs}
+              trackDechetEnabled={trackDechetEnabled}
+              onTrackDechetToggle={setTrackDechetEnabled}
             />
             <PreferentialPricingSection
               formData={formData}
