@@ -3,9 +3,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, RefreshCw, Clock, AlertCircle } from "lucide-react";
+import {
+  ChevronDown,
+  RefreshCw,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  Package,
+  Truck,
+  FileText,
+  Calendar,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { trackDechetProcessor } from "@/utils/trackdechetSyncProcessor";
+import { cn } from "@/lib/utils";
 
 interface TrackDechetHistoryItem {
   id: number;
@@ -31,31 +42,49 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
   const [isRetrying, setIsRetrying] = useState(false);
   const { toast } = useToast();
 
-  const getBadgeVariant = () => {
+  const getStatusConfig = () => {
     switch (item.bsdStatus) {
       case "success":
-        return "default";
+        return {
+          variant: "default" as const,
+          label: "Créé avec succès",
+          icon: CheckCircle2,
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+          borderColor: "border-l-green-500",
+        };
       case "pending":
-        return "secondary";
+        return {
+          variant: "secondary" as const,
+          label: "En cours de création",
+          icon: Clock,
+          color: "text-orange-600",
+          bgColor: "bg-orange-50",
+          borderColor: "border-l-orange-500",
+        };
       case "error":
-        return "destructive";
+        return {
+          variant: "destructive" as const,
+          label: "Erreur de création",
+          icon: AlertCircle,
+          color: "text-red-600",
+          bgColor: "bg-red-50",
+          borderColor: "border-l-red-500",
+        };
       default:
-        return "outline";
+        return {
+          variant: "outline" as const,
+          label: "Statut inconnu",
+          icon: FileText,
+          color: "text-muted-foreground",
+          bgColor: "bg-muted",
+          borderColor: "border-l-muted",
+        };
     }
   };
 
-  const getStatusLabel = () => {
-    switch (item.bsdStatus) {
-      case "success":
-        return "✅ Réussi";
-      case "pending":
-        return "⏳ En attente";
-      case "error":
-        return "❌ Erreur";
-      default:
-        return "⚪ Inconnu";
-    }
-  };
+  const statusConfig = getStatusConfig();
+  const StatusIcon = statusConfig.icon;
 
   const handleRetry = async () => {
     setIsRetrying(true);
@@ -99,115 +128,215 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
   };
 
   return (
-    <Card>
-      <CardContent className="p-4">
+    <Card
+      className={cn(
+        "border-l-4 transition-all duration-300 hover:shadow-md animate-fade-in",
+        statusConfig.borderColor
+      )}
+    >
+      <CardContent className="p-0">
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant={getBadgeVariant()}>{getStatusLabel()}</Badge>
-                <span className="font-semibold">{item.numeroBon}</span>
-                <span className="text-sm text-muted-foreground">
-                  {new Date(item.dateHeure).toLocaleDateString()} à{" "}
-                  {new Date(item.dateHeure).toLocaleTimeString()}
-                </span>
+          <div className="p-4">
+            {/* Header section */}
+            <div className="flex items-start gap-4">
+              {/* Status icon */}
+              <div className={cn("p-2 rounded-lg shrink-0", statusConfig.bgColor)}>
+                <StatusIcon className={cn("h-5 w-5", statusConfig.color)} />
               </div>
-              
-              <div className="text-sm text-muted-foreground space-y-1">
-                <div>
-                  {item.clientName && <span>{item.clientName} • </span>}
-                  <span>{item.net}T</span>
-                  {item.bsdReadableId && <span> • BSD: {item.bsdReadableId}</span>}
+
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                {/* Title row */}
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <Badge variant={statusConfig.variant} className="shrink-0">
+                    {statusConfig.label}
+                  </Badge>
+                  <span className="font-semibold text-lg">{item.numeroBon}</span>
                 </div>
-                {item.plaque && <div>Plaque: {item.plaque}</div>}
-              </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              {item.bsdStatus === "error" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleRetry}
-                  disabled={isRetrying}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isRetrying ? "animate-spin" : ""}`} />
-                  Réessayer
-                </Button>
-              )}
-              
-              {item.bsdStatus === "success" && item.bsdId && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSyncStatus}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Maj statut
-                </Button>
-              )}
-
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  {isOpen ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
+                {/* Info grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {item.clientName && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <FileText className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{item.clientName}</span>
+                    </div>
                   )}
-                </Button>
-              </CollapsibleTrigger>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Package className="h-4 w-4 shrink-0" />
+                    <span>{item.net}T</span>
+                  </div>
+                  {item.plaque && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Truck className="h-4 w-4 shrink-0" />
+                      <span>{item.plaque}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4 shrink-0" />
+                    <span>
+                      {new Date(item.dateHeure).toLocaleDateString()} à{" "}
+                      {new Date(item.dateHeure).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* BSD ID if present */}
+                {item.bsdReadableId && (
+                  <div className="mt-2 inline-flex items-center gap-2 px-2 py-1 bg-primary/10 rounded text-xs font-mono">
+                    BSD: {item.bsdReadableId}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 shrink-0">
+                {item.bsdStatus === "error" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRetry}
+                    disabled={isRetrying}
+                    className="hover:bg-red-50"
+                  >
+                    <RefreshCw
+                      className={cn("h-4 w-4", isRetrying && "animate-spin")}
+                    />
+                  </Button>
+                )}
+
+                {item.bsdStatus === "success" && item.bsdId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSyncStatus}
+                    className="hover:bg-green-50"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                )}
+
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="hover:bg-muted">
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 transition-transform duration-200",
+                        !isOpen && "-rotate-90"
+                      )}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
             </div>
           </div>
 
-          <CollapsibleContent className="mt-4 pt-4 border-t space-y-3">
-            {item.bsdStatus === "success" && (
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Statut actuel:</span>
-                  <Badge variant="outline">Sealed</Badge>
+          <CollapsibleContent className="border-t animate-accordion-down">
+            <div className="p-4 space-y-4 bg-muted/30">
+              {item.bsdStatus === "success" && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div className="flex flex-col gap-1 p-3 bg-background rounded-lg">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Statut actuel
+                      </span>
+                      <Badge variant="outline" className="w-fit">
+                        Sealed
+                      </Badge>
+                    </div>
+                    {item.bsdId && (
+                      <div className="flex flex-col gap-1 p-3 bg-background rounded-lg">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                          ID BSD
+                        </span>
+                        <code className="text-xs font-mono px-2 py-1 bg-muted rounded w-fit">
+                          {item.bsdId.slice(0, 20)}...
+                        </code>
+                      </div>
+                    )}
+                    {item.codeDechet && (
+                      <div className="flex flex-col gap-1 p-3 bg-background rounded-lg">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">
+                          Code déchet
+                        </span>
+                        <span className="font-medium">{item.codeDechet}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {item.bsdId && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">ID BSD:</span>
-                    <code className="text-xs bg-muted px-2 py-1 rounded">{item.bsdId}</code>
-                  </div>
-                )}
-                {item.codeDechet && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Code déchet:</span>
-                    <span>{item.codeDechet}</span>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
 
-            {item.bsdStatus === "pending" && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>BSD en cours de création... La synchronisation s'effectue automatiquement.</span>
-              </div>
-            )}
-
-            {item.bsdStatus === "error" && item.errorMessage && (
-              <div className="space-y-3">
-                <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-                  <div className="space-y-1 flex-1">
-                    <p className="font-medium text-destructive">Erreur de synchronisation</p>
-                    <p className="text-sm text-muted-foreground">{item.errorMessage}</p>
+              {item.bsdStatus === "pending" && (
+                <div className="flex items-start gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <Clock className="h-5 w-5 text-orange-600 shrink-0 mt-0.5 animate-pulse" />
+                  <div className="space-y-1">
+                    <p className="font-medium text-orange-900">
+                      BSD en cours de création
+                    </p>
+                    <p className="text-sm text-orange-700">
+                      La synchronisation s'effectue automatiquement toutes les 30 secondes.
+                      Vous serez notifié une fois le BSD créé.
+                    </p>
                   </div>
                 </div>
-                
-                <div className="text-sm space-y-2">
-                  <p className="font-medium">💡 Solutions suggérées:</p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                    <li>Vérifier que le code déchet est valide (format XX XX XX)</li>
-                    <li>S'assurer que les informations client sont complètes</li>
-                    <li>Vérifier la connexion à Track Déchet</li>
-                  </ul>
+              )}
+
+              {item.bsdStatus === "error" && item.errorMessage && (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                    <div className="space-y-2 flex-1">
+                      <p className="font-semibold text-red-900">
+                        Erreur de synchronisation
+                      </p>
+                      <p className="text-sm text-red-700 font-mono bg-red-100 p-2 rounded">
+                        {item.errorMessage}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+                    <p className="font-medium text-blue-900 flex items-center gap-2">
+                      <span>💡</span>
+                      Solutions suggérées
+                    </p>
+                    <ul className="space-y-2 text-sm text-blue-800">
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-600 shrink-0">•</span>
+                        <span>
+                          Vérifier que le code déchet respecte le format européen à 6 chiffres (XX XX XX)
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-600 shrink-0">•</span>
+                        <span>
+                          S'assurer que toutes les informations client sont complètes et valides
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-blue-600 shrink-0">•</span>
+                        <span>
+                          Vérifier votre connexion internet et la disponibilité de Track Déchet
+                        </span>
+                      </li>
+                    </ul>
+                    <Button
+                      size="sm"
+                      onClick={handleRetry}
+                      disabled={isRetrying}
+                      className="w-full mt-2"
+                    >
+                      <RefreshCw
+                        className={cn("h-4 w-4 mr-2", isRetrying && "animate-spin")}
+                      />
+                      Réessayer maintenant
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </CollapsibleContent>
         </Collapsible>
       </CardContent>

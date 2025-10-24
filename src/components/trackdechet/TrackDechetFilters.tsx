@@ -1,14 +1,8 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Search, Filter, X } from "lucide-react";
 
 interface Filters {
   status: string;
@@ -19,62 +13,146 @@ interface Filters {
 interface TrackDechetFiltersProps {
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
+  resultCount: number;
 }
 
-export function TrackDechetFilters({ filters, onFiltersChange }: TrackDechetFiltersProps) {
+export function TrackDechetFilters({ filters, onFiltersChange, resultCount }: TrackDechetFiltersProps) {
+  const activeFiltersCount = [
+    filters.status !== "all",
+    filters.client !== "",
+    filters.search !== "",
+  ].filter(Boolean).length;
+
+  const statusOptions = [
+    { value: "all", label: "Tous", color: "default" as const },
+    { value: "success", label: "Réussis", color: "default" as const },
+    { value: "pending", label: "En attente", color: "secondary" as const },
+    { value: "error", label: "Erreurs", color: "destructive" as const },
+  ];
+
+  const clearFilters = () => {
+    onFiltersChange({ status: "all", client: "", search: "" });
+  };
+
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor="status-filter">Statut BSD</Label>
-            <Select
-              value={filters.status}
-              onValueChange={(value) =>
-                onFiltersChange({ ...filters, status: value })
-              }
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Search bar */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher par plaque, numéro bon, BSD..."
+            className="pl-9 pr-9"
+            value={filters.search}
+            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+          />
+          {filters.search && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+              onClick={() => onFiltersChange({ ...filters, search: "" })}
             >
-              <SelectTrigger id="status-filter">
-                <SelectValue placeholder="Tous les statuts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="success">Réussis</SelectItem>
-                <SelectItem value="pending">En attente</SelectItem>
-                <SelectItem value="error">Erreurs</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="client-filter">Client</Label>
-            <Input
-              id="client-filter"
-              placeholder="Filtrer par client..."
-              value={filters.client}
-              onChange={(e) =>
-                onFiltersChange({ ...filters, client: e.target.value })
-              }
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="search-filter">Recherche</Label>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="search-filter"
-                placeholder="Plaque, numéro bon, BSD..."
-                className="pl-8"
-                value={filters.search}
-                onChange={(e) =>
-                  onFiltersChange({ ...filters, search: e.target.value })
-                }
-              />
-            </div>
-          </div>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Quick filters for desktop */}
+        <div className="hidden md:flex gap-2">
+          {statusOptions.map((option) => (
+            <Button
+              key={option.value}
+              variant={filters.status === option.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => onFiltersChange({ ...filters, status: option.value })}
+              className="transition-all"
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Mobile filter sheet */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="md:hidden relative">
+              <Filter className="h-4 w-4 mr-2" />
+              Filtres
+              {activeFiltersCount > 0 && (
+                <Badge className="ml-2 px-1.5 py-0 h-5 min-w-[20px]" variant="secondary">
+                  {activeFiltersCount}
+                </Badge>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:max-w-md">
+            <SheetHeader>
+              <SheetTitle>Filtres</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-4 mt-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Statut</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {statusOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      variant={filters.status === option.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => onFiltersChange({ ...filters, status: option.value })}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Client</label>
+                <Input
+                  placeholder="Filtrer par client..."
+                  value={filters.client}
+                  onChange={(e) => onFiltersChange({ ...filters, client: e.target.value })}
+                />
+              </div>
+
+              {activeFiltersCount > 0 && (
+                <Button variant="outline" className="w-full" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-2" />
+                  Réinitialiser les filtres
+                </Button>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Clear filters button for desktop */}
+        {activeFiltersCount > 0 && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="hidden md:flex">
+            <X className="h-4 w-4 mr-2" />
+            Effacer
+          </Button>
+        )}
+      </div>
+
+      {/* Results count and active filters */}
+      <div className="flex items-center justify-between text-sm">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <span className="font-medium">{resultCount}</span>
+          <span>résultat{resultCount > 1 ? "s" : ""}</span>
+        </div>
+        {filters.client && (
+          <Badge variant="secondary" className="gap-1">
+            Client: {filters.client}
+            <button
+              onClick={() => onFiltersChange({ ...filters, client: "" })}
+              className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+      </div>
+    </div>
   );
 }

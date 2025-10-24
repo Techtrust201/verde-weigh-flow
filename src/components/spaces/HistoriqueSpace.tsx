@@ -19,6 +19,7 @@ import {
 import { TrackDechetStatsCards } from "@/components/trackdechet/TrackDechetStatsCards";
 import { TrackDechetTimelineItem } from "@/components/trackdechet/TrackDechetTimelineItem";
 import { TrackDechetFilters } from "@/components/trackdechet/TrackDechetFilters";
+import { TrackDechetEmptyState } from "@/components/trackdechet/TrackDechetEmptyState";
 import { useTrackDechetHistory } from "@/hooks/useTrackDechetHistory";
 import { useTrackDechetStats } from "@/hooks/useTrackDechetStats";
 
@@ -428,6 +429,7 @@ function TrackDechetTab() {
     client: "",
     search: "",
   });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filteredHistory = history.filter((item) => {
     if (filters.status !== "all" && item.bsdStatus !== filters.status) return false;
@@ -443,27 +445,46 @@ function TrackDechetTab() {
     return true;
   });
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refresh();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
   return (
     <div className="space-y-6">
-      <TrackDechetStatsCards stats={stats} />
-      <TrackDechetFilters filters={filters} onFiltersChange={setFilters} />
+      <TrackDechetStatsCards 
+        stats={stats} 
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+      />
+      <TrackDechetFilters 
+        filters={filters} 
+        onFiltersChange={setFilters}
+        resultCount={filteredHistory.length}
+      />
       
       {loading ? (
-        <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            Chargement...
+        <Card className="border-dashed">
+          <CardContent className="p-12 text-center">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-muted rounded w-3/4 mx-auto" />
+              <div className="h-4 bg-muted rounded w-1/2 mx-auto" />
+            </div>
+            <p className="text-sm text-muted-foreground mt-4">Chargement des BSD...</p>
           </CardContent>
         </Card>
       ) : filteredHistory.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            Aucune pesée avec Track Déchet trouvée
-          </CardContent>
-        </Card>
+        <TrackDechetEmptyState />
       ) : (
-        <div className="space-y-4">
-          {filteredHistory.map((item) => (
-            <TrackDechetTimelineItem key={item.id} item={item} onRefresh={refresh} />
+        <div className="space-y-3">
+          {filteredHistory.map((item, index) => (
+            <div
+              key={item.id}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <TrackDechetTimelineItem item={item} onRefresh={refresh} />
+            </div>
           ))}
         </div>
       )}
