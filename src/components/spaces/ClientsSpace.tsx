@@ -748,13 +748,13 @@ export default function ClientsSpace() {
 
   const renderPlaques = (client: Client) => {
     const plaques = client.plaques || [];
-    if (plaques.length === 0) return null;
+    if (plaques.length === 0) return <span className="text-muted-foreground text-sm">-</span>;
 
     const [firstPlaque, ...otherPlaques] = plaques.sort();
 
     return (
       <div className="flex items-center gap-2">
-        <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+        <span className="text-sm font-mono bg-muted px-2 py-1 rounded">
           {firstPlaque}
         </span>
         {otherPlaques.length > 0 && (
@@ -763,6 +763,40 @@ export default function ClientsSpace() {
           </Badge>
         )}
       </div>
+    );
+  };
+
+  const getClientDisplayName = (client: Client) => {
+    if (client.typeClient === "particulier") {
+      const fullName = `${client.prenom || ""} ${client.nom || ""}`.trim();
+      if (fullName) return fullName;
+    }
+    
+    if (client.raisonSociale) return client.raisonSociale;
+    
+    return "-";
+  };
+
+  const getRIBDisplay = (client: Client) => {
+    if (client.codeBanque && client.codeGuichet && client.numeroCompte) {
+      return `${client.codeBanque}${client.codeGuichet}${client.numeroCompte}`.substring(0, 10) + "...";
+    }
+    return null;
+  };
+
+  const getTransporteurName = (transporteurId?: number) => {
+    if (!transporteurId) return <span className="text-muted-foreground text-sm">-</span>;
+    const transporteur = transporteurs.find((t) => t.id === transporteurId);
+    return transporteur ? `${transporteur.prenom} ${transporteur.nom}` : <span className="text-muted-foreground text-sm">-</span>;
+  };
+
+  const renderTarifsPreferentiels = (client: Client) => {
+    const count = Object.keys(client.tarifsPreferentiels || {}).length;
+    if (count === 0) return <span className="text-muted-foreground text-sm">-</span>;
+    return (
+      <Badge variant="secondary" className="text-xs">
+        {count} produit{count > 1 ? "s" : ""}
+      </Badge>
     );
   };
 
@@ -943,41 +977,113 @@ export default function ClientsSpace() {
                         </Button>
                       </div>
                     </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12"><Checkbox checked={paginatedClients.length > 0 && paginatedClients.every((c) => selectedClientIds.has(c.id!))} onCheckedChange={(checked) => { if (checked) selectAllClients(); else deselectAllClients(); }} /></TableHead>
-                          <TableHead>Code</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Nom / Raison Sociale</TableHead>
-                          <TableHead>Contact</TableHead>
-                          <TableHead>Ville</TableHead>
-                          <TableHead className="w-24">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paginatedClients.map((client) => (
-                          <TableRow key={client.id}>
-                            <TableCell><Checkbox checked={selectedClientIds.has(client.id!)} onCheckedChange={() => toggleClientSelection(client.id!)} /></TableCell>
-                            <TableCell className="font-mono text-xs">{client.codeClient}</TableCell>
-                            <TableCell>{getClientTypeBadge(client.typeClient)}</TableCell>
-                            <TableCell className="font-medium">{client.typeClient === "particulier" ? `${client.prenom} ${client.nom}` : client.raisonSociale}</TableCell>
-                            <TableCell className="text-sm">{client.telephone}</TableCell>
-                            <TableCell>{client.ville}</TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleEdit(client)}><Edit className="h-4 w-4 mr-2" />Modifier</DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => handleDelete(client)} className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Supprimer</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-12">
+                              <Checkbox 
+                                checked={paginatedClients.length > 0 && paginatedClients.every((c) => selectedClientIds.has(c.id!))} 
+                                onCheckedChange={(checked) => { 
+                                  if (checked) selectAllClients(); 
+                                  else deselectAllClients(); 
+                                }} 
+                              />
+                            </TableHead>
+                            <TableHead>Code</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Nom / Raison Sociale</TableHead>
+                            <TableHead>SIRET</TableHead>
+                            <TableHead>TVA Intra</TableHead>
+                            <TableHead>RIB</TableHead>
+                            <TableHead>Contact</TableHead>
+                            <TableHead>Adresse</TableHead>
+                            <TableHead>Plaque(s)</TableHead>
+                            <TableHead>Transporteur</TableHead>
+                            <TableHead>Tarifs Préf.</TableHead>
+                            <TableHead>Mode Paiement</TableHead>
+                            <TableHead className="w-24">Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedClients.map((client) => (
+                            <TableRow key={client.id}>
+                              <TableCell>
+                                <Checkbox 
+                                  checked={selectedClientIds.has(client.id!)} 
+                                  onCheckedChange={() => toggleClientSelection(client.id!)} 
+                                />
+                              </TableCell>
+                              <TableCell className="font-mono text-xs">{client.codeClient}</TableCell>
+                              <TableCell>{getClientTypeBadge(client.typeClient)}</TableCell>
+                              <TableCell className="font-medium">{getClientDisplayName(client)}</TableCell>
+                              <TableCell className="text-sm">
+                                {client.siret ? (
+                                  <span className="font-mono">{client.siret}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {client.tvaIntracom || <span className="text-muted-foreground">-</span>}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {getRIBDisplay(client) ? (
+                                  <span className="font-mono text-xs">{getRIBDisplay(client)}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {client.telephone || <span className="text-muted-foreground">-</span>}
+                              </TableCell>
+                              <TableCell className="text-sm max-w-[200px] truncate" title={client.adresse || ""}>
+                                {client.adresse ? (
+                                  <span>{client.adresse}{client.ville ? `, ${client.ville}` : ""}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>{renderPlaques(client)}</TableCell>
+                              <TableCell className="text-sm">{getTransporteurName(client.transporteurId)}</TableCell>
+                              <TableCell>{renderTarifsPreferentiels(client)}</TableCell>
+                              <TableCell className="text-sm">
+                                {client.modePaiementPreferentiel ? (
+                                  <Badge variant="outline" className="text-xs">
+                                    {client.modePaiementPreferentiel}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleEdit(client)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Modifier
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDelete(client)} 
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Supprimer
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </>
                 )}
               </CardContent>
