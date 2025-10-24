@@ -170,20 +170,16 @@ export default function ProductsSpace() {
     }
   };
 
-  // Utilisation du hook de filtrage avec pagination
+  // Utilisation du hook de filtrage SANS pagination (on pagine après les filtres rapides)
   const {
     filteredData: filteredProducts,
-    paginatedData: paginatedProducts,
     filters,
     setFilters,
-    currentPage,
-    totalPages,
-    goToPage,
   } = useTableFilters(
     products,
     productFilterConfigs,
     getProductFieldValue,
-    pageSize
+    999999 // Pas de pagination dans le hook, on pagine manuellement après
   );
 
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -479,6 +475,22 @@ export default function ProductsSpace() {
   };
 
   const displayedProducts = getFilteredProducts();
+
+  // Pagination manuelle après filtrage
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(displayedProducts.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedProducts = displayedProducts.slice(startIndex, endIndex);
+
+  // Reset à la page 1 quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [quickFilter, searchQuery, filters, products]);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
 
   // Fonction pour gérer le clic sur les stats
   const handleStatClick = (filterType: string) => {
