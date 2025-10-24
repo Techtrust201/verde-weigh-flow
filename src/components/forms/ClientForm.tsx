@@ -129,8 +129,24 @@ export default function ClientForm({
       </div>
 
       <div>
+        <Label htmlFor="codeClient">Code client *</Label>
+        <Input
+          id="codeClient"
+          value={formData.codeClient || ""}
+          onChange={(e) =>
+            onFormDataChange({ ...formData, codeClient: e.target.value })
+          }
+          placeholder="Code client (auto-généré)"
+        />
+        <p className="text-xs text-muted-foreground mt-1">
+          Code unique pour identifier le client. Généré automatiquement mais
+          modifiable.
+        </p>
+      </div>
+
+      <div>
         <Label htmlFor="raisonSociale">
-          {formData.typeClient === "particulier" 
+          {formData.typeClient === "particulier"
             ? "Raison sociale (nom et prénom de l'individu) *"
             : "Raison Sociale *"}
         </Label>
@@ -240,7 +256,8 @@ export default function ClientForm({
           </CollapsibleTrigger>
           <CollapsibleContent className="px-4 pb-4">
             <p className="text-xs text-muted-foreground mb-4">
-              Ces informations sont nécessaires uniquement si vous effectuez des pesées avec des déchets nécessitant un suivi Track Déchet
+              Ces informations sont nécessaires uniquement si vous effectuez des
+              pesées avec des déchets nécessitant un suivi Track Déchet
             </p>
             <div className="grid grid-cols-1 gap-4">
               <div>
@@ -308,9 +325,11 @@ export default function ClientForm({
               list={`plaques-datalist-${index}`}
             />
             <datalist id={`plaques-datalist-${index}`}>
-              {Array.from(new Set(
-                formData.plaques?.filter(p => p && p !== plaque) || []
-              )).map((p, i) => (
+              {Array.from(
+                new Set(
+                  formData.plaques?.filter((p) => p && p !== plaque) || []
+                )
+              ).map((p, i) => (
                 <option key={i} value={p} />
               ))}
             </datalist>
@@ -345,7 +364,8 @@ export default function ClientForm({
           </div>
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          Format recommandé : AB-123-CD. Les plaques suggérées proviennent de vos clients existants.
+          Format recommandé : AB-123-CD. Les plaques suggérées proviennent de
+          vos clients existants.
         </p>
       </div>
 
@@ -371,9 +391,11 @@ export default function ClientForm({
               list={`chantiers-datalist-${index}`}
             />
             <datalist id={`chantiers-datalist-${index}`}>
-              {Array.from(new Set(
-                formData.chantiers?.filter(c => c && c !== chantier) || []
-              )).map((c, i) => (
+              {Array.from(
+                new Set(
+                  formData.chantiers?.filter((c) => c && c !== chantier) || []
+                )
+              ).map((c, i) => (
                 <option key={i} value={c} />
               ))}
             </datalist>

@@ -71,6 +71,7 @@ export default function ClientsSpace() {
     prenom: "",
     nom: "",
     raisonSociale: "",
+    codeClient: "",
     siret: "",
     codeNAF: "",
     activite: "",
@@ -143,6 +144,39 @@ export default function ClientsSpace() {
     }
   };
 
+  const generateNextClientCode = async (): Promise<string> => {
+    try {
+      // Récupérer tous les clients avec un codeClient
+      const clientsWithCode = await db.clients
+        .where("codeClient")
+        .above("")
+        .toArray();
+
+      if (clientsWithCode.length === 0) {
+        return "1"; // Premier client
+      }
+
+      // Extraire les codes numériques et trouver le maximum
+      const numericCodes = clientsWithCode
+        .map((client) => {
+          const code = client.codeClient || "";
+          const match = code.match(/^(\d+)$/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter((code) => code > 0);
+
+      if (numericCodes.length === 0) {
+        return "1"; // Aucun code numérique trouvé
+      }
+
+      const maxCode = Math.max(...numericCodes);
+      return (maxCode + 1).toString();
+    } catch (error) {
+      console.error("Erreur lors de la génération du code client:", error);
+      return "1"; // Valeur par défaut en cas d'erreur
+    }
+  };
+
   const loadTransporteurs = async () => {
     try {
       const transporteursData = await db.transporteurs
@@ -195,6 +229,32 @@ export default function ClientsSpace() {
   ].sort();
 
   const validateForm = () => {
+    if (!formData.codeClient) {
+      toast({
+        title: "Erreur",
+        description: "Le code client est obligatoire.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Vérifier l'unicité du code client
+    const existingClient = clients.find(
+      (client) =>
+        client.codeClient === formData.codeClient &&
+        client.id !== selectedClient?.id
+    );
+
+    if (existingClient) {
+      toast({
+        title: "Erreur",
+        description:
+          "Ce code client existe déjà. Veuillez en choisir un autre.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     if (!formData.typeClient) {
       toast({
         title: "Erreur",
@@ -205,11 +265,11 @@ export default function ClientsSpace() {
     }
 
     if (formData.typeClient === "particulier") {
-      if (!formData.prenom || !formData.nom) {
+      if (!formData.raisonSociale) {
         toast({
           title: "Erreur",
           description:
-            "Le prénom et le nom sont obligatoires pour un particulier.",
+            "Le nom et prénom sont obligatoires pour un particulier.",
           variant: "destructive",
         });
         return false;
@@ -291,10 +351,6 @@ export default function ClientsSpace() {
     try {
       const clientData = {
         ...formData,
-        raisonSociale:
-          formData.typeClient === "particulier"
-            ? `${formData.prenom} ${formData.nom}`
-            : formData.raisonSociale,
         telephone: formData.telephone || "",
         plaques: formData.plaques || [],
         chantiers: formData.chantiers || [],
@@ -323,7 +379,7 @@ export default function ClientsSpace() {
       }
 
       loadClients();
-      resetForm();
+      await resetForm();
       setIsCreateDialogOpen(false);
       setIsEditDialogOpen(false);
     } catch (error) {
@@ -336,12 +392,14 @@ export default function ClientsSpace() {
     }
   };
 
-  const resetForm = () => {
+  const resetForm = async () => {
+    const nextCode = await generateNextClientCode();
     setFormData({
       typeClient: "particulier",
       prenom: "",
       nom: "",
       raisonSociale: "",
+      codeClient: nextCode,
       siret: "",
       codeNAF: "",
       activite: "",
