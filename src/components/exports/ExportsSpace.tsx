@@ -2,18 +2,11 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -30,19 +23,12 @@ import {
   History,
   Trash2,
   RefreshCw,
+  AlertCircle,
   CheckCircle,
-  FileSpreadsheet,
-  Table as TableIcon,
-  Upload,
-  ArrowRight,
-  FileCode,
-  Settings,
+  Eye,
   Check,
   X,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  AlertCircle,
+  Upload,
   Plus,
 } from "lucide-react";
 import {
@@ -51,24 +37,28 @@ import {
   ExportFormat,
 } from "@/hooks/useExportData";
 import { db, Pesee, Product, SageTemplate } from "@/lib/database";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import SageImportDialog from "@/components/import/SageImportDialog";
 import SageTemplateCreator from "@/components/import/SageTemplateCreator";
 import SageTemplateSelector from "@/components/exports/SageTemplateSelector";
 import SageTemplateManager from "@/components/exports/SageTemplateManager";
 import SageClientImportDialog from "@/components/import/SageClientImportDialog";
 import SageArticleImportDialog from "@/components/import/SageArticleImportDialog";
-import ExportWizardSteps from "./ExportWizardSteps";
-import ExportFormatCard from "./ExportFormatCard";
 
 export default function ExportsSpace() {
-  const [currentStep, setCurrentStep] = useState(1);
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");
   const [exportStats, setExportStats] = useState<ExportStats | null>(null);
   const [selectedExportType, setSelectedExportType] = useState<
     "new" | "selective" | "complete"
   >("new");
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("csv");
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
     null
   );
