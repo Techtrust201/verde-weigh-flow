@@ -74,83 +74,67 @@ export function TableFilters({
   const activeFilterCount = Object.keys(activeFilters).length;
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      {/* Bouton principal de filtrage */}
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filtres
-            {activeFilterCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="ml-1 h-5 w-5 rounded-full p-0 text-xs"
-              >
-                {activeFilterCount}
-              </Badge>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80" align="start">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">Filtres</h4>
-              <div className="flex items-center gap-2">
-                {showPageSize && onPageSizeChange && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Par page:
-                    </span>
-                    <Select
-                      value={pageSize.toString()}
-                      onValueChange={(value) =>
-                        onPageSizeChange(parseInt(value))
-                      }
-                    >
-                      <SelectTrigger className="w-20 h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
+    <div className={cn("flex flex-col gap-4", className)}>
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Bouton principal de filtrage */}
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2 h-10 px-4 shadow-sm hover:shadow transition-shadow">
+              <Filter className="h-4 w-4" />
+              <span className="font-medium">Filtres</span>
+              {activeFilterCount > 0 && (
+                <Badge
+                  variant="default"
+                  className="ml-1 h-5 min-w-5 rounded-full px-1.5 text-xs font-semibold"
+                >
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 p-0" align="start">
+            <div className="p-4 border-b bg-muted/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <h4 className="font-semibold text-sm">Filtres avancés</h4>
+                </div>
                 {activeFilterCount > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={clearAllFilters}
-                    className="h-8 px-2 text-xs"
+                    className="h-7 px-2 text-xs hover:bg-destructive/10 hover:text-destructive"
                   >
                     <X className="h-3 w-3 mr-1" />
-                    Effacer tout
+                    Réinitialiser
                   </Button>
                 )}
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="p-4 space-y-4 max-h-[400px] overflow-y-auto">
               {filters.map((filter) => (
                 <div key={filter.key} className="space-y-2">
-                  <Label className="text-sm font-medium">{filter.label}</Label>
+                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {filter.label}
+                  </Label>
 
                   {filter.type === "text" && (
-                    <Input
-                      placeholder={
-                        filter.placeholder ||
-                        `Rechercher dans ${filter.label.toLowerCase()}...`
-                      }
-                      value={activeFilters[filter.key] || ""}
-                      onChange={(e) =>
-                        handleFilterChange(filter.key, e.target.value)
-                      }
-                      className="h-8"
-                    />
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder={
+                          filter.placeholder ||
+                          `Rechercher...`
+                        }
+                        value={activeFilters[filter.key] || ""}
+                        onChange={(e) =>
+                          handleFilterChange(filter.key, e.target.value)
+                        }
+                        className="pl-9 h-9 shadow-sm"
+                      />
+                    </div>
                   )}
 
                   {filter.type === "number" && (
@@ -158,13 +142,13 @@ export function TableFilters({
                       type="number"
                       placeholder={
                         filter.placeholder ||
-                        `Valeur ${filter.label.toLowerCase()}...`
+                        `Entrez une valeur...`
                       }
                       value={activeFilters[filter.key] || ""}
                       onChange={(e) =>
                         handleFilterChange(filter.key, e.target.value)
                       }
-                      className="h-8"
+                      className="h-9 shadow-sm"
                     />
                   )}
 
@@ -175,13 +159,15 @@ export function TableFilters({
                         handleFilterChange(filter.key, value)
                       }
                     >
-                      <SelectTrigger className="h-8">
+                      <SelectTrigger className="h-9 shadow-sm">
                         <SelectValue
-                          placeholder={`Sélectionner ${filter.label.toLowerCase()}...`}
+                          placeholder={`Sélectionner...`}
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Tous</SelectItem>
+                        <SelectItem value="all">
+                          <span className="font-medium">Tous</span>
+                        </SelectItem>
                         {filter.options.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
@@ -193,36 +179,69 @@ export function TableFilters({
                 </div>
               ))}
             </div>
-          </div>
-        </PopoverContent>
-      </Popover>
 
-      {/* Affichage des filtres actifs */}
-      {activeFilterCount > 0 && (
-        <div className="flex items-center gap-1 flex-wrap">
-          {Object.entries(activeFilters).map(([key, value]) => {
-            const filter = filters.find((f) => f.key === key);
-            if (!filter) return null;
+            {showPageSize && onPageSizeChange && (
+              <div className="p-4 border-t bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Éléments par page
+                  </span>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={(value) =>
+                      onPageSizeChange(parseInt(value))
+                    }
+                  >
+                    <SelectTrigger className="w-24 h-8 shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
 
-            return (
-              <Badge
-                key={key}
-                variant="secondary"
-                className="gap-1 px-2 py-1 text-xs"
-              >
-                <span className="font-medium">{filter.label}:</span>
-                <span>{value}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => clearFilter(key)}
-                  className="h-4 w-4 p-0 hover:bg-transparent"
+        {/* Affichage des filtres actifs sous forme de chips élégants */}
+        {activeFilterCount > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {Object.entries(activeFilters).map(([key, value]) => {
+              const filter = filters.find((f) => f.key === key);
+              if (!filter) return null;
+
+              return (
+                <Badge
+                  key={key}
+                  variant="secondary"
+                  className="gap-2 px-3 py-1.5 text-xs shadow-sm hover:shadow transition-shadow"
                 >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            );
-          })}
+                  <span className="font-medium text-muted-foreground">{filter.label}:</span>
+                  <span className="font-semibold">{value}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => clearFilter(key)}
+                    className="h-4 w-4 p-0 hover:bg-destructive/20 rounded-full ml-1"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Indicateur de résultats */}
+      {activeFilterCount > 0 && (
+        <div className="text-xs text-muted-foreground font-medium">
+          {activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''} actif{activeFilterCount > 1 ? 's' : ''}
         </div>
       )}
     </div>

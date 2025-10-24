@@ -282,7 +282,7 @@ export default function PeseeSpace() {
       } as Client;
 
       // Modification d'un client existant
-      await db.clients.update(newClientForm.id, clientData);
+      await db.clients.put(clientData);
 
       updateCurrentTab({
         nomEntreprise: clientData.raisonSociale,
