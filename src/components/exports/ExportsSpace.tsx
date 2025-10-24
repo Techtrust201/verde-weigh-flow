@@ -30,6 +30,9 @@ import {
   X,
   Upload,
   Plus,
+  Users,
+  Package,
+  Settings,
 } from "lucide-react";
 import {
   useExportData,
@@ -868,64 +871,121 @@ export default function ExportsSpace() {
                 Import depuis Sage 50
               </CardTitle>
             </CardHeader> */}
-            <CardContent className="p-7">
-              <div className="space-y-4">
-                {/* <div className="space-y-2">
-                  <h3 className="font-semibold">Import des documents Sage</h3>
-                  <p className="text-sm text-gray-600">
-                    Importez vos bons de livraison et factures depuis un fichier
-                    d'export Sage 50. Les données importées seront intégrées
-                    dans votre base de données locale.
-                  </p>
-                </div> */}
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                {/* Section d'import principale */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Upload className="h-5 w-5 text-primary" />
+                    Importer depuis Sage 50
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Import clients */}
+                    <Card className="border-2 hover:border-primary hover:shadow-md transition-all duration-300 cursor-pointer group">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                            <Users className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-base mb-1">
+                                Clients Sage
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Importez vos clients et leurs coordonnées complètes
+                              </p>
+                            </div>
+                            <SageClientImportDialog />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Import des documents Sage</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Importez directement vos documents Sage
-                    </p>
-                    <SageImportDialog />
+                    {/* Import articles */}
+                    <Card className="border-2 hover:border-primary hover:shadow-md transition-all duration-300 cursor-pointer group">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 rounded-lg bg-green-50 group-hover:bg-green-100 transition-colors">
+                            <Package className="h-6 w-6 text-green-600" />
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-base mb-1">
+                                Articles / Produits
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Importez votre catalogue produits et tarifs
+                              </p>
+                            </div>
+                            <SageArticleImportDialog />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Import documents */}
+                    <Card className="border-2 hover:border-primary hover:shadow-md transition-all duration-300 cursor-pointer group">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
+                            <FileText className="h-6 w-6 text-purple-600" />
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-base mb-1">
+                                Documents Sage
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Importez vos bons de livraison et factures
+                              </p>
+                            </div>
+                            <SageImportDialog />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Créer template */}
+                    <Card className="border-2 hover:border-primary hover:shadow-md transition-all duration-300 cursor-pointer group">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 rounded-lg bg-orange-50 group-hover:bg-orange-100 transition-colors">
+                            <Plus className="h-6 w-6 text-orange-600" />
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-base mb-1">
+                                Nouveau template
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                Créez un template réutilisable pour vos imports
+                              </p>
+                            </div>
+                            <Button
+                              onClick={() => {
+                                setEditingTemplate(null);
+                                setShowTemplateCreator(true);
+                              }}
+                              variant="outline"
+                              className="gap-2 w-full"
+                            >
+                              <Plus className="h-4 w-4" />
+                              Créer un template
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Import des clients Sage</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Importez tous vos clients existants depuis Sage
-                    </p>
-                    <SageClientImportDialog />
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Import des articles Sage</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Importez tous vos articles existants depuis Sage
-                    </p>
-                    <SageArticleImportDialog />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="font-medium">Créer un template</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Apprenez le format Sage et créez un template réutilisable
-                  </p>
-                  <Button
-                    onClick={() => {
-                      setEditingTemplate(null);
-                      setShowTemplateCreator(true);
-                    }}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Créer un template
-                  </Button>
                 </div>
 
                 {/* Section de gestion des templates */}
-                <div className="space-y-3">
-                  <h4 className="font-medium">Templates Sage existants</h4>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold">Templates existants</h3>
+                  </div>
                   <SageTemplateManager />
                 </div>
 
