@@ -992,14 +992,42 @@ export const PeseeFormSection = ({
           onOpenChange={setIsAddClientDialogOpen}
         >
           <DialogTrigger asChild>
-            <Button variant="outline" onClick={onAddClient}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                if (selectedClient) {
+                  // Si un client est sélectionné, pré-remplir le formulaire avec ses données
+                  setNewClientForm({
+                    id: selectedClient.id,
+                    raisonSociale: selectedClient.raisonSociale,
+                    typeClient: selectedClient.typeClient,
+                    siret: selectedClient.siret,
+                    adresse: selectedClient.adresse,
+                    codePostal: selectedClient.codePostal,
+                    ville: selectedClient.ville,
+                    telephone: selectedClient.telephone,
+                    email: selectedClient.email,
+                    plaques: selectedClient.plaques,
+                    chantiers: selectedClient.chantiers,
+                    transporteurId: selectedClient.transporteurId,
+                    modePaiementPreferentiel: selectedClient.modePaiementPreferentiel,
+                    tarifsPreferentiels: selectedClient.tarifsPreferentiels,
+                  });
+                } else {
+                  onAddClient();
+                }
+                setIsAddClientDialogOpen(true);
+              }}
+            >
               <UserPlus className="h-4 w-4 mr-2" />
-              Ajouter nouveau client
+              {selectedClient ? "Modifier les informations du client" : "Ajouter nouveau client"}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Nouveau Client</DialogTitle>
+              <DialogTitle>
+                {selectedClient ? "Modifier le client" : "Nouveau Client"}
+              </DialogTitle>
             </DialogHeader>
             <ClientForm
               formData={newClientForm}
@@ -1017,7 +1045,7 @@ export const PeseeFormSection = ({
                 onClick={handleAddNewClient}
                 disabled={!validateNewClient()}
               >
-                Créer et sélectionner
+                {selectedClient ? "Enregistrer les modifications" : "Créer et sélectionner"}
               </Button>
             </div>
           </DialogContent>
