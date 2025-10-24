@@ -11,6 +11,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { exportWithSageTemplate } from "@/utils/sageTemplateExporter";
 
+// Re-export ExportLog for convenience
+export type { ExportLog } from "@/lib/database";
+
 export interface ExportStats {
   totalPesees: number;
   newPesees: number;

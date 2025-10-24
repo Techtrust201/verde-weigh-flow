@@ -1,42 +1,19 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Download,
-  FileText,
-  Calendar,
-  Database,
-  History,
-  Trash2,
   RefreshCw,
-  AlertCircle,
-  CheckCircle,
-  Eye,
-  Check,
-  X,
-  Upload,
-  Plus,
+  Users,
+  Package,
+  Settings,
 } from "lucide-react";
-import {
-  useExportData,
-  ExportStats,
-  ExportFormat,
-} from "@/hooks/useExportData";
-import { db, Pesee, Product, SageTemplate } from "@/lib/database";
+import ExportWizard from "./ExportWizard";
+import HistoryTimeline from "./HistoryTimeline";
+import ImportActionCard from "./ImportActionCard";
+import { useExportData } from "@/hooks/useExportData";
+import { db } from "@/lib/database";
 import {
   Select,
   SelectContent,
@@ -52,311 +29,28 @@ import SageClientImportDialog from "@/components/import/SageClientImportDialog";
 import SageArticleImportDialog from "@/components/import/SageArticleImportDialog";
 
 export default function ExportsSpace() {
-  const [dateDebut, setDateDebut] = useState("");
-  const [dateFin, setDateFin] = useState("");
-  const [exportStats, setExportStats] = useState<ExportStats | null>(null);
-  const [selectedExportType, setSelectedExportType] = useState<
-    "new" | "selective" | "complete"
-  >("new");
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("csv");
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
-    null
-  );
-  const [selectedTemplate, setSelectedTemplate] = useState<SageTemplate | null>(
-    null
-  );
-  const [previewPesees, setPreviewPesees] = useState<Pesee[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedPeseeIds, setSelectedPeseeIds] = useState<Set<number>>(
-    new Set()
-  );
-  const [showPreview, setShowPreview] = useState(false);
-  const [showTemplateCreator, setShowTemplateCreator] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<SageTemplate | null>(
-    null
-  );
+  const [clientCount, setClientCount] = useState(0);
+  const [productCount, setProductCount] = useState(0);
+  const [templateCount, setTemplateCount] = useState(0);
+  const [showClientImport, setShowClientImport] = useState(false);
+  const [showArticleImport, setShowArticleImport] = useState(false);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
 
-  const {
-    exportLogs,
-    isLoading,
-    getExportStats,
-    exportToCSV,
-    redownloadExport,
-    deleteExportLog,
-    loadExportLogs,
-  } = useExportData();
+  const { exportLogs, redownloadExport, deleteExportLog, loadExportLogs } = useExportData();
 
   useEffect(() => {
-    // Set default to last month
-    const now = new Date();
-    const lastMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() - 1,
-      now.getDate()
-    );
-    setDateDebut(lastMonth.toISOString().split("T")[0]);
-    setDateFin(now.toISOString().split("T")[0]);
-
-    // Load products
-    loadProducts();
+    loadCounts();
   }, []);
 
-  useEffect(() => {
-    if (dateDebut && dateFin) {
-      updateStats();
-      loadPreviewData();
-    }
-  }, [dateDebut, dateFin, selectedExportType, selectedFormat]);
-
-  // Recharger les données quand le type d'export change
-  useEffect(() => {
-    if (dateDebut && dateFin) {
-      loadPreviewData();
-    }
-  }, [selectedExportType]);
-
-  // Charger le template sélectionné
-  useEffect(() => {
-    const loadSelectedTemplate = async () => {
-      if (selectedTemplateId) {
-        try {
-          const template = await db.sageTemplates.get(selectedTemplateId);
-          setSelectedTemplate(template || null);
-        } catch (error) {
-          console.error("Error loading template:", error);
-          setSelectedTemplate(null);
-        }
-      } else {
-        setSelectedTemplate(null);
-      }
-    };
-    loadSelectedTemplate();
-  }, [selectedTemplateId]);
-
-  const loadProducts = async () => {
-    try {
-      const productsData = await db.products.toArray();
-      setProducts(productsData);
-    } catch (error) {
-      console.error("Error loading products:", error);
-    }
+  const loadCounts = async () => {
+    const clients = await db.clients.count();
+    const products = await db.products.count();
+    const templates = await db.sageTemplates.count();
+    setClientCount(clients);
+    setProductCount(products);
+    setTemplateCount(templates);
   };
 
-  // Fonctions pour gérer les templates
-  const handleCreateNewTemplate = () => {
-    setEditingTemplate(null);
-    setShowTemplateCreator(true);
-  };
-
-  const handleEditExistingTemplate = (templateId: number) => {
-    const template = selectedTemplate;
-    if (template) {
-      setEditingTemplate(template);
-      setShowTemplateCreator(true);
-    }
-  };
-
-  const loadPreviewData = async () => {
-    if (!dateDebut || !dateFin) return;
-
-    try {
-      let allPesees: Pesee[];
-
-      if (selectedExportType === "complete") {
-        // Pour "Toutes les données", charger TOUTES les pesées de la base
-        allPesees = await db.pesees.toArray();
-      } else {
-        // Pour "Nouveau" et "Période sélectionnée", filtrer par période
-        const startDate = new Date(dateDebut);
-        const endDate = new Date(dateFin);
-        endDate.setHours(23, 59, 59, 999);
-
-        allPesees = await db.pesees
-          .filter(
-            (pesee) =>
-              pesee.dateHeure >= startDate && pesee.dateHeure <= endDate
-          )
-          .toArray();
-      }
-
-      // Trier par date décroissante (plus récent en premier)
-      allPesees.sort(
-        (a, b) =>
-          new Date(b.dateHeure).getTime() - new Date(a.dateHeure).getTime()
-      );
-
-      let filteredPesees: Pesee[];
-      switch (selectedExportType) {
-        case "new":
-          filteredPesees = allPesees.filter(
-            (pesee) => !pesee.exportedAt || pesee.exportedAt.length === 0
-          );
-          break;
-        case "complete":
-          filteredPesees = allPesees; // Déjà toutes les pesées
-          break;
-        case "selective":
-        default:
-          filteredPesees = allPesees; // Déjà filtrées par période
-          break;
-      }
-
-      setPreviewPesees(filteredPesees);
-
-      // Forcer un re-render en mettant à jour l'état
-      setPreviewPesees([...filteredPesees]);
-    } catch (error) {
-      console.error("Error loading preview data:", error);
-    }
-  };
-
-  const updateStats = async () => {
-    if (!dateDebut || !dateFin) return;
-
-    try {
-      let stats: ExportStats;
-
-      if (selectedExportType === "complete") {
-        // Pour "Toutes les données", calculer les stats sur TOUTES les pesées
-        const allPesees = await db.pesees.toArray();
-        const newPesees = allPesees.filter(
-          (pesee) => !pesee.exportedAt || pesee.exportedAt.length === 0
-        );
-        const alreadyExported = allPesees.filter(
-          (pesee) => pesee.exportedAt && pesee.exportedAt.length > 0
-        );
-
-        stats = {
-          totalPesees: allPesees.length,
-          newPesees: newPesees.length,
-          alreadyExported: alreadyExported.length,
-        };
-      } else {
-        // Pour "Nouveau" et "Période sélectionnée", utiliser la période
-        const startDate = new Date(dateDebut);
-        const endDate = new Date(dateFin);
-        endDate.setHours(23, 59, 59, 999);
-
-        stats = await getExportStats(startDate, endDate);
-      }
-
-      setExportStats(stats);
-    } catch (error) {
-      console.error("Error updating stats:", error);
-    }
-  };
-
-  const handleExport = async () => {
-    if (!dateDebut || !dateFin) {
-      alert("Veuillez sélectionner une période");
-      return;
-    }
-
-    let startDate: Date;
-    let endDate: Date;
-    let exportType = selectedExportType;
-
-    if (selectedFormat === "sage-template") {
-      // Pour sage-template, utiliser les pesées sélectionnées ou toutes selon le type
-      if (selectedExportType === "complete") {
-        startDate = new Date(2000, 0, 1); // 1er janvier 2000
-        endDate = new Date(2100, 11, 31); // 31 décembre 2100
-      } else {
-        startDate = new Date(dateDebut);
-        endDate = new Date(dateFin);
-        endDate.setHours(23, 59, 59, 999);
-      }
-      exportType = selectedExportType;
-    } else if (selectedExportType === "complete") {
-      // Pour "Toutes les données", utiliser une période très large pour capturer toutes les pesées
-      startDate = new Date(2000, 0, 1); // 1er janvier 2000
-      endDate = new Date(2100, 11, 31); // 31 décembre 2100
-    } else {
-      // Pour "Nouveau" et "Période sélectionnée", utiliser la période sélectionnée
-      startDate = new Date(dateDebut);
-      endDate = new Date(dateFin);
-      endDate.setHours(23, 59, 59, 999);
-    }
-
-    // Vérifier si un template est requis pour le format sage-template
-    if (selectedFormat === "sage-template" && !selectedTemplate) {
-      alert("Veuillez sélectionner un template Sage");
-      return;
-    }
-
-    // Préparer les pesées sélectionnées pour l'export
-    const selectedPesees =
-      selectedPeseeIds.size > 0
-        ? previewPesees.filter((p) => selectedPeseeIds.has(p.id!))
-        : undefined;
-
-    await exportToCSV(
-      startDate,
-      endDate,
-      exportType,
-      selectedPesees,
-      selectedFormat,
-      selectedTemplate || undefined
-    );
-
-    // Recharger les données après l'export pour mettre à jour les statuts
-    // Petit délai pour s'assurer que la base de données est mise à jour
-    setTimeout(async () => {
-      await loadPreviewData();
-      await updateStats();
-    }, 100);
-
-    // Désélectionner toutes les pesées après l'export
-    setSelectedPeseeIds(new Set());
-  };
-
-  const handleTemplateSelect = (templateId: number | null) => {
-    setSelectedTemplateId(templateId);
-  };
-
-  const togglePeseeSelection = (peseeId: number) => {
-    const newSelection = new Set(selectedPeseeIds);
-    if (newSelection.has(peseeId)) {
-      newSelection.delete(peseeId);
-    } else {
-      newSelection.add(peseeId);
-    }
-    setSelectedPeseeIds(newSelection);
-  };
-
-  const selectAllPesees = () => {
-    setSelectedPeseeIds(new Set(previewPesees.map((p) => p.id!)));
-  };
-
-  const deselectAllPesees = () => {
-    setSelectedPeseeIds(new Set());
-  };
-
-  const getExportTypeLabel = (exportType: string) => {
-    switch (exportType) {
-      case "new":
-        return "Nouveaux uniquement";
-      case "selective":
-        return "Période sélectionnée";
-      case "complete":
-        return "Toutes les données";
-      default:
-        return exportType;
-    }
-  };
-
-  const getExportTypeBadgeVariant = (exportType: string) => {
-    switch (exportType) {
-      case "new":
-        return "default";
-      case "selective":
-        return "secondary";
-      case "complete":
-        return "outline";
-      default:
-        return "outline";
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -373,17 +67,68 @@ export default function ExportsSpace() {
         </Button>
       </div>
 
-      <Tabs defaultValue="new" className="space-y-6">
+      <Tabs defaultValue="export" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="new">Nouvel Export</TabsTrigger>
-          <TabsTrigger value="history">Historique</TabsTrigger>
-          <TabsTrigger value="import">Import Sage</TabsTrigger>
+          <TabsTrigger value="export">📤 Exporter</TabsTrigger>
+          <TabsTrigger value="import">📥 Importer</TabsTrigger>
+          <TabsTrigger value="history">📊 Historique</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="new" className="space-y-6">
+        <TabsContent value="export" className="space-y-6">
+          <ExportWizard onExportComplete={() => loadExportLogs()} />
+        </TabsContent>
+
+        <TabsContent value="import" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ImportActionCard
+              icon={Users}
+              title="Import Clients"
+              description="Importez vos clients depuis Sage 50"
+              count={clientCount}
+              countLabel={`${clientCount} client(s) actuels`}
+              buttonText="Importer des clients"
+              onAction={() => setShowClientImport(true)}
+            />
+            <ImportActionCard
+              icon={Package}
+              title="Import Articles"
+              description="Importez vos articles depuis Sage 50"
+              count={productCount}
+              countLabel={`${productCount} produit(s) actuels`}
+              buttonText="Importer des articles"
+              onAction={() => setShowArticleImport(true)}
+            />
+            <ImportActionCard
+              icon={Settings}
+              title="Templates personnalisés"
+              description="Créer ou gérer vos templates d'export"
+              count={templateCount}
+              countLabel={`${templateCount} template(s) créés`}
+              buttonText="Gérer les templates"
+              onAction={() => setShowTemplateManager(true)}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-6">
+          <HistoryTimeline
+            logs={exportLogs}
+            onDownload={redownloadExport}
+            onDelete={deleteExportLog}
+          />
+        </TabsContent>
+      </Tabs>
+
+      {showClientImport && (
+        <SageClientImportDialog />
+      )}
+      {showArticleImport && (
+        <SageArticleImportDialog />
+      )}
+      {showTemplateManager && (
+        <SageTemplateManager />
+      )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Configuration */}
-            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Database className="h-5 w-5 mr-2" />
