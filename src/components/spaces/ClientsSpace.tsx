@@ -24,6 +24,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  TableFilters,
+  FilterConfig,
+  useTableFilters,
+} from "@/components/ui/table-filters";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -60,11 +67,81 @@ export default function ClientsSpace() {
   const [selectedClientIds, setSelectedClientIds] = useState<Set<number>>(
     new Set()
   );
-  const [searchTerm, setSearchTerm] = useState("");
+  const [pageSize, setPageSize] = useState(20);
 
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [transporteurFilter, setTransporteurFilter] = useState<string>("all");
-  const [villeFilter, setVilleFilter] = useState<string>("all");
+  // Configuration des filtres pour le tableau des clients
+  const clientFilterConfigs: FilterConfig[] = [
+    {
+      key: "codeClient",
+      label: "Code",
+      type: "text",
+      placeholder: "Rechercher par code...",
+    },
+    {
+      key: "typeClient",
+      label: "Type",
+      type: "select",
+      options: [
+        { value: "particulier", label: "Particulier" },
+        { value: "professionnel", label: "Professionnel" },
+        { value: "micro-entreprise", label: "Micro-entreprise" },
+      ],
+    },
+    {
+      key: "raisonSociale",
+      label: "Raison Sociale",
+      type: "text",
+      placeholder: "Rechercher par nom...",
+    },
+    {
+      key: "siret",
+      label: "SIRET",
+      type: "text",
+      placeholder: "Rechercher par SIRET...",
+    },
+    {
+      key: "tvaIntracom",
+      label: "TVA Intra",
+      type: "text",
+      placeholder: "Rechercher par TVA...",
+    },
+    {
+      key: "telephone",
+      label: "Contact",
+      type: "text",
+      placeholder: "Rechercher par téléphone...",
+    },
+    {
+      key: "adresse",
+      label: "Adresse",
+      type: "text",
+      placeholder: "Rechercher par adresse...",
+    },
+    {
+      key: "ville",
+      label: "Ville",
+      type: "text",
+      placeholder: "Rechercher par ville...",
+    },
+    {
+      key: "transporteurId",
+      label: "Transporteur",
+      type: "select",
+      options: [],
+    },
+    {
+      key: "modePaiementPreferentiel",
+      label: "Mode Paiement",
+      type: "select",
+      options: [
+        { value: "ESP", label: "Espèces" },
+        { value: "CB", label: "Carte Bancaire" },
+        { value: "CHQ", label: "Chèque" },
+        { value: "VIR", label: "Virement" },
+        { value: "PRVT", label: "Prélèvement" },
+      ],
+    },
+  ];
 
   const [formData, setFormData] = useState<Partial<Client>>({
     typeClient: "particulier",
@@ -198,38 +275,71 @@ export default function ClientsSpace() {
     }
   };
 
-  const filteredClients = clients.filter((client) => {
-    const searchFields = [
-      client.raisonSociale,
-      client.siret,
-      client.email,
-      client.adresse,
-      client.ville,
-      client.telephone,
-      ...(client.plaques || []),
-      ...(client.chantiers || []),
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
+  // Fonction pour obtenir les valeurs des champs pour le filtrage
+  const getClientFieldValue = (client: Client, field: string): string => {
+    switch (field) {
+      case "codeClient":
+        return client.codeClient || "";
+      case "typeClient":
+        return client.typeClient || "";
+      case "raisonSociale":
+        return client.raisonSociale || "";
+      case "siret":
+        return client.siret || "";
+      case "tvaIntracom":
+        return client.tvaIntracom || "";
+      case "telephone":
+        return client.telephone || "";
+      case "adresse":
+        return client.adresse || "";
+      case "ville":
+        return client.ville || "";
+      case "transporteurId":
+        return client.transporteurId?.toString() || "";
+      case "modePaiementPreferentiel":
+        return client.modePaiementPreferentiel || "";
+      default:
+        return "";
+    }
+  };
 
-    const matchesSearch = searchFields.includes(searchTerm.toLowerCase());
-    const matchesType =
-      typeFilter === "all" || client.typeClient === typeFilter;
-    const matchesTransporteur =
-      transporteurFilter === "all" ||
-      client.transporteurId?.toString() === transporteurFilter;
-    const matchesVille = villeFilter === "all" || client.ville === villeFilter;
+  // Utilisation du hook de filtrage avec pagination
+  const {
+    filteredData: sortedClients,
+    paginatedData: paginatedClients,
+    filters,
+    setFilters,
+    currentPage,
+    totalPages,
+    goToPage,
+  } = useTableFilters(
+    clients,
+    clientFilterConfigs,
+    getClientFieldValue,
+    pageSize
+  );
 
-    return matchesSearch && matchesType && matchesTransporteur && matchesVille;
-  });
+  // Mettre à jour les options des transporteurs dans la config des filtres
+  useEffect(() => {
+    const transporteurOptions = transporteurs.map((t) => ({
+      value: t.id?.toString() || "",
+      label: `${t.prenom} ${t.nom}`,
+    }));
+
+    const updatedConfigs = clientFilterConfigs.map((config) => {
+      if (config.key === "transporteurId") {
+        return { ...config, options: transporteurOptions };
+      }
+      return config;
+    });
+  }, [transporteurs, clientFilterConfigs]);
 
   const uniqueVilles = [
     ...new Set(clients.map((c) => c.ville).filter(Boolean)),
   ].sort();
 
   const validateForm = () => {
-    if (!formData.codeClient) {
+    if (!formData.codeClient || formData.codeClient.trim() === "") {
       toast({
         title: "Erreur",
         description: "Le code client est obligatoire.",
@@ -386,7 +496,9 @@ export default function ClientsSpace() {
       console.error("Erreur lors de la sauvegarde:", error);
       toast({
         title: "Erreur",
-        description: "Une erreur s'est produite lors de la sauvegarde.",
+        description: `Erreur lors de la sauvegarde: ${
+          error instanceof Error ? error.message : "Erreur inconnue"
+        }`,
         variant: "destructive",
       });
     }
@@ -416,10 +528,18 @@ export default function ClientsSpace() {
     setSelectedClient(null);
   };
 
-  const handleEdit = (client: Client) => {
+  const handleEdit = async (client: Client) => {
     setSelectedClient(client);
+
+    // Si le client n'a pas de codeClient, en générer un automatiquement
+    let codeClient = client.codeClient;
+    if (!codeClient) {
+      codeClient = await generateNextClientCode();
+    }
+
     setFormData({
       ...client,
+      codeClient: codeClient,
       plaques: client.plaques || [],
       chantiers: client.chantiers || [],
       tarifsPreferentiels: client.tarifsPreferentiels || {},
@@ -459,7 +579,7 @@ export default function ClientsSpace() {
   };
 
   const selectAllClients = () => {
-    setSelectedClientIds(new Set(filteredClients.map((client) => client.id!)));
+    setSelectedClientIds(new Set(paginatedClients.map((client) => client.id!)));
   };
 
   const deselectAllClients = () => {
@@ -614,81 +734,20 @@ export default function ClientsSpace() {
           <CardDescription>Recherchez et filtrez vos clients</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher par nom, SIRET, email, adresse, plaque..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium">Type de client</label>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  <SelectItem value="particulier">Particulier</SelectItem>
-                  <SelectItem value="professionnel">Professionnel</SelectItem>
-                  <SelectItem value="micro-entreprise">
-                    Micro-entreprise
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Transporteur</label>
-              <Select
-                value={transporteurFilter}
-                onValueChange={setTransporteurFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les transporteurs</SelectItem>
-                  {transporteurs.map((transporteur) => (
-                    <SelectItem
-                      key={transporteur.id}
-                      value={transporteur.id!.toString()}
-                    >
-                      {transporteur.prenom} {transporteur.nom}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Ville</label>
-              <Select value={villeFilter} onValueChange={setVilleFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes les villes</SelectItem>
-                  {uniqueVilles.map((ville) => (
-                    <SelectItem key={ville} value={ville}>
-                      {ville}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <TableFilters
+            filters={clientFilterConfigs}
+            onFiltersChange={setFilters}
+            showPageSize={true}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Clients ({filteredClients.length})</CardTitle>
+            <CardTitle>Clients ({sortedClients.length})</CardTitle>
             {selectedClientIds.size > 0 && (
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">
@@ -713,7 +772,7 @@ export default function ClientsSpace() {
                 variant="outline"
                 size="sm"
                 onClick={selectAllClients}
-                disabled={filteredClients.length === 0}
+                disabled={paginatedClients.length === 0}
               >
                 <CheckSquare className="h-4 w-4 mr-2" />
                 Tout sélectionner
@@ -746,8 +805,8 @@ export default function ClientsSpace() {
                 <TableHead className="w-12">
                   <Checkbox
                     checked={
-                      filteredClients.length > 0 &&
-                      selectedClientIds.size === filteredClients.length
+                      sortedClients.length > 0 &&
+                      selectedClientIds.size === sortedClients.length
                     }
                     onCheckedChange={(checked) => {
                       if (checked) {
@@ -774,7 +833,7 @@ export default function ClientsSpace() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredClients.map((client) => {
+              {paginatedClients.map((client) => {
                 const transporteur = transporteurs.find(
                   (t) => t.id === client.transporteurId
                 );
@@ -892,6 +951,21 @@ export default function ClientsSpace() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {sortedClients.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              totalItems={sortedClients.length}
+              pageSize={pageSize}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

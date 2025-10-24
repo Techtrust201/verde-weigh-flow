@@ -27,6 +27,16 @@ import { Input } from "@/components/ui/input";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import {
+  ValidationInput,
+  ValidationTextarea,
+} from "@/components/ui/validation-input";
+import {
+  TableFilters,
+  FilterConfig,
+  useTableFilters,
+} from "@/components/ui/table-filters";
+import { Pagination } from "@/components/ui/pagination";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -59,11 +69,102 @@ export default function ProductsSpace() {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(
     new Set()
   );
-  const [searchTerm, setSearchTerm] = useState("");
+  const [pageSize, setPageSize] = useState(20);
 
-  const [categorieFilter, setcategorieFilter] = useState<string>("all");
-  const [trackDechetFilter, setTrackDechetFilter] = useState<string>("all");
-  const [favoriteFilter, setFavoriteFilter] = useState<string>("all");
+  // Configuration des filtres pour les produits
+  const productFilterConfigs: FilterConfig[] = [
+    {
+      key: "codeProduct",
+      label: "Code Article",
+      type: "text",
+    },
+    {
+      key: "nom",
+      label: "Nom du Produit",
+      type: "text",
+    },
+    {
+      key: "prixHT",
+      label: "Prix HT",
+      type: "text",
+    },
+    {
+      key: "tauxTVA",
+      label: "TVA",
+      type: "text",
+    },
+    {
+      key: "prixTTC",
+      label: "Prix TTC",
+      type: "text",
+    },
+    {
+      key: "categorie",
+      label: "Catégorie",
+      type: "text",
+    },
+    {
+      key: "codeDechet",
+      label: "Code Déchet",
+      type: "text",
+    },
+    {
+      key: "trackDechet",
+      label: "Track Déchet",
+      type: "text",
+    },
+    {
+      key: "favori",
+      label: "Favori",
+      type: "select",
+      options: [
+        { value: "true", label: "Oui" },
+        { value: "false", label: "Non" },
+      ],
+    },
+  ];
+
+  // Fonction pour extraire les valeurs des champs des produits
+  const getProductFieldValue = (product: Product, field: string): string => {
+    switch (field) {
+      case "codeProduct":
+        return product.codeProduct || "";
+      case "nom":
+        return product.nom || "";
+      case "prixHT":
+        return product.prixHT?.toString() || "";
+      case "tauxTVA":
+        return product.tauxTVA?.toString() || "";
+      case "prixTTC":
+        return product.prixTTC?.toString() || "";
+      case "categorie":
+        return product.categorieDechet || "";
+      case "codeDechet":
+        return product.codeDechets || "";
+      case "trackDechet":
+        return product.trackDechetEnabled ? "Activé" : "Désactivé";
+      case "favori":
+        return product.isFavorite ? "true" : "false";
+      default:
+        return "";
+    }
+  };
+
+  // Utilisation du hook de filtrage avec pagination
+  const {
+    filteredData: filteredProducts,
+    paginatedData: paginatedProducts,
+    filters,
+    setFilters,
+    currentPage,
+    totalPages,
+    goToPage,
+  } = useTableFilters(
+    products,
+    productFilterConfigs,
+    getProductFieldValue,
+    pageSize
+  );
 
   const [formData, setFormData] = useState<Partial<Product>>({
     nom: "",
@@ -113,29 +214,6 @@ export default function ProductsSpace() {
       console.error("Erreur lors du chargement des produits:", error);
     }
   };
-
-  const filteredProducts = products.filter((product) => {
-    const searchFields = [product.nom, product.codeProduct, product.codeDechets]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    const matchesSearch = searchFields.includes(searchTerm.toLowerCase());
-    const matchesCategorie =
-      categorieFilter === "all" || product.categorieDechet === categorieFilter;
-    const matchesTrackDechet =
-      trackDechetFilter === "all" ||
-      (trackDechetFilter === "enabled" && product.trackDechetEnabled) ||
-      (trackDechetFilter === "disabled" && !product.trackDechetEnabled);
-    const matchesFavorite =
-      favoriteFilter === "all" ||
-      (favoriteFilter === "favorite" && product.isFavorite) ||
-      (favoriteFilter === "not-favorite" && !product.isFavorite);
-
-    return (
-      matchesSearch && matchesCategorie && matchesTrackDechet && matchesFavorite
-    );
-  });
 
   const validateForm = () => {
     if (!formData.nom || !formData.codeProduct) {
@@ -354,7 +432,7 @@ export default function ProductsSpace() {
 
   const selectAllProducts = () => {
     setSelectedProductIds(
-      new Set(filteredProducts.map((product) => product.id!))
+      new Set(paginatedProducts.map((product) => product.id!))
     );
   };
 
@@ -446,27 +524,23 @@ export default function ProductsSpace() {
               <DialogTitle>Nouveau produit</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="nom">Nom du produit *</Label>
-                <Input
-                  id="nom"
-                  value={formData.nom}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nom: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="codeProduct">Code article *</Label>
-                <Input
-                  id="codeProduct"
-                  value={formData.codeProduct}
-                  onChange={(e) =>
-                    setFormData({ ...formData, codeProduct: e.target.value })
-                  }
-                  placeholder="Code unique pour l'article"
-                />
-              </div>
+              <ValidationInput
+                label="Nom du produit"
+                required
+                value={formData.nom}
+                onChange={(e) =>
+                  setFormData({ ...formData, nom: e.target.value })
+                }
+              />
+              <ValidationInput
+                label="Code article"
+                required
+                value={formData.codeProduct}
+                onChange={(e) =>
+                  setFormData({ ...formData, codeProduct: e.target.value })
+                }
+                placeholder="Code unique pour l'article"
+              />
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="prixHT">Prix HT (€)</Label>
@@ -827,67 +901,14 @@ export default function ProductsSpace() {
           </CardTitle>
           <CardDescription>Recherchez et filtrez vos produits</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher par nom, code article, code déchet..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium">Catégorie déchet</label>
-              <Select
-                value={categorieFilter}
-                onValueChange={setcategorieFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toutes les catégories</SelectItem>
-                  <SelectItem value="inerte">Inerte</SelectItem>
-                  <SelectItem value="non-dangereux">Non-dangereux</SelectItem>
-                  <SelectItem value="dangereux">Dangereux</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Track Déchet</label>
-              <Select
-                value={trackDechetFilter}
-                onValueChange={setTrackDechetFilter}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="enabled">Activé</SelectItem>
-                  <SelectItem value="disabled">Désactivé</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Favoris</label>
-              <Select value={favoriteFilter} onValueChange={setFavoriteFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  <SelectItem value="favorite">Favoris uniquement</SelectItem>
-                  <SelectItem value="not-favorite">Non favoris</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <CardContent>
+          <TableFilters
+            filters={productFilterConfigs}
+            onFiltersChange={setFilters}
+            showPageSize={true}
+            pageSize={pageSize}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 
@@ -977,7 +998,7 @@ export default function ProductsSpace() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
+              {paginatedProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
                     <Checkbox
@@ -1059,6 +1080,21 @@ export default function ProductsSpace() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {filteredProducts.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              totalItems={filteredProducts.length}
+              pageSize={pageSize}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

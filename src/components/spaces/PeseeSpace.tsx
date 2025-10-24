@@ -69,11 +69,49 @@ export default function PeseeSpace() {
   });
   const { toast } = useToast();
 
-  const prepareNewClientForm = () => {
+  const generateNextClientCode = async (): Promise<string> => {
+    try {
+      // Récupérer tous les clients avec un codeClient
+      const clientsWithCode = await db.clients
+        .where("codeClient")
+        .above("")
+        .toArray();
+
+      if (clientsWithCode.length === 0) {
+        return "1"; // Premier client
+      }
+
+      // Extraire les codes numériques et trouver le maximum
+      const numericCodes = clientsWithCode
+        .map((client) => {
+          const code = client.codeClient || "";
+          const match = code.match(/^(\d+)$/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter((code) => code > 0);
+
+      if (numericCodes.length === 0) {
+        return "1"; // Aucun code numérique trouvé
+      }
+
+      const maxCode = Math.max(...numericCodes);
+      return (maxCode + 1).toString();
+    } catch (error) {
+      console.error("Erreur lors de la génération du code client:", error);
+      return "1"; // Valeur par défaut en cas d'erreur
+    }
+  };
+
+  const prepareNewClientForm = async () => {
     const currentData = getCurrentTabData();
+
+    // Générer le prochain code client
+    const nextCode = await generateNextClientCode();
+
     if (currentData) {
       setNewClientForm({
         typeClient: currentData.typeClient || "particulier",
+        codeClient: nextCode,
         raisonSociale: currentData.nomEntreprise || "",
         prenom:
           currentData.typeClient === "particulier"
@@ -131,10 +169,10 @@ export default function PeseeSpace() {
   const handleAddNewClient = async () => {
     try {
       if (newClientForm.typeClient === "particulier") {
-        if (!newClientForm.prenom || !newClientForm.nom) {
+        if (!newClientForm.raisonSociale) {
           toast({
             title: "Erreur",
-            description: "Le prénom and le nom sont obligatoires.",
+            description: "La raison sociale est obligatoire.",
             variant: "destructive",
           });
           return;
@@ -149,12 +187,10 @@ export default function PeseeSpace() {
           return;
         }
       }
+
       const clientData = {
         ...newClientForm,
-        raisonSociale:
-          newClientForm.typeClient === "particulier"
-            ? `${newClientForm.prenom} ${newClientForm.nom}`
-            : newClientForm.raisonSociale,
+        raisonSociale: newClientForm.raisonSociale,
         telephone: newClientForm.telephone || "",
         plaques: newClientForm.plaques || [],
         chantiers: newClientForm.chantiers || [],
@@ -163,10 +199,13 @@ export default function PeseeSpace() {
         createdAt: new Date(),
         updatedAt: new Date(),
       } as Client;
-      const newClientId = await db.clients.add(clientData);
+
+      // Création d'un nouveau client uniquement
+      const clientId = (await db.clients.add(clientData)) as number;
+
       updateCurrentTab({
         nomEntreprise: clientData.raisonSociale,
-        clientId: newClientId as number,
+        clientId: clientId,
         typeClient: clientData.typeClient,
         plaque: clientData.plaques?.[0] || "",
         chantier: clientData.chantiers?.[0] || "",
@@ -200,13 +239,109 @@ export default function PeseeSpace() {
     }
   };
 
+  const handleUpdateClient = async () => {
+    try {
+      if (!newClientForm.id) {
+        toast({
+          title: "Erreur",
+          description: "Aucun client sélectionné pour la modification.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (newClientForm.typeClient === "particulier") {
+        if (!newClientForm.raisonSociale) {
+          toast({
+            title: "Erreur",
+            description: "La raison sociale est obligatoire.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        if (!newClientForm.raisonSociale) {
+          toast({
+            title: "Erreur",
+            description: "La raison sociale est obligatoire.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      const clientData = {
+        ...newClientForm,
+        raisonSociale: newClientForm.raisonSociale,
+        telephone: newClientForm.telephone || "",
+        plaques: newClientForm.plaques || [],
+        chantiers: newClientForm.chantiers || [],
+        transporteurId: newClientForm.transporteurId || 0,
+        tarifsPreferentiels: newClientForm.tarifsPreferentiels || {},
+        updatedAt: new Date(),
+      } as Client;
+
+      // Modification d'un client existant
+      await db.clients.update(newClientForm.id, clientData);
+
+      updateCurrentTab({
+        nomEntreprise: clientData.raisonSociale,
+        clientId: newClientForm.id,
+        typeClient: clientData.typeClient,
+        plaque: clientData.plaques?.[0] || "",
+        chantier: clientData.chantiers?.[0] || "",
+        transporteurId: clientData.transporteurId || 0,
+      });
+      setIsAddClientDialogOpen(false);
+      setNewClientForm({
+        typeClient: "particulier",
+        raisonSociale: "",
+        prenom: "",
+        nom: "",
+        siret: "",
+        telephone: "",
+        plaques: [],
+        chantiers: [],
+        transporteurId: 0,
+        tarifsPreferentiels: {},
+      });
+
+      toast({
+        title: "Client modifié",
+        description: "Les informations du client ont été mises à jour.",
+      });
+    } catch (error) {
+      console.error("Error updating client:", error);
+      toast({
+        title: "Erreur",
+        description: `Erreur lors de la modification: ${
+          error instanceof Error ? error.message : "Erreur inconnue"
+        }`,
+        variant: "destructive",
+      });
+    }
+  };
+
   const validateNewClient = (): boolean => {
+    // Le code client est obligatoire
+    if (
+      !newClientForm.codeClient ||
+      typeof newClientForm.codeClient !== "string" ||
+      newClientForm.codeClient.trim() === ""
+    ) {
+      return false;
+    }
+
     if (newClientForm.typeClient === "particulier") {
-      return Boolean(newClientForm.prenom && newClientForm.nom);
+      return Boolean(newClientForm.raisonSociale);
     } else {
       if (!newClientForm.raisonSociale) return false;
-      if (newClientForm.typeClient === "professionnel" && !newClientForm.siret)
+      if (
+        newClientForm.typeClient === "professionnel" &&
+        !newClientForm.siret
+      ) {
         return false;
+      }
       return true;
     }
   };
@@ -624,6 +759,7 @@ export default function PeseeSpace() {
                   newClientForm={newClientForm}
                   setNewClientForm={setNewClientForm}
                   handleAddNewClient={handleAddNewClient}
+                  handleUpdateClient={handleUpdateClient}
                   validateNewClient={validateNewClient}
                   isAddChantierDialogOpen={isAddChantierDialogOpen}
                   setIsAddChantierDialogOpen={setIsAddChantierDialogOpen}

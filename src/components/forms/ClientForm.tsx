@@ -14,6 +14,11 @@ import { Client, Transporteur, PaymentMethod, db } from "@/lib/database";
 import { CityPostalInput } from "@/components/ui/city-postal-input";
 import { validateEmail, getEmailError } from "@/utils/validation";
 import {
+  ValidationInput,
+  ValidationSelect,
+  ValidationTextarea,
+} from "@/components/ui/validation-input";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -128,62 +133,51 @@ export default function ClientForm({
         </Select>
       </div>
 
-      <div>
-        <Label htmlFor="codeClient">Code client *</Label>
-        <Input
-          id="codeClient"
-          value={formData.codeClient || ""}
-          onChange={(e) =>
-            onFormDataChange({ ...formData, codeClient: e.target.value })
-          }
-          placeholder="Code client (auto-généré)"
-        />
-        <p className="text-xs text-muted-foreground mt-1">
-          Code unique pour identifier le client. Généré automatiquement mais
-          modifiable.
-        </p>
-      </div>
+      <ValidationInput
+        label="Code client"
+        required
+        value={formData.codeClient || ""}
+        onChange={(e) =>
+          onFormDataChange({ ...formData, codeClient: e.target.value })
+        }
+        placeholder="Code client (auto-généré)"
+      />
+      <p className="text-xs text-muted-foreground mt-1">
+        Code unique pour identifier le client. Généré automatiquement mais
+        modifiable.
+      </p>
 
-      <div>
-        <Label htmlFor="raisonSociale">
-          {formData.typeClient === "particulier"
-            ? "Raison sociale (nom et prénom de l'individu) *"
-            : "Raison Sociale *"}
-        </Label>
-        <Input
-          id="raisonSociale"
-          value={formData.raisonSociale || ""}
-          onChange={(e) =>
-            onFormDataChange({ ...formData, raisonSociale: e.target.value })
-          }
-        />
-      </div>
+      <ValidationInput
+        label={
+          formData.typeClient === "particulier"
+            ? "Raison sociale (nom et prénom de l'individu)"
+            : "Raison Sociale"
+        }
+        required
+        value={formData.raisonSociale || ""}
+        onChange={(e) =>
+          onFormDataChange({ ...formData, raisonSociale: e.target.value })
+        }
+      />
 
-      <div>
-        <Label htmlFor="siret">SIRET (optionnel)</Label>
-        <Input
-          id="siret"
-          value={formData.siret || ""}
-          onChange={(e) =>
-            onFormDataChange({ ...formData, siret: e.target.value })
-          }
-        />
-      </div>
+      <ValidationInput
+        label="SIRET"
+        required={formData.typeClient === "professionnel"}
+        value={formData.siret || ""}
+        onChange={(e) =>
+          onFormDataChange({ ...formData, siret: e.target.value })
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4">
-        <div>
-          <Label htmlFor="adresse">
-            Adresse {formData.typeClient !== "particulier" ? "*" : ""}
-          </Label>
-          <Input
-            id="adresse"
-            value={formData.adresse || ""}
-            onChange={(e) =>
-              onFormDataChange({ ...formData, adresse: e.target.value })
-            }
-            required={formData.typeClient !== "particulier"}
-          />
-        </div>
+        <ValidationInput
+          label="Adresse"
+          required={formData.typeClient !== "particulier"}
+          value={formData.adresse || ""}
+          onChange={(e) =>
+            onFormDataChange({ ...formData, adresse: e.target.value })
+          }
+        />
         <div>
           <Label>Code Postal et Ville</Label>
           <CityPostalInput
@@ -198,22 +192,13 @@ export default function ClientForm({
             }}
           />
         </div>
-        <div>
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.email || ""}
-            onChange={(e) => handleEmailChange(e.target.value)}
-            className={emailError ? "border-red-300" : ""}
-          />
-          {emailError && (
-            <div className="flex items-center gap-1 text-sm text-red-600 mt-1">
-              <AlertCircle className="h-4 w-4" />
-              {emailError}
-            </div>
-          )}
-        </div>
+        <ValidationInput
+          label="Email"
+          type="email"
+          value={formData.email || ""}
+          onChange={(e) => handleEmailChange(e.target.value)}
+          error={emailError || undefined}
+        />
       </div>
 
       <div>

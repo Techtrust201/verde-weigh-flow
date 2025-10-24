@@ -56,6 +56,7 @@ interface PeseeFormSectionProps {
   newClientForm: Partial<Client>;
   setNewClientForm: (form: Partial<Client>) => void;
   handleAddNewClient: () => void;
+  handleUpdateClient: () => void;
   validateNewClient: () => boolean;
   isAddChantierDialogOpen: boolean;
   setIsAddChantierDialogOpen: (open: boolean) => void;
@@ -81,6 +82,7 @@ export const PeseeFormSection = ({
   newClientForm,
   setNewClientForm,
   handleAddNewClient,
+  handleUpdateClient,
   validateNewClient,
   isAddChantierDialogOpen,
   setIsAddChantierDialogOpen,
@@ -393,16 +395,19 @@ export const PeseeFormSection = ({
                                     <span className="font-semibold text-gray-900 truncate">
                                       {client.raisonSociale}
                                     </span>
-                                    <span className={cn(
-                                      "text-xs px-2 py-1 rounded-full font-medium",
-                                      client.typeClient === "particulier" 
-                                        ? "bg-blue-100 text-blue-700" 
-                                        : client.typeClient === "professionnel"
-                                        ? "bg-purple-100 text-purple-700"
-                                        : "bg-orange-100 text-orange-700"
-                                    )}>
-                                      {client.typeClient === "particulier" 
-                                        ? "👤 Particulier" 
+                                    <span
+                                      className={cn(
+                                        "text-xs px-2 py-1 rounded-full font-medium",
+                                        client.typeClient === "particulier"
+                                          ? "bg-blue-100 text-blue-700"
+                                          : client.typeClient ===
+                                            "professionnel"
+                                          ? "bg-purple-100 text-purple-700"
+                                          : "bg-orange-100 text-orange-700"
+                                      )}
+                                    >
+                                      {client.typeClient === "particulier"
+                                        ? "👤 Particulier"
                                         : client.typeClient === "professionnel"
                                         ? "🏢 Pro"
                                         : "💼 Micro"}
@@ -698,7 +703,9 @@ export const PeseeFormSection = ({
             <Label htmlFor="transporteur">Transporteur</Label>
             {currentData?.nomEntreprise && (
               <p className="text-xs text-muted-foreground mt-1">
-                💡 Par défaut : <span className="font-medium">{currentData.nomEntreprise}</span> (le client)
+                💡 Par défaut :{" "}
+                <span className="font-medium">{currentData.nomEntreprise}</span>{" "}
+                (le client)
               </p>
             )}
           </div>
@@ -992,13 +999,14 @@ export const PeseeFormSection = ({
           onOpenChange={setIsAddClientDialogOpen}
         >
           <DialogTrigger asChild>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 if (selectedClient) {
                   // Si un client est sélectionné, pré-remplir le formulaire avec ses données
                   setNewClientForm({
                     id: selectedClient.id,
+                    codeClient: selectedClient.codeClient,
                     raisonSociale: selectedClient.raisonSociale,
                     typeClient: selectedClient.typeClient,
                     siret: selectedClient.siret,
@@ -1010,7 +1018,8 @@ export const PeseeFormSection = ({
                     plaques: selectedClient.plaques,
                     chantiers: selectedClient.chantiers,
                     transporteurId: selectedClient.transporteurId,
-                    modePaiementPreferentiel: selectedClient.modePaiementPreferentiel,
+                    modePaiementPreferentiel:
+                      selectedClient.modePaiementPreferentiel,
                     tarifsPreferentiels: selectedClient.tarifsPreferentiels,
                   });
                 } else {
@@ -1020,7 +1029,9 @@ export const PeseeFormSection = ({
               }}
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              {selectedClient ? "Modifier les informations du client" : "Ajouter nouveau client"}
+              {selectedClient
+                ? "Modifier les informations du client"
+                : "Ajouter nouveau client"}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1042,10 +1053,14 @@ export const PeseeFormSection = ({
                 Annuler
               </Button>
               <Button
-                onClick={handleAddNewClient}
+                onClick={
+                  selectedClient ? handleUpdateClient : handleAddNewClient
+                }
                 disabled={!validateNewClient()}
               >
-                {selectedClient ? "Enregistrer les modifications" : "Créer et sélectionner"}
+                {selectedClient
+                  ? "Enregistrer les modifications"
+                  : "Créer et sélectionner"}
               </Button>
             </div>
           </DialogContent>
