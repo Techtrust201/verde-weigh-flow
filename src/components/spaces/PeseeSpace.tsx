@@ -500,6 +500,46 @@ export default function PeseeSpace() {
         });
         return false;
       }
+
+      // Vérification du chantier obligatoire avec suggestion automatique
+      if (!currentData?.chantier || currentData.chantier.trim() === "") {
+        // Essayer de suggérer l'adresse du client
+        if (currentData.clientId) {
+          const client = clients.find((c) => c.id === currentData.clientId);
+          if (client && client.adresse && client.codePostal && client.ville) {
+            // Suggérer l'adresse complète
+            const suggestedChantier = `${client.adresse}, ${client.codePostal} ${client.ville}`;
+            
+            // Auto-remplir avec la suggestion
+            updateCurrentTab({ chantier: suggestedChantier });
+            
+            toast({
+              title: "Chantier suggéré",
+              description: "Le chantier a été automatiquement rempli avec l'adresse principale du client. Vous pouvez le modifier si nécessaire.",
+              variant: "default",
+            });
+            
+            return false; // Empêcher la sauvegarde pour permettre à l'utilisateur de vérifier
+          } else {
+            // Le client n'a pas d'adresse complète
+            toast({
+              title: "Chantier obligatoire",
+              description: "Impossible de valider la pesée : aucun chantier sélectionné et aucune adresse client disponible. Ajoutez une adresse au client ou sélectionnez un chantier existant.",
+              variant: "destructive",
+            });
+            return false;
+          }
+        } else {
+          // Pas de client sélectionné
+          toast({
+            title: "Chantier obligatoire",
+            description: "Le chantier est obligatoire pour valider la pesée. Veuillez en sélectionner un.",
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+
       const selectedProduct = products.find(
         (p) => p.id === currentData.produitId
       );

@@ -632,70 +632,39 @@ export const PeseeFormSection = ({
           />
         </div>
         <div>
-          <Label htmlFor="chantier">Chantier</Label>
-          <div className="flex gap-2">
-            <Combobox
-              options={(() => {
-                if (currentData?.clientId) {
-                  const client = clients.find(
-                    (c) => c.id === currentData.clientId
-                  );
-                  return (
-                    client?.chantiers?.map((chantier) => ({
-                      value: chantier,
-                      label: chantier,
-                    })) || []
-                  );
+          <ChantierAutocomplete
+            value={currentData?.chantier || ""}
+            clients={clients}
+            currentClientId={currentData?.clientId}
+            onSelect={(chantier) => updateCurrentTab({ chantier })}
+            onChange={(chantier) => updateCurrentTab({ chantier })}
+            isAddChantierDialogOpen={isAddChantierDialogOpen}
+            setIsAddChantierDialogOpen={setIsAddChantierDialogOpen}
+            newChantier={newChantier}
+            setNewChantier={setNewChantier}
+            handleAddChantier={handleAddChantier}
+            disabled={!currentData?.clientId}
+            isSuggested={(() => {
+              // Vérifier si le chantier actuel correspond à l'adresse du client (donc si c'est une suggestion)
+              if (currentData?.clientId && currentData?.chantier) {
+                const client = clients.find((c) => c.id === currentData.clientId);
+                if (client && client.adresse && client.codePostal && client.ville) {
+                  const suggestedChantier = `${client.adresse}, ${client.codePostal} ${client.ville}`;
+                  return currentData.chantier === suggestedChantier;
                 }
-                return [];
-              })()}
-              value={currentData?.chantier || ""}
-              onValueChange={(value) => updateCurrentTab({ chantier: value })}
-              placeholder="Sélectionner ou saisir un chantier..."
-              searchPlaceholder="Rechercher ou saisir un chantier..."
-              emptyText="Aucun chantier trouvé. Vous pouvez saisir directement."
-            />
-            <Dialog
-              open={isAddChantierDialogOpen}
-              onOpenChange={setIsAddChantierDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-0 self-start shrink-0"
-                  disabled={!currentData?.clientId}
-                  title="Ajouter un nouveau chantier au client"
-                >
-                  <UserPlus className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Ajouter un nouveau chantier</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Nom du chantier</Label>
-                    <Input
-                      value={newChantier}
-                      onChange={(e) => setNewChantier(e.target.value)}
-                      placeholder="Nom du nouveau chantier"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsAddChantierDialogOpen(false)}
-                  >
-                    Annuler
-                  </Button>
-                  <Button onClick={handleAddChantier}>Ajouter</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+              }
+              return false;
+            })()}
+            suggestedValue={(() => {
+              if (currentData?.clientId) {
+                const client = clients.find((c) => c.id === currentData.clientId);
+                if (client && client.adresse && client.codePostal && client.ville) {
+                  return `${client.adresse}, ${client.codePostal} ${client.ville}`;
+                }
+              }
+              return undefined;
+            })()}
+          />
         </div>
 
         <div>

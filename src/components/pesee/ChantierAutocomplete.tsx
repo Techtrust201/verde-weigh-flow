@@ -19,6 +19,8 @@ interface ChantierAutocompleteProps {
   setNewChantier: (chantier: string) => void;
   handleAddChantier: () => void;
   disabled?: boolean;
+  isSuggested?: boolean;
+  suggestedValue?: string;
 }
 
 export const ChantierAutocomplete = ({
@@ -32,7 +34,9 @@ export const ChantierAutocomplete = ({
   newChantier,
   setNewChantier,
   handleAddChantier,
-  disabled
+  disabled,
+  isSuggested,
+  suggestedValue
 }: ChantierAutocompleteProps) => {
   const [chantierMatches, setChantierMatches] = useState<string[]>([]);
   const [showChantierMatches, setShowChantierMatches] = useState(false);
@@ -72,13 +76,26 @@ export const ChantierAutocomplete = ({
     <div className="relative">
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <Label htmlFor="chantier">Chantier</Label>
+          <Label htmlFor="chantier" className="flex items-center gap-2">
+            Chantier <span className="text-red-500">*</span>
+            {isSuggested && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                Suggestion automatique
+              </span>
+            )}
+          </Label>
           <Input
             id="chantier"
             value={value}
             onChange={(e) => handleChantierChange(e.target.value)}
             placeholder="Nom du chantier..."
+            className={isSuggested ? "border-blue-300 bg-blue-50" : ""}
           />
+          {isSuggested && suggestedValue && (
+            <p className="text-xs text-blue-600 mt-1">
+              💡 Chantier suggéré depuis l'adresse principale du client. Vous pouvez le remplacer.
+            </p>
+          )}
         </div>
         <Dialog open={isAddChantierDialogOpen} onOpenChange={setIsAddChantierDialogOpen}>
           <DialogTrigger asChild>
