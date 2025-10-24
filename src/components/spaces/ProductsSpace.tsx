@@ -56,10 +56,25 @@ import {
   Square,
   CheckCircle,
   ExternalLink,
+  LayoutGrid,
+  LayoutList,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { db, Product } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
+import ProductStatsCards from "./ProductStatsCards";
+import ProductCardGrid from "./ProductCardGrid";
+import BulkActionsBar from "./BulkActionsBar";
+import EmptyProductState from "./EmptyProductState";
+import ProductQuickFilters from "./ProductQuickFilters";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
 
 export default function ProductsSpace() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -70,6 +85,11 @@ export default function ProductsSpace() {
     new Set()
   );
   const [pageSize, setPageSize] = useState(20);
+  const [viewMode, setViewMode] = useState<"cards" | "table">(() => {
+    return (localStorage.getItem("productsViewMode") as "cards" | "table") || "cards";
+  });
+  const [quickFilter, setQuickFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Configuration des filtres pour les produits
   const productFilterConfigs: FilterConfig[] = [
@@ -419,6 +439,79 @@ export default function ProductsSpace() {
     }
   };
 
+  // Gestion du changement de vue
+  const handleViewModeChange = (mode: "cards" | "table") => {
+    setViewMode(mode);
+    localStorage.setItem("productsViewMode", mode);
+  };
+
+  // Gestion des filtres rapides
+  const handleQuickFilterChange = (filter: string) => {
+    setQuickFilter(filter);
+  };
+
+  // Appliquer les filtres rapides et la recherche
+  const getFilteredProducts = () => {
+    let filtered = [...filteredProducts];
+
+    // Filtre rapide
+    if (quickFilter === "favorites") {
+      filtered = filtered.filter((p) => p.isFavorite);
+    } else if (quickFilter === "trackDechet") {
+      filtered = filtered.filter((p) => p.trackDechetEnabled);
+    } else if (quickFilter === "noPrice") {
+      filtered = filtered.filter((p) => !p.prixHT || p.prixHT === 0);
+    }
+
+    // Recherche
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.nom?.toLowerCase().includes(query) ||
+          p.codeProduct?.toLowerCase().includes(query) ||
+          p.categorieDechet?.toLowerCase().includes(query) ||
+          p.codeDechets?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  };
+
+  const displayedProducts = getFilteredProducts();
+
+  // Fonction pour gérer le clic sur les stats
+  const handleStatClick = (filterType: string) => {
+    setQuickFilter(filterType);
+  };
+
+  // Marquer les produits sélectionnés comme favoris
+  const markSelectedAsFavorites = async () => {
+    if (selectedProductIds.size === 0) return;
+
+    try {
+      const updatePromises = Array.from(selectedProductIds).map((id) =>
+        db.products.update(id, { isFavorite: true, updatedAt: new Date() })
+      );
+      await Promise.all(updatePromises);
+
+      toast({
+        title: "Succès",
+        description: `${selectedProductIds.size} produit(s) marqué(s) comme favoris.`,
+      });
+
+      setSelectedProductIds(new Set());
+      loadProducts();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur s'est produite.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Fonctions de gestion de sélection multiple
   const toggleProductSelection = (productId: number) => {
     const newSelection = new Set(selectedProductIds);
@@ -502,7 +595,8 @@ export default function ProductsSpace() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header avec titre et bouton */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
             Gestion des Produits
@@ -514,8 +608,8 @@ export default function ProductsSpace() {
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={resetForm} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
               Nouveau produit
             </Button>
           </DialogTrigger>
@@ -893,6 +987,56 @@ export default function ProductsSpace() {
         </Dialog>
       </div>
 
+      {/* Statistiques */}
+      <ProductStatsCards products={products} onStatClick={handleStatClick} />
+
+      {/* Barre de recherche et toggle vue */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un produit par nom, code, catégorie..."
+                className="pl-10 h-12 text-base"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === "cards" ? "default" : "outline"}
+                size="icon"
+                onClick={() => handleViewModeChange("cards")}
+                className="h-12 w-12"
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="icon"
+                onClick={() => handleViewModeChange("table")}
+                className="h-12 w-12"
+              >
+                <LayoutList className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filtres rapides */}
+      <ProductQuickFilters
+        activeFilter={quickFilter}
+        onFilterChange={handleQuickFilterChange}
+        onClearFilters={() => {
+          setQuickFilter("all");
+          setSearchQuery("");
+        }}
+      />
+
+      {/* Filtres avancés */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -912,189 +1056,245 @@ export default function ProductsSpace() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>Produits ({filteredProducts.length})</CardTitle>
-            {selectedProductIds.size > 0 && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">
-                  {selectedProductIds.size} sélectionné(s)
-                </Badge>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={deleteSelectedProducts}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer sélectionnés
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={selectAllProducts}
-                disabled={filteredProducts.length === 0}
-              >
-                <CheckSquare className="h-4 w-4 mr-2" />
-                Tout sélectionner
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={deselectAllProducts}
-                disabled={selectedProductIds.size === 0}
-              >
-                <Square className="h-4 w-4 mr-2" />
-                Désélectionner tout
-              </Button>
-            </div>
-            {selectedProductIds.size > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={deleteSelectedProducts}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer {selectedProductIds.size} produit(s)
-              </Button>
-            )}
-          </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={
-                      filteredProducts.length > 0 &&
-                      selectedProductIds.size === filteredProducts.length
-                    }
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        selectAllProducts();
-                      } else {
-                        deselectAllProducts();
-                      }
-                    }}
-                  />
-                </TableHead>
-                <TableHead className="w-24">Code Article</TableHead>
-                <TableHead>Nom du Produit</TableHead>
-                <TableHead className="w-28">Prix HT</TableHead>
-                <TableHead className="w-20">TVA</TableHead>
-                <TableHead className="w-28">Prix TTC</TableHead>
-                <TableHead className="w-32">Catégorie</TableHead>
-                <TableHead className="w-24">Code Déchet</TableHead>
-                <TableHead className="w-24">Track Déchet</TableHead>
-                <TableHead className="w-20">Favori</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedProductIds.has(product.id!)}
-                      onCheckedChange={() =>
-                        toggleProductSelection(product.id!)
-                      }
-                    />
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {product.codeProduct}
-                  </TableCell>
-                  <TableCell className="font-medium">{product.nom}</TableCell>
-                  <TableCell>{product.prixHT?.toFixed(2) || "0.00"}€</TableCell>
-                  <TableCell>{product.tauxTVA || 20}%</TableCell>
-                  <TableCell className="font-semibold text-green-600">
-                    {product.prixTTC?.toFixed(2) || "0.00"}€
-                  </TableCell>
-                  <TableCell>
-                    {getCategorieDechetBadge(product.categorieDechet)}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {product.codeDechets || "-"}
-                  </TableCell>
-                  <TableCell>
-                    {product.trackDechetEnabled && (
-                      <Badge className="bg-blue-100 text-blue-800">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Activé
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
+      {/* Contenu des produits */}
+      {displayedProducts.length === 0 && products.length === 0 ? (
+        <EmptyProductState onCreateProduct={() => {
+          resetForm();
+          setIsCreateDialogOpen(true);
+        }} />
+      ) : (
+        <>
+          {viewMode === "cards" ? (
+            <div>
+              {displayedProducts.length === 0 ? (
+                <Card className="border-dashed border-2">
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      Aucun produit trouvé
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Aucun produit ne correspond à vos critères.
+                    </p>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => toggleFavorite(product)}
+                      variant="outline"
+                      onClick={() => {
+                        setQuickFilter("all");
+                        setSearchQuery("");
+                        setFilters({});
+                      }}
                     >
-                      {product.isFavorite ? (
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      ) : (
-                        <Star className="h-4 w-4" />
-                      )}
+                      Réinitialiser les filtres
                     </Button>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(product)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(product)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-12">
-              <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                Aucun produit trouvé
-              </h3>
-              <p className="text-gray-500 mb-4">
-                Aucun produit ne correspond à vos critères de recherche.
-              </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <ProductCardGrid
+                  products={paginatedProducts}
+                  selectedProductIds={selectedProductIds}
+                  onSelect={toggleProductSelection}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onToggleFavorite={toggleFavorite}
+                />
+              )}
             </div>
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Produits ({displayedProducts.length})</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {displayedProducts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">
+                      Aucun produit trouvé
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Aucun produit ne correspond à vos critères.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setQuickFilter("all");
+                        setSearchQuery("");
+                        setFilters({});
+                      }}
+                    >
+                      Réinitialiser les filtres
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={selectAllProducts}
+                          disabled={paginatedProducts.length === 0}
+                        >
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Tout sélectionner
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={deselectAllProducts}
+                          disabled={selectedProductIds.size === 0}
+                        >
+                          <Square className="h-4 w-4 mr-2" />
+                          Désélectionner tout
+                        </Button>
+                      </div>
+                    </div>
+
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">
+                            <Checkbox
+                              checked={
+                                paginatedProducts.length > 0 &&
+                                paginatedProducts.every((p) =>
+                                  selectedProductIds.has(p.id!)
+                                )
+                              }
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  selectAllProducts();
+                                } else {
+                                  deselectAllProducts();
+                                }
+                              }}
+                            />
+                          </TableHead>
+                          <TableHead className="w-24">Code</TableHead>
+                          <TableHead>Nom</TableHead>
+                          <TableHead className="w-28">Prix TTC</TableHead>
+                          <TableHead className="w-32">Catégorie</TableHead>
+                          <TableHead className="w-24">Track Déchet</TableHead>
+                          <TableHead className="w-20">Favori</TableHead>
+                          <TableHead className="w-24">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedProducts.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedProductIds.has(product.id!)}
+                                onCheckedChange={() =>
+                                  toggleProductSelection(product.id!)
+                                }
+                              />
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {product.codeProduct}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {product.nom}
+                            </TableCell>
+                            <TableCell className="font-semibold text-primary">
+                              {product.prixTTC?.toFixed(2) || "0.00"}€
+                              <div className="text-xs text-muted-foreground">
+                                HT: {product.prixHT?.toFixed(2) || "0.00"}€
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {getCategorieDechetBadge(product.categorieDechet)}
+                            </TableCell>
+                            <TableCell>
+                              {product.trackDechetEnabled && (
+                                <Badge className="bg-green-100 text-green-800">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Activé
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => toggleFavorite(product)}
+                              >
+                                {product.isFavorite ? (
+                                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                                ) : (
+                                  <Star className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={() => handleEdit(product)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Modifier
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => toggleFavorite(product)}
+                                  >
+                                    <Star className="h-4 w-4 mr-2" />
+                                    {product.isFavorite
+                                      ? "Retirer favori"
+                                      : "Marquer favori"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(product)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Supprimer
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </>
+      )}
 
       {/* Pagination */}
-      {filteredProducts.length > 0 && (
+      {displayedProducts.length > 0 && (
         <Card>
           <CardContent className="pt-6">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={goToPage}
-              totalItems={filteredProducts.length}
+              totalItems={displayedProducts.length}
               pageSize={pageSize}
             />
           </CardContent>
         </Card>
       )}
+
+      {/* Barre d'actions bulk */}
+      <BulkActionsBar
+        selectedCount={selectedProductIds.size}
+        onDelete={deleteSelectedProducts}
+        onMarkFavorites={markSelectedAsFavorites}
+        onClear={() => setSelectedProductIds(new Set())}
+      />
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
