@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, AlertCircle, ChevronDown } from "lucide-react";
+import { Plus, Trash2, AlertCircle } from "lucide-react";
 import { Client, Transporteur, PaymentMethod, db } from "@/lib/database";
 import { CityPostalInput } from "@/components/ui/city-postal-input";
 import { validateEmail, getEmailError } from "@/utils/validation";
@@ -18,11 +18,7 @@ import {
   ValidationSelect,
   ValidationTextarea,
 } from "@/components/ui/validation-input";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 
 interface ClientFormProps {
   formData: Partial<Client>;
@@ -39,7 +35,7 @@ export default function ClientForm({
 }: ClientFormProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [isTrackDechetOpen, setIsTrackDechetOpen] = useState(false);
+  const [isTrackDechetEnabled, setIsTrackDechetEnabled] = useState(false);
 
   useEffect(() => {
     loadPaymentMethods();
@@ -213,38 +209,28 @@ export default function ClientForm({
         />
       </div>
 
-      {/* Section Track Déchets - Visible uniquement pour professionnels et micro-entreprises */}
+      {/* Section Track Déchets avec Toggle - Visible uniquement pour professionnels et micro-entreprises */}
       {(formData.typeClient === "professionnel" ||
         formData.typeClient === "micro-entreprise") && (
-        <Collapsible
-          open={isTrackDechetOpen}
-          onOpenChange={setIsTrackDechetOpen}
-          className="border rounded-lg"
-        >
-          <CollapsibleTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full flex items-center justify-between p-4 hover:bg-accent"
-            >
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium">
-                  Informations Track Déchets (optionnel)
-                </h3>
-              </div>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${
-                  isTrackDechetOpen ? "rotate-180" : ""
-                }`}
-              />
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="px-4 pb-4">
-            <p className="text-xs text-muted-foreground mb-4">
-              Ces informations sont nécessaires uniquement si vous effectuez des
-              pesées avec des déchets nécessitant un suivi Track Déchet
-            </p>
-            <div className="grid grid-cols-1 gap-4">
+        <div className="border rounded-lg p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="trackdechet-toggle" className="text-base font-medium">
+                Informations Track Déchets
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Activer uniquement si ce client effectue des pesées avec des déchets nécessitant un suivi Track Déchet
+              </p>
+            </div>
+            <Switch
+              id="trackdechet-toggle"
+              checked={isTrackDechetEnabled}
+              onCheckedChange={setIsTrackDechetEnabled}
+            />
+          </div>
+
+          {isTrackDechetEnabled && (
+            <div className="grid grid-cols-1 gap-4 pt-4 border-t">
               <div>
                 <Label htmlFor="codeNAF">Code NAF</Label>
                 <Input
@@ -287,8 +273,8 @@ export default function ClientForm({
                 />
               </div>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+          )}
+        </div>
       )}
 
       {/* Gestion des plaques multiples */}
