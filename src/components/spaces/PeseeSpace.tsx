@@ -17,6 +17,7 @@ import { handlePrint, handlePrintBothBonAndInvoice } from "@/utils/peseeUtils";
 import { PrintPreviewDialog } from "@/components/ui/print-preview-dialog";
 import { trackDechetProcessor } from "@/utils/trackdechetSyncProcessor";
 import { isTrackDechetApplicable } from "@/utils/trackdechetValidation";
+import { normalizeClientCode } from "@/utils/clientCodeUtils";
 
 export default function PeseeSpace() {
   const { pesees, clients, products, loadData } = usePeseeData();
@@ -78,7 +79,7 @@ export default function PeseeSpace() {
         .toArray();
 
       if (clientsWithCode.length === 0) {
-        return "1"; // Premier client
+        return normalizeClientCode("1"); // Premier client avec code normalisé
       }
 
       // Extraire les codes numériques et trouver le maximum
@@ -91,14 +92,14 @@ export default function PeseeSpace() {
         .filter((code) => code > 0);
 
       if (numericCodes.length === 0) {
-        return "1"; // Aucun code numérique trouvé
+        return normalizeClientCode("1"); // Aucun code numérique trouvé
       }
 
       const maxCode = Math.max(...numericCodes);
-      return (maxCode + 1).toString();
+      return normalizeClientCode((maxCode + 1).toString());
     } catch (error) {
       console.error("Erreur lors de la génération du code client:", error);
-      return "1"; // Valeur par défaut en cas d'erreur
+      return normalizeClientCode("1"); // Valeur par défaut en cas d'erreur
     }
   };
 

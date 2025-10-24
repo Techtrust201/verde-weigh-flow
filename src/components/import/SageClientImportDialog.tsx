@@ -16,6 +16,7 @@ import {
 import { Upload, Users, CheckCircle, AlertCircle, Check, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { db, Client } from "@/lib/database";
+import { normalizeClientCode, matchClientCodes } from "@/utils/clientCodeUtils";
 
 interface ParsedClient {
   codeClient: string;
@@ -124,7 +125,7 @@ export default function SageClientImportDialog() {
       // Si on trouve "Code" et "Nom" comme colonnes, c'est un export clients
       if (rowData["Code"] && rowData["Nom"]) {
         const client: ParsedClient = {
-          codeClient: rowData["Code"] || "",
+          codeClient: normalizeClientCode(rowData["Code"]), // Normaliser le code client
           nomClient: rowData["Nom"] || "",
           societe: rowData["Soci�t�"] || "", // Gérer l'encodage mal fait
           formeJuridique: rowData["Forme juridique"],
@@ -159,7 +160,7 @@ export default function SageClientImportDialog() {
       // Sinon, vérifier si c'est un fichier de BL (format ancien)
       else if (rowData["Type de Ligne"] === "E") {
         const client: ParsedClient = {
-          codeClient: rowData["Code client"] || "",
+          codeClient: normalizeClientCode(rowData["Code client"]), // Normaliser le code client
           nomClient: rowData["Nom client"] || "",
           formeJuridique: rowData["Forme juridique"],
           adresse1: rowData["Adresse 1"],

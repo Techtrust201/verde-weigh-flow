@@ -455,7 +455,7 @@ export const useExportData = () => {
         "", // Référence pièce
         "", // Remarque
         "REP0017", // Code représentant pièce
-        client?.id ? client.id.toString() : "256", // Code client
+        client?.codeClient || "256", // Code client
         pesee.nomEntreprise, // Nom client
         "", // Forme juridique
         client?.adresse || "", // Adresse 1
