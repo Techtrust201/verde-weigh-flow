@@ -1,4 +1,4 @@
-import { Users, Star, Building, TrendingUp } from "lucide-react";
+import { Users, User, Building, FileCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Client } from "@/lib/database";
 
@@ -34,11 +34,11 @@ export default function ClientStatsCards({
     {
       title: "Particuliers",
       value: particulierClients,
-      icon: Star,
+      icon: User,
       trend: null,
-      color: "text-amber-600",
-      bgColor: "bg-amber-50",
-      hoverColor: "hover:bg-amber-100",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      hoverColor: "hover:bg-blue-100",
       filterType: "particuliers",
     },
     {
@@ -54,7 +54,7 @@ export default function ClientStatsCards({
     {
       title: "Avec SIRET",
       value: clientsWithSiret,
-      icon: TrendingUp,
+      icon: FileCheck,
       trend: null,
       color: "text-green-600",
       bgColor: "bg-green-50",

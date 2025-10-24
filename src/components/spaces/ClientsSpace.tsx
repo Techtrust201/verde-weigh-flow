@@ -352,7 +352,7 @@ export default function ClientsSpace() {
     let filtered = [...sortedClients];
 
     // Filtre rapide
-    if (quickFilter === "favorites") {
+    if (quickFilter === "noSiret") {
       filtered = filtered.filter((c) => !c.siret || c.siret.trim() === "");
     } else if (quickFilter === "professionals") {
       filtered = filtered.filter(
@@ -360,10 +360,12 @@ export default function ClientsSpace() {
       );
     } else if (quickFilter === "particuliers") {
       filtered = filtered.filter((c) => c.typeClient === "particulier");
-    } else if (quickFilter === "trackDechet") {
-      filtered = filtered.filter((c) => c.siret && c.siret.trim() !== "");
     } else if (quickFilter === "withSiret") {
       filtered = filtered.filter((c) => c.siret && c.siret.trim() !== "");
+    } else if (quickFilter === "withEmail") {
+      filtered = filtered.filter((c) => c.email && c.email.trim() !== "");
+    } else if (quickFilter === "withPhone") {
+      filtered = filtered.filter((c) => c.telephone && c.telephone.trim() !== "");
     }
 
     // Recherche

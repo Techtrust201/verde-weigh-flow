@@ -1,4 +1,4 @@
-import { Star, Building, User, AlertCircle, X } from "lucide-react";
+import { FileCheck, Building, User, AlertCircle, X, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ClientQuickFiltersProps {
@@ -19,10 +19,10 @@ export default function ClientQuickFilters({
       icon: null,
     },
     {
-      id: "favorites",
-      label: "Sans SIRET",
-      icon: Star,
-      color: "text-amber-600",
+      id: "particuliers",
+      label: "Particuliers",
+      icon: User,
+      color: "text-blue-600",
     },
     {
       id: "professionals",
@@ -31,16 +31,28 @@ export default function ClientQuickFilters({
       color: "text-purple-600",
     },
     {
-      id: "particuliers",
-      label: "Particuliers",
-      icon: User,
-      color: "text-blue-600",
+      id: "withSiret",
+      label: "Avec SIRET",
+      icon: FileCheck,
+      color: "text-green-600",
     },
     {
-      id: "trackDechet",
-      label: "Avec SIRET",
+      id: "noSiret",
+      label: "Sans SIRET",
       icon: AlertCircle,
-      color: "text-green-600",
+      color: "text-orange-600",
+    },
+    {
+      id: "withEmail",
+      label: "Avec Email",
+      icon: Mail,
+      color: "text-cyan-600",
+    },
+    {
+      id: "withPhone",
+      label: "Avec Téléphone",
+      icon: Phone,
+      color: "text-indigo-600",
     },
   ];
 
