@@ -226,9 +226,9 @@ export default function HistoriqueSpace() {
       </div>
 
       <Tabs defaultValue="pesees" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="pesees">Pesées</TabsTrigger>
-          <TabsTrigger value="trackdechet">Track Déchet</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 max-w-2xl mx-auto h-12">
+          <TabsTrigger value="pesees" className="text-base font-semibold">Pesées</TabsTrigger>
+          <TabsTrigger value="trackdechet" className="text-base font-semibold">Track Déchet</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pesees" className="space-y-6">
