@@ -239,6 +239,14 @@ export const PeseeDetailDialog = ({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
+                  {client?.codeClient && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">
+                        Code client
+                      </label>
+                      <p className="mt-1 font-semibold">{client.codeClient}</p>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-gray-500">
                       Nom de l'entreprise
