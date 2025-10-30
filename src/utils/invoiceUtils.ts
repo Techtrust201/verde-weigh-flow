@@ -80,7 +80,27 @@ export const generateInvoiceContent = async (
 
   const prixUnitaireHT = net > 0 ? finalTotalHT / net : 0;
   const tauxTVA = selectedProduct?.tauxTVA || 20;
-  const montantTVAProduit = Math.max(0, finalTotalTTC - finalTotalHT);
+
+  // Détail des taxes actives pour l'affichage (sans modifier les totaux enregistrés)
+  const taxesDetails = activeTaxes.map((tax) => {
+    const montantHT = finalTotalHT * (tax.taux / 100);
+    const tvaRate = (tax.tauxTVA ?? 20) / 100;
+    const montantTVA = montantHT * tvaRate;
+    return {
+      nom: tax.nom,
+      taux: tax.taux,
+      tauxTVA: tax.tauxTVA ?? 20,
+      montantHT,
+      montantTVA,
+      montantTTC: montantHT + montantTVA,
+    };
+  });
+  const totalTaxesHT = taxesDetails.reduce((s, t) => s + t.montantHT, 0);
+  const totalTaxesTVA = taxesDetails.reduce((s, t) => s + t.montantTVA, 0);
+  const montantTVAProduit = Math.max(
+    0,
+    finalTotalTTC - finalTotalHT - (totalTaxesHT + totalTaxesTVA)
+  );
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR");
@@ -399,6 +419,17 @@ export const generateInvoiceContent = async (
               <td class="label">TVA (${tauxTVA}%)</td>
               <td class="amount">${montantTVAProduit.toFixed(2)} €</td>
             </tr>
+            ${taxesDetails
+              .map(
+                (tax) => `
+            <tr>
+              <td class="label">${tax.nom} (${tax.taux}% + TVA ${
+                  tax.tauxTVA
+                }%)</td>
+              <td class="amount">${tax.montantTTC.toFixed(2)} €</td>
+            </tr>`
+              )
+              .join("")}
             <tr class="total-final">
               <td class="label">TOTAL TTC</td>
               <td class="amount">${finalTotalTTC.toFixed(2)} €</td>
