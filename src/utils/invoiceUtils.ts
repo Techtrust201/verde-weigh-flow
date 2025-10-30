@@ -1,4 +1,10 @@
-import { Product, Transporteur, Client, UserSettings, db } from "@/lib/database";
+import {
+  Product,
+  Transporteur,
+  Client,
+  UserSettings,
+  db,
+} from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
 
 export const generateInvoiceContent = async (
@@ -11,34 +17,70 @@ export const generateInvoiceContent = async (
   const userSettingsData = await db.userSettings.toArray();
   const userSettings = userSettingsData[0];
 
-  // Récupérer les taxes actives
-  const activeTaxes = (await db.taxes.toArray()).filter(t => t.active);
+  // Récupérer les taxes actives (si on souhaite afficher le détail plus tard)
+  const activeTaxes = (await db.taxes.toArray()).filter((t) => t.active);
   const selectedProduct = products.find((p) => p.id === formData.produitId);
   const selectedTransporteur = transporteurs.find(
     (t) => t.id === formData.transporteurId
   );
 
-  // Calculs des poids et prix
+  // Calculs des poids
   const poidsEntree = parseFloat(formData.poidsEntree.replace(",", ".")) || 0;
   const poidsSortie = parseFloat(formData.poidsSortie.replace(",", ".")) || 0;
   const net = Math.abs(poidsEntree - poidsSortie);
 
-  const prixUnitaireHT = selectedProduct?.prixHT || 0;
-  const totalHT = net * prixUnitaireHT;
-  
-  // Calcul de la TVA produit
+  // Charger la pesée enregistrée pour utiliser les montants finaux (source de vérité)
+  // 1) Essai par numeroBon (si présent)
+  let savedPesee = null as unknown as {
+    prixHT: number;
+    prixTTC: number;
+  } | null;
+  try {
+    if (formData.numeroBon) {
+      const match = await db.pesees
+        .filter((p) => p.numeroBon === formData.numeroBon)
+        .first();
+      if (match) {
+        savedPesee = { prixHT: match.prixHT, prixTTC: match.prixTTC };
+      }
+    }
+    // 2) Repli: rechercher la pesée la plus récente correspondant au produit/plaque/net si pas trouvé
+    if (!savedPesee) {
+      const candidates = await db.pesees
+        .filter(
+          (p) =>
+            p.produitId === formData.produitId &&
+            p.nomEntreprise === formData.nomEntreprise &&
+            Math.abs(p.net - net) < 1e-6 // tolérance stricte sur le net
+        )
+        .toArray();
+      if (candidates.length > 0) {
+        candidates.sort(
+          (a, b) =>
+            new Date(b.dateHeure).getTime() - new Date(a.dateHeure).getTime()
+        );
+        const m = candidates[0];
+        savedPesee = { prixHT: m.prixHT, prixTTC: m.prixTTC };
+      }
+    }
+  } catch (e) {
+    // Ignorer l'absence de pesée correspondante; on utilisera un repli sûr
+  }
+
+  // Déterminer les montants à afficher
+  const finalTotalHT =
+    savedPesee?.prixHT ?? (selectedProduct?.prixHT || 0) * net;
+  const finalTotalTTC =
+    savedPesee?.prixTTC ??
+    (() => {
+      const taux = selectedProduct?.tauxTVA || 20;
+      const produitTVA = finalTotalHT * (taux / 100);
+      return finalTotalHT + produitTVA; // sans taxes additionnelles si pas de pesée trouvée
+    })();
+
+  const prixUnitaireHT = net > 0 ? finalTotalHT / net : 0;
   const tauxTVA = selectedProduct?.tauxTVA || 20;
-  const montantTVAProduit = totalHT * (tauxTVA / 100);
-  
-  // Calcul des taxes additionnelles actives
-  const taxesDetails = activeTaxes.map(tax => ({
-    nom: tax.nom,
-    taux: tax.taux,
-    montant: totalHT * (tax.taux / 100),
-  }));
-  
-  const totalTaxes = taxesDetails.reduce((sum, tax) => sum + tax.montant, 0);
-  const totalTTC = totalHT + montantTVAProduit + totalTaxes;
+  const montantTVAProduit = Math.max(0, finalTotalTTC - finalTotalHT);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR");
@@ -286,7 +328,9 @@ export const generateInvoiceContent = async (
       <div class="invoice-container">
         <div class="header">
           <div class="company-info">
-            <div class="company-name">BDV ${userSettings?.siret ? `- SIRET: ${userSettings.siret}` : ''}</div>
+            <div class="company-name">BDV ${
+              userSettings?.siret ? `- SIRET: ${userSettings.siret}` : ""
+            }</div>
             <div class="company-details">
               600, chemin de la Levade
               Les Iscles<br>
@@ -340,7 +384,7 @@ export const generateInvoiceContent = async (
               </td>
               <td class="amount">${net.toFixed(3)} T</td>
               <td class="amount">${prixUnitaireHT.toFixed(2)} €</td>
-              <td class="amount">${totalHT.toFixed(2)} €</td>
+              <td class="amount">${finalTotalHT.toFixed(2)} €</td>
             </tr>
           </tbody>
         </table>
@@ -349,21 +393,15 @@ export const generateInvoiceContent = async (
           <table class="totals-table">
             <tr>
               <td class="label">Total HT</td>
-              <td class="amount">${totalHT.toFixed(2)} €</td>
+              <td class="amount">${finalTotalHT.toFixed(2)} €</td>
             </tr>
             <tr>
               <td class="label">TVA (${tauxTVA}%)</td>
               <td class="amount">${montantTVAProduit.toFixed(2)} €</td>
             </tr>
-            ${taxesDetails.map(tax => `
-            <tr>
-              <td class="label">${tax.nom} (${tax.taux}%)</td>
-              <td class="amount">${tax.montant.toFixed(2)} €</td>
-            </tr>
-            `).join('')}
             <tr class="total-final">
               <td class="label">TOTAL TTC</td>
-              <td class="amount">${totalTTC.toFixed(2)} €</td>
+              <td class="amount">${finalTotalTTC.toFixed(2)} €</td>
             </tr>
           </table>
         </div>
