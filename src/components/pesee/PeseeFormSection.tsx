@@ -642,39 +642,21 @@ export const PeseeFormSection = ({
           )}
         </div>
         <div>
-          <Label
-            htmlFor="plaque"
-            className={cn(validationErrors.plaque && "text-red-600")}
-          >
-            Plaque *
-            {validationErrors.plaque && (
-              <span className="text-red-500 ml-1">*</span>
-            )}
-          </Label>
-          <Combobox
-            options={(() => {
-              if (currentData?.clientId) {
-                const client = clients.find(
-                  (c) => c.id === currentData.clientId
-                );
-                return (
-                  client?.plaques?.map((plaque) => ({
-                    value: plaque,
-                    label: plaque,
-                  })) || []
-                );
-              }
-              return [];
-            })()}
+          <PlaqueAutocomplete
             value={currentData?.plaque || ""}
-            onValueChange={(value) => updateCurrentTab({ plaque: value })}
-            placeholder="Sélectionner ou saisir une plaque..."
-            searchPlaceholder="Rechercher ou saisir une plaque..."
-            emptyText="Aucune plaque trouvée. Vous pouvez saisir directement."
-            className={cn(
-              validationErrors.plaque &&
-                "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
-            )}
+            clients={clients}
+            onSelect={(match) => {
+              updateCurrentTab({
+                plaque: match.plaque,
+                clientId: match.client.id!,
+                nomEntreprise: match.client.raisonSociale,
+                typeClient: match.client.typeClient as
+                  | "particulier"
+                  | "professionnel"
+                  | "micro-entreprise",
+              });
+            }}
+            onChange={(val) => updateCurrentTab({ plaque: val })}
           />
           {validationErrors.plaque && (
             <p className="text-red-600 text-sm mt-1">

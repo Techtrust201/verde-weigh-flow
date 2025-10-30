@@ -711,6 +711,28 @@ export default function PeseeSpace() {
         }
       }
 
+      // Calculs totaux alignés avec l'UI (taxes sur HT + TVA produit + TVA des taxes)
+      const totalHT = net * prixHT;
+      let totalTTC: number;
+      try {
+        const activeTaxes = (await db.taxes.toArray()).filter((t) => t.active);
+        const taxesHT = activeTaxes.reduce(
+          (sum, tax) => sum + totalHT * (tax.taux / 100),
+          0
+        );
+        const tauxTVAProduit = selectedProduct.tauxTVA || 20;
+        const montantTVAProduit = totalHT * (tauxTVAProduit / 100);
+        const montantTVATaxes = activeTaxes.reduce(
+          (sum, tax) =>
+            sum + totalHT * (tax.taux / 100) * ((tax.tauxTVA ?? 20) / 100),
+          0
+        );
+        totalTTC = totalHT + taxesHT + montantTVAProduit + montantTVATaxes;
+      } catch {
+        // Fallback si lecture des taxes échoue: TTC basé sur PU TTC
+        totalTTC = net * prixTTC;
+      }
+
       // Générer les numéros selon le type de document
       let numeroBon = "";
       let numeroFacture = "";
@@ -765,8 +787,8 @@ export default function PeseeSpace() {
         // déjà en tonnes
         net,
         // déjà en tonnes
-        prixHT: net * prixHT,
-        prixTTC: net * prixTTC,
+        prixHT: totalHT,
+        prixTTC: totalTTC,
         transporteurId: currentData.transporteurId || undefined,
         transporteurLibre: currentData.transporteurLibre || undefined, // Sauvegarder le transporteur libre
         typeClient: currentData.typeClient || "particulier",
