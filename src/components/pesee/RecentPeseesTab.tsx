@@ -6,6 +6,7 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import {
@@ -37,8 +38,37 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
 
   const columns: ColumnDef<Pesee>[] = [
     {
+      accessorKey: "typeDocument",
+      header: "Type",
+      cell: ({ row }) => {
+        const type = row.original.typeDocument || "bon_livraison";
+        if (type === "bon_livraison") {
+          return <Badge variant="outline">📄 Bon</Badge>;
+        } else if (type === "facture") {
+          return <Badge variant="outline">🧾 Facture</Badge>;
+        } else {
+          return <Badge variant="outline">📄🧾 Bon + Facture</Badge>;
+        }
+      },
+    },
+    {
       accessorKey: "numeroBon",
-      header: "N° Bon",
+      header: "Numéros",
+      cell: ({ row }) => {
+        const pesee = row.original;
+        const nums: string[] = [];
+        if (pesee.numeroBon) nums.push(pesee.numeroBon);
+        if (pesee.numeroFacture) nums.push(pesee.numeroFacture);
+        return (
+          <Button
+            variant="ghost"
+            className="p-0 h-auto text-blue-600 hover:text-blue-800"
+            onClick={() => setSelectedPesee(pesee)}
+          >
+            {nums.join(" / ") || "N/A"}
+          </Button>
+        );
+      },
     },
     {
       accessorKey: "dateHeure",
@@ -96,6 +126,16 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
     {
       accessorKey: "moyenPaiement",
       header: "Paiement",
+      cell: ({ row }) => (
+        <Badge
+          variant={
+            row.original.moyenPaiement === "Direct" ? "default" : "secondary"
+          }
+          className="text-xs"
+        >
+          {row.original.moyenPaiement}
+        </Badge>
+      ),
     },
   ];
 
@@ -103,10 +143,31 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
     data: pesees,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-    getPaginationRowModel: getCoreRowModel(),
+    globalFilterFn: (row, columnId, filterValue) => {
+      const pesee = row.original;
+      const searchValue = filterValue.toLowerCase();
+
+      // Chercher dans numeroBon ET numeroFacture
+      const matchesNumeroBon =
+        pesee.numeroBon?.toLowerCase().includes(searchValue) || false;
+      const matchesNumeroFacture =
+        pesee.numeroFacture?.toLowerCase().includes(searchValue) || false;
+      const matchesNomEntreprise =
+        pesee.nomEntreprise?.toLowerCase().includes(searchValue) || false;
+      const matchesPlaque =
+        pesee.plaque?.toLowerCase().includes(searchValue) || false;
+
+      return (
+        matchesNumeroBon ||
+        matchesNumeroFacture ||
+        matchesNomEntreprise ||
+        matchesPlaque
+      );
+    },
     state: {
       sorting,
       columnFilters,
@@ -118,7 +179,7 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Rechercher..."
+          placeholder="Rechercher (numéro, client, plaque)..."
           value={globalFilter ?? ""}
           onChange={(e) => setGlobalFilter(e.target.value)}
           className="ml-auto w-1/4"
@@ -146,68 +207,18 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => {
-                return (
-                  <TableRow key={row.id}>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        className="p-0 h-auto text-blue-600 hover:text-blue-800"
-                        onClick={() => setSelectedPesee(row.original)}
-                      >
-                        {row.original.numeroBon}
-                      </Button>
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="text-sm">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {new Date(row.original.dateHeure).toLocaleDateString()}{" "}
-                      {new Date(row.original.dateHeure).toLocaleTimeString()}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {row.original.nomEntreprise}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {row.original.plaque}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {products.find((p) => p.id === row.original.produitId)
-                        ?.nom || "N/A"}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {/* Afficher le transporteur libre en priorité, sinon le transporteur officiel, sinon le client */}
-                      {row.original.transporteurLibre?.trim()
-                        ? row.original.transporteurLibre.trim()
-                        : transporteurs.find(
-                            (t) => t.id === row.original.transporteurId
-                          )
-                        ? `${
-                            transporteurs.find(
-                              (t) => t.id === row.original.transporteurId
-                            )?.prenom
-                          } ${
-                            transporteurs.find(
-                              (t) => t.id === row.original.transporteurId
-                            )?.nom
-                          }`
-                        : row.original.nomEntreprise}
-                    </TableCell>
-                    <TableCell className="text-sm font-medium">
-                      {row.original.net.toFixed(3)} T
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          row.original.moyenPaiement === "Direct"
-                            ? "default"
-                            : "secondary"
-                        }
-                        className="text-xs"
-                      >
-                        {row.original.moyenPaiement}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                  ))}
+                </TableRow>
+              ))
             ) : (
               <TableRow>
                 <TableCell

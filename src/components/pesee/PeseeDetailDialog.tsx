@@ -116,7 +116,14 @@ export const PeseeDetailDialog = ({
     produitId: pesee.produitId,
     poidsEntree: pesee.poidsEntree.toString(),
     poidsSortie: pesee.poidsSortie.toString(),
-    moyenPaiement: pesee.moyenPaiement as any,
+    moyenPaiement: pesee.moyenPaiement as
+      | "ESP"
+      | "CB"
+      | "CHQ"
+      | "VIR"
+      | "PRVT"
+      | "Direct"
+      | "En compte",
     clientId: pesee.clientId || 0,
     transporteurId: pesee.transporteurId || 0,
     transporteurLibre: pesee.transporteurLibre || "",
@@ -183,7 +190,8 @@ export const PeseeDetailDialog = ({
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <FileText className="h-5 w-5 mr-2" />
-              Détails de la pesée - {pesee.numeroBon}
+              Détails de la pesée -{" "}
+              {pesee.numeroBon || pesee.numeroFacture || "N/A"}
             </DialogTitle>
           </DialogHeader>
 
@@ -209,9 +217,25 @@ export const PeseeDetailDialog = ({
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">
-                      Numéro de bon
+                      Type de document
                     </label>
-                    <p className="mt-1 font-semibold">{pesee.numeroBon}</p>
+                    <p className="mt-1">
+                      {pesee.typeDocument === "bon_livraison" &&
+                        "📄 Bon de livraison"}
+                      {pesee.typeDocument === "facture" && "🧾 Facture"}
+                      {pesee.typeDocument === "les_deux" &&
+                        "📄🧾 Bon de livraison + Facture"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">
+                      Numéro(s)
+                    </label>
+                    <p className="mt-1 font-semibold">
+                      {pesee.numeroBon && pesee.numeroFacture
+                        ? `${pesee.numeroBon} / ${pesee.numeroFacture}`
+                        : pesee.numeroBon || pesee.numeroFacture || "N/A"}
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">
@@ -406,39 +430,45 @@ export const PeseeDetailDialog = ({
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {(pesee.typeDocument === "bon_livraison" ||
+                    pesee.typeDocument === "les_deux") && (
                     <Button
                       onClick={handlePrintBon}
                       disabled={isPrinting}
                       variant="outline"
-                      className="justify-center text-sm"
+                      className="w-full justify-center text-sm"
                       size="sm"
                     >
                       <Printer className="h-4 w-4 mr-2" />
                       Bon de pesée
                     </Button>
+                  )}
+                  {(pesee.typeDocument === "facture" ||
+                    pesee.typeDocument === "les_deux") && (
                     <Button
                       onClick={handlePrintFacture}
                       disabled={isPrinting}
                       variant="outline"
-                      className="justify-center text-sm"
+                      className="w-full justify-center text-sm"
                       size="sm"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Facture
                     </Button>
-                  </div>
-                  <Button
-                    onClick={handlePrintBoth}
-                    disabled={isPrinting}
-                    variant="secondary"
-                    className="w-full justify-center text-sm"
-                    size="sm"
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    <FileText className="h-4 w-4 mr-2" />
-                    Bon + Facture
-                  </Button>
+                  )}
+                  {pesee.typeDocument === "les_deux" && (
+                    <Button
+                      onClick={handlePrintBoth}
+                      disabled={isPrinting}
+                      variant="secondary"
+                      className="w-full justify-center text-sm"
+                      size="sm"
+                    >
+                      <Printer className="h-4 w-4 mr-2" />
+                      <FileText className="h-4 w-4 mr-2" />
+                      Bon + Facture
+                    </Button>
+                  )}
 
                   {/* Bouton Track Déchet - visible seulement pour professionnels */}
                   {pesee && client?.typeClient !== "particulier" && (

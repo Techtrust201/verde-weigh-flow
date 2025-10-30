@@ -33,6 +33,9 @@ export default function PeseeSpace() {
     getCurrentTabData,
     generateBonNumber,
     generateUniqueBLNumber,
+    generateNextFANumber,
+    generateUniqueFANumber,
+    getMaxSequenceNumber,
     getTabLabel,
   } = usePeseeTabs();
   const [showRecentTab, setShowRecentTab] = useState(false);
@@ -467,8 +470,10 @@ export default function PeseeSpace() {
     setIsSaveDialogOpen(false);
   };
 
-  const handleSaveAndPrint = async () => {
-    const success = await savePesee();
+  const handleSaveAndPrint = async (
+    typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
+  ) => {
+    const success = await savePesee(typeDocument);
     if (success) {
       const currentData = getCurrentTabData();
       if (currentData) {
@@ -486,8 +491,10 @@ export default function PeseeSpace() {
     setIsSaveDialogOpen(false);
   };
 
-  const handleSaveAndPrintInvoice = async () => {
-    const success = await savePesee();
+  const handleSaveAndPrintInvoice = async (
+    typeDocument: "bon_livraison" | "facture" | "les_deux" = "facture"
+  ) => {
+    const success = await savePesee(typeDocument);
     if (success) {
       const currentData = getCurrentTabData();
       if (currentData && currentData.clientId) {
@@ -512,8 +519,10 @@ export default function PeseeSpace() {
     setIsSaveDialogOpen(false);
   };
 
-  const handleSavePrintBonAndInvoice = async () => {
-    const success = await savePesee();
+  const handleSavePrintBonAndInvoice = async (
+    typeDocument: "bon_livraison" | "facture" | "les_deux" = "les_deux"
+  ) => {
+    const success = await savePesee(typeDocument);
     if (success) {
       const currentData = getCurrentTabData();
       if (currentData && currentData.clientId) {
@@ -553,7 +562,9 @@ export default function PeseeSpace() {
     setIsSaveDialogOpen(false);
   };
 
-  const savePesee = async (): Promise<boolean> => {
+  const savePesee = async (
+    typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
+  ): Promise<boolean> => {
     const currentData = getCurrentTabData();
 
     // Réinitialiser les erreurs de validation
@@ -700,12 +711,53 @@ export default function PeseeSpace() {
         }
       }
 
-      // Générer un numéro BL unique basé sur la BDD
-      const uniqueNumeroBon = await generateUniqueBLNumber();
+      // Générer les numéros selon le type de document
+      let numeroBon = "";
+      let numeroFacture = "";
+
+      if (typeDocument === "bon_livraison" || typeDocument === "les_deux") {
+        if (typeDocument === "les_deux") {
+          // Pour "les_deux", utiliser getMaxSequenceNumber pour éviter les conflits
+          let nextSeqNum = await getMaxSequenceNumber();
+          numeroBon = `BL${nextSeqNum}`;
+          numeroFacture = `FA${nextSeqNum}`;
+
+          // Vérifier l'unicité pour les deux numéros
+          let blExists =
+            (await db.pesees.where("numeroBon").equals(numeroBon).count()) > 0;
+          let faExists =
+            (await db.pesees
+              .where("numeroFacture")
+              .equals(numeroFacture)
+              .count()) > 0;
+
+          while (blExists || faExists) {
+            nextSeqNum++;
+            numeroBon = `BL${nextSeqNum}`;
+            numeroFacture = `FA${nextSeqNum}`;
+            blExists =
+              (await db.pesees.where("numeroBon").equals(numeroBon).count()) >
+              0;
+            faExists =
+              (await db.pesees
+                .where("numeroFacture")
+                .equals(numeroFacture)
+                .count()) > 0;
+          }
+        } else {
+          numeroBon = await generateUniqueBLNumber();
+        }
+      }
+
+      if (typeDocument === "facture") {
+        numeroFacture = await generateUniqueFANumber();
+      }
 
       const peseeData: Pesee = {
         ...currentData,
-        numeroBon: uniqueNumeroBon, // Utiliser le numéro BL unique généré
+        numeroBon: numeroBon || "", // Vide si seulement facture
+        numeroFacture: numeroFacture || undefined,
+        typeDocument,
         dateHeure: new Date(),
         poidsEntree,
         // déjà en tonnes
@@ -721,6 +773,8 @@ export default function PeseeSpace() {
         synchronized: false,
         version: 1,
         // Version initiale
+        numeroBonExported: false,
+        numeroFactureExported: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -730,9 +784,19 @@ export default function PeseeSpace() {
       // Vérifier Track Déchet automatique
       await checkAndGenerateTrackDechet(savedPeseeId, peseeData);
 
+      // Créer le message de succès selon le type de document
+      let successMessage = "";
+      if (typeDocument === "bon_livraison") {
+        successMessage = `Bon de livraison n°${numeroBon} créé avec succès.`;
+      } else if (typeDocument === "facture") {
+        successMessage = `Facture n°${numeroFacture} créée avec succès.`;
+      } else {
+        successMessage = `Bon de livraison n°${numeroBon} et Facture n°${numeroFacture} créés avec succès.`;
+      }
+
       toast({
         title: "Pesée enregistrée",
-        description: `Bon n°${uniqueNumeroBon} créé avec succès.`,
+        description: successMessage,
       });
       updateCurrentTab({
         numeroBon: generateBonNumber(),
@@ -766,7 +830,7 @@ export default function PeseeSpace() {
    */
   const checkAndGenerateTrackDechet = async (
     savedPeseeId: number,
-    peseeData: any
+    peseeData: Pesee
   ) => {
     try {
       // Trouver le produit

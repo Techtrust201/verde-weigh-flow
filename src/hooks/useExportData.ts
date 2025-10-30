@@ -76,7 +76,11 @@ export const useExportData = () => {
     pesees: Pesee[],
     exportType: "new" | "selective" | "complete",
     format: ExportFormat = "csv",
-    template?: SageTemplate
+    template?: SageTemplate,
+    documentTypeFilter:
+      | "tous"
+      | "bons_uniquement"
+      | "factures_uniquement" = "tous"
   ): Promise<string> => {
     // Si c'est un export avec template Sage, utiliser la logique spéciale
     if (format === "sage-template" && template) {
@@ -109,7 +113,8 @@ export const useExportData = () => {
         pesees,
         productMap,
         clientMap,
-        transporteurMap
+        transporteurMap,
+        documentTypeFilter
       );
     } else if (format === "csv-txt") {
       // Format CSV mais avec extension TXT
@@ -327,7 +332,11 @@ export const useExportData = () => {
     pesees: Pesee[],
     productMap: Map<number, Product>,
     clientMap: Map<number, Client>,
-    transporteurMap: Map<number, Transporteur>
+    transporteurMap: Map<number, Transporteur>,
+    documentTypeFilter:
+      | "tous"
+      | "bons_uniquement"
+      | "factures_uniquement" = "tous"
   ): string => {
     // Format Sage 50 complet basé sur import_BL_auto_number.txt
     // Toutes les 87 colonnes du format Sage 50
@@ -428,28 +437,24 @@ export const useExportData = () => {
 
     const rows: string[] = [];
 
-    // Générer les lignes pour chaque pesée
-    pesees.forEach((pesee) => {
-      const product = productMap.get(pesee.produitId);
-      const client = pesee.clientId ? clientMap.get(pesee.clientId) : null;
-      const transporteur = pesee.transporteurId
-        ? transporteurMap.get(pesee.transporteurId)
-        : null;
-
-      const dateFormatted = pesee.dateHeure.toLocaleDateString("fr-FR"); // DD/MM/YYYY
-      const prixUnitaireHT = product
-        ? product.prixHT
-        : pesee.prixHT / pesee.net;
-      const prixUnitaireTTC = product
-        ? product.prixTTC
-        : pesee.prixTTC / pesee.net;
-      const tauxTVA = product ? product.tauxTVA : 20;
-
+    // Helper function to generate E and L lines for a document type
+    const generateLines = (
+      typePiece: string,
+      numeroPiece: string,
+      pesee: Pesee,
+      product: Product | undefined,
+      client: Client | undefined,
+      transporteur: Transporteur | undefined,
+      dateFormatted: string,
+      prixUnitaireHT: number,
+      prixUnitaireTTC: number,
+      tauxTVA: number
+    ) => {
       // Ligne E (En-tête de la pièce)
       const ligneE = [
         "E", // Type de Ligne
-        "Bon de livraison", // Type de pièce
-        pesee.numeroBon, // N° pièce (numéro BL séquentiel)
+        typePiece, // Type de pièce (Bon de livraison ou Facture)
+        numeroPiece, // N° pièce
         dateFormatted, // Date pièce
         "", // Facturation TTC
         "", // Référence pièce
@@ -640,6 +645,73 @@ export const useExportData = () => {
       ];
 
       rows.push(ligneL.join("\t"));
+    };
+
+    // Générer les lignes pour chaque pesée selon son typeDocument
+    pesees.forEach((pesee) => {
+      const product = productMap.get(pesee.produitId);
+      const client = pesee.clientId ? clientMap.get(pesee.clientId) : null;
+      const transporteur = pesee.transporteurId
+        ? transporteurMap.get(pesee.transporteurId)
+        : null;
+
+      const dateFormatted = pesee.dateHeure.toLocaleDateString("fr-FR"); // DD/MM/YYYY
+      const prixUnitaireHT = product
+        ? product.prixHT
+        : pesee.prixHT / pesee.net;
+      const prixUnitaireTTC = product
+        ? product.prixTTC
+        : pesee.prixTTC / pesee.net;
+      const tauxTVA = product ? product.tauxTVA : 20;
+
+      // Générer les lignes selon le typeDocument et le filtre
+      if (
+        documentTypeFilter === "tous" ||
+        documentTypeFilter === "bons_uniquement"
+      ) {
+        if (
+          (pesee.typeDocument === "bon_livraison" ||
+            pesee.typeDocument === "les_deux") &&
+          pesee.numeroBon
+        ) {
+          generateLines(
+            "Bon de livraison",
+            pesee.numeroBon,
+            pesee,
+            product,
+            client,
+            transporteur,
+            dateFormatted,
+            prixUnitaireHT,
+            prixUnitaireTTC,
+            tauxTVA
+          );
+        }
+      }
+
+      if (
+        documentTypeFilter === "tous" ||
+        documentTypeFilter === "factures_uniquement"
+      ) {
+        if (
+          (pesee.typeDocument === "facture" ||
+            pesee.typeDocument === "les_deux") &&
+          pesee.numeroFacture
+        ) {
+          generateLines(
+            "Facture",
+            pesee.numeroFacture,
+            pesee,
+            product,
+            client,
+            transporteur,
+            dateFormatted,
+            prixUnitaireHT,
+            prixUnitaireTTC,
+            tauxTVA
+          );
+        }
+      }
     });
 
     const separator = "\t"; // Tabulation pour Sage 50
@@ -652,7 +724,11 @@ export const useExportData = () => {
     exportType: "new" | "selective" | "complete" = "new",
     selectedPesees?: Pesee[],
     format: ExportFormat = "csv",
-    template?: SageTemplate
+    template?: SageTemplate,
+    documentTypeFilter:
+      | "tous"
+      | "bons_uniquement"
+      | "factures_uniquement" = "tous"
   ): Promise<void> => {
     setIsLoading(true);
     try {
@@ -699,7 +775,8 @@ export const useExportData = () => {
         peseesToExport,
         exportType,
         format,
-        template
+        template,
+        documentTypeFilter
       );
 
       // Créer le nom de fichier selon le format
@@ -828,11 +905,47 @@ export const useExportData = () => {
         await Promise.all(
           peseesToExport.map(async (pesee) => {
             const currentExports = pesee.exportedAt || [];
-            const updatedPesee = {
+            const updatedPesee: Partial<Pesee> = {
               ...pesee,
               exportedAt: [...currentExports, now],
               updatedAt: now,
             };
+
+            // Mettre à jour les flags d'export selon le format et le filtre
+            if (format === "sage-bl-complet") {
+              // Pour sage-bl-complet, marquer selon le documentTypeFilter
+              if (
+                documentTypeFilter === "tous" ||
+                documentTypeFilter === "bons_uniquement"
+              ) {
+                if (
+                  pesee.typeDocument === "bon_livraison" ||
+                  pesee.typeDocument === "les_deux"
+                ) {
+                  updatedPesee.numeroBonExported = true;
+                }
+              }
+              if (
+                documentTypeFilter === "tous" ||
+                documentTypeFilter === "factures_uniquement"
+              ) {
+                if (
+                  pesee.typeDocument === "facture" ||
+                  pesee.typeDocument === "les_deux"
+                ) {
+                  updatedPesee.numeroFactureExported = true;
+                }
+              }
+            } else {
+              // Pour les autres formats, marquer tout comme exporté
+              if (pesee.numeroBon) {
+                updatedPesee.numeroBonExported = true;
+              }
+              if (pesee.numeroFacture) {
+                updatedPesee.numeroFactureExported = true;
+              }
+            }
+
             await db.pesees.update(pesee.id!, updatedPesee);
           })
         );

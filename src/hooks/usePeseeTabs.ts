@@ -52,7 +52,7 @@ export const usePeseeTabs = () => {
       id: firstTabId,
       label: `Pesée 1`,
       formData: {
-        numeroBon: "BL-INIT-TEMP", // Numéro temporaire pour l'initialisation
+        numeroBon: "À générer", // Le numéro sera généré à la validation
         nomEntreprise: "",
         plaque: "",
         chantier: "",
@@ -91,30 +91,22 @@ export const usePeseeTabs = () => {
     return tabs.length > 0 ? tabs[0].id : null;
   });
 
-  // Effet pour initialiser le premier onglet avec le bon numéro BL
+  // Effet pour corriger les anciens onglets avec des formats obsolètes
   useEffect(() => {
     const initializeFirstTab = async () => {
       if (tabs.length > 0) {
         const firstTab = tabs[0];
-        // Vérifier si c'est un onglet avec numéro temporaire OU un numéro ancien (non BL)
-        const isOldFormat = !firstTab.formData.numeroBon.startsWith("BL");
-        if (firstTab.formData.numeroBon === "BL-INIT-TEMP" || isOldFormat) {
-          try {
-            const realBonNumber = await generateNextBLNumber();
-            // Mettre à jour uniquement si le numéro est différent pour éviter des re-renders inutiles
-            if (firstTab.formData.numeroBon !== realBonNumber) {
-              updateCurrentTab({ numeroBon: realBonNumber });
-            }
-          } catch (error) {
-            console.error(
-              "Erreur lors de l'initialisation du numéro BL:",
-              error
-            );
-            // En cas d'erreur, utiliser un numéro par défaut
-            if (firstTab.formData.numeroBon !== "BL50000") {
-              updateCurrentTab({ numeroBon: "BL50000" });
-            }
-          }
+        // Corriger seulement les onglets avec des formats obsolètes (ancien système)
+        // Les nouveaux onglets doivent afficher "À générer"
+        const isOldFormat =
+          firstTab.formData.numeroBon === "BL-INIT-TEMP" ||
+          (firstTab.formData.numeroBon.startsWith("BL") &&
+            firstTab.formData.numeroBon !== "À générer" &&
+            !firstTab.formData.numeroBon.match(/^BL\d+$/)); // Si ce n'est pas un format BL50000
+
+        if (isOldFormat) {
+          // Pour les anciens formats, on met "À générer" car les numéros sont générés à la validation
+          updateCurrentTab({ numeroBon: "À générer" });
         }
       }
     };
@@ -123,9 +115,8 @@ export const usePeseeTabs = () => {
   }, []); // Exécuter seulement au montage
 
   const generateBonNumber = () => {
-    // Génère un numéro temporaire pour l'interface
-    // Le vrai numéro sera généré au moment de la sauvegarde
-    return `BL-TEMP-${crypto.randomUUID().slice(0, 8)}`;
+    // Retourner un placeholder vide - le numéro sera généré uniquement à la validation
+    return "À générer";
   };
 
   // Fonction pour générer le prochain numéro BL séquentiel basé sur la BDD
@@ -174,15 +165,114 @@ export const usePeseeTabs = () => {
     return numeroBon;
   };
 
+  // Fonction pour générer le prochain numéro FA séquentiel basé sur la BDD
+  const generateNextFANumber = async (): Promise<string> => {
+    try {
+      // Récupérer la dernière pesée avec numeroFacture triée par numeroFacture décroissant
+      const lastPesee = await db.pesees
+        .orderBy("numeroFacture")
+        .reverse()
+        .filter((p) => p.numeroFacture && p.numeroFacture.startsWith("FA"))
+        .first();
+
+      let nextNumber = 50000; // Valeur par défaut
+
+      if (
+        lastPesee &&
+        lastPesee.numeroFacture &&
+        lastPesee.numeroFacture.startsWith("FA")
+      ) {
+        // Extraire le numéro de la dernière pesée (ex: "FA50123" → 50123)
+        const currentNum = parseInt(lastPesee.numeroFacture.substring(2));
+        if (!isNaN(currentNum)) {
+          nextNumber = currentNum + 1;
+        }
+      }
+
+      return `FA${nextNumber}`;
+    } catch (error) {
+      console.error("Erreur lors de la génération du numéro FA:", error);
+      // En cas d'erreur, retourner un numéro par défaut
+      return "FA50000";
+    }
+  };
+
+  // Fonction pour vérifier et générer un numéro FA unique
+  const generateUniqueFANumber = async (): Promise<string> => {
+    let numeroFacture = await generateNextFANumber();
+    let attempts = 0;
+
+    // Vérifier qu'aucune pesée n'existe déjà avec ce numéro
+    while (
+      (await db.pesees.where("numeroFacture").equals(numeroFacture).count()) > 0
+    ) {
+      const num = parseInt(numeroFacture.substring(2)) + 1;
+      numeroFacture = `FA${num}`;
+      attempts++;
+
+      // Sécurité pour éviter les boucles infinies
+      if (attempts > 100) {
+        throw new Error(
+          "Impossible de générer un numéro FA unique après 100 tentatives"
+        );
+      }
+    }
+
+    return numeroFacture;
+  };
+
+  // Fonction optimisée pour trouver le plus grand numéro séquentiel entre BL et FA
+  const getMaxSequenceNumber = async (): Promise<number> => {
+    try {
+      // Récupérer les dernières pesées triées pour optimiser la recherche
+      const [lastBL, lastFA] = await Promise.all([
+        db.pesees
+          .orderBy("numeroBon")
+          .reverse()
+          .filter((p) => p.numeroBon && p.numeroBon.startsWith("BL"))
+          .first(),
+        db.pesees
+          .orderBy("numeroFacture")
+          .reverse()
+          .filter((p) => p.numeroFacture && p.numeroFacture.startsWith("FA"))
+          .first(),
+      ]);
+
+      let maxBL = 50000;
+      let maxFA = 50000;
+
+      // Extraire le numéro BL maximum
+      if (lastBL?.numeroBon) {
+        const num = parseInt(lastBL.numeroBon.substring(2));
+        if (!isNaN(num)) {
+          maxBL = num;
+        }
+      }
+
+      // Extraire le numéro FA maximum
+      if (lastFA?.numeroFacture) {
+        const num = parseInt(lastFA.numeroFacture.substring(2));
+        if (!isNaN(num)) {
+          maxFA = num;
+        }
+      }
+
+      // Retourner le plus grand + 1
+      return Math.max(maxBL, maxFA) + 1;
+    } catch (error) {
+      console.error("Erreur lors de la récupération du max séquentiel:", error);
+      return 50000;
+    }
+  };
+
   const createNewTab = useCallback(async () => {
     const newTabId = crypto.randomUUID();
-    // Générer le prochain numéro BL séquentiel immédiatement
-    const newBonNumber = await generateNextBLNumber();
+    // Plus de génération immédiate - le numéro sera généré à la validation
     const newTab: PeseeTab = {
       id: newTabId,
       label: `Pesée ${tabs.length + 1}`, // Label initial, sera mis à jour dynamiquement
       formData: {
-        numeroBon: newBonNumber,
+        numeroBon: "À générer",
         nomEntreprise: "",
         plaque: "",
         chantier: "",
@@ -303,6 +393,9 @@ export const usePeseeTabs = () => {
     generateBonNumber,
     generateNextBLNumber,
     generateUniqueBLNumber,
+    generateNextFANumber,
+    generateUniqueFANumber,
+    getMaxSequenceNumber,
     getTabLabel,
   };
 };

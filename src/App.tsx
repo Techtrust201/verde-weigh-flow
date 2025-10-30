@@ -15,6 +15,7 @@ import ComptabiliteSpace from "./components/spaces/ComptabiliteSpace";
 import { initializeSampleData, checkDataIntegrity } from "./lib/database";
 import { setupAutoSync } from "./utils/syncScheduler";
 import { connectionManager } from "./utils/connectionManager";
+import { migrateExistingPesees } from "./utils/migrations/addDocumentType";
 import "./utils/backgroundSyncTrackDechet"; // Démarrage automatique de la sync Track Déchet
 
 const App = () => {
@@ -24,6 +25,9 @@ const App = () => {
     const initializeApp = async () => {
       // Initialize PWA and database
       await initializeSampleData();
+
+      // Migration des pesées existantes pour ajouter typeDocument
+      await migrateExistingPesees();
 
       // Vérifier périodiquement l'intégrité des données (toutes les 5 minutes)
       const dataIntegrityCheck = setInterval(() => {

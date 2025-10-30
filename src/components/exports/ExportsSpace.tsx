@@ -78,6 +78,9 @@ export default function ExportsSpace() {
   const [editingTemplate, setEditingTemplate] = useState<SageTemplate | null>(
     null
   );
+  const [documentTypeFilter, setDocumentTypeFilter] = useState<
+    "tous" | "bons_uniquement" | "factures_uniquement"
+  >("tous");
 
   const {
     exportLogs,
@@ -299,7 +302,8 @@ export default function ExportsSpace() {
       exportType,
       selectedPesees,
       selectedFormat,
-      selectedTemplate || undefined
+      selectedTemplate || undefined,
+      selectedFormat === "sage-bl-complet" ? documentTypeFilter : "tous"
     );
 
     // Recharger les données après l'export pour mettre à jour les statuts
@@ -465,6 +469,39 @@ export default function ExportsSpace() {
                     onCreateNew={handleCreateNewTemplate}
                     onEditExisting={handleEditExistingTemplate}
                   />
+                )}
+
+                {/* Filtre par type de document - uniquement pour sage-bl-complet */}
+                {selectedFormat === "sage-bl-complet" && (
+                  <div>
+                    <Label>Type de document à exporter</Label>
+                    <Select
+                      value={documentTypeFilter}
+                      onValueChange={(value) =>
+                        setDocumentTypeFilter(
+                          value as
+                            | "tous"
+                            | "bons_uniquement"
+                            | "factures_uniquement"
+                        )
+                      }
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tous">
+                          Tous les documents (Bons + Factures)
+                        </SelectItem>
+                        <SelectItem value="bons_uniquement">
+                          Bons de livraison uniquement
+                        </SelectItem>
+                        <SelectItem value="factures_uniquement">
+                          Factures uniquement
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
 
                 {/* Type de données - toujours disponible sauf pour sage-articles */}
@@ -725,8 +762,9 @@ export default function ExportsSpace() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-12"></TableHead>
+                            <TableHead>Type</TableHead>
                             <TableHead>Date</TableHead>
-                            <TableHead>N° Bon</TableHead>
+                            <TableHead>Numéros</TableHead>
                             <TableHead>Client</TableHead>
                             <TableHead>Produit</TableHead>
                             <TableHead>Quantité</TableHead>
@@ -739,6 +777,12 @@ export default function ExportsSpace() {
                             const product = products.find(
                               (p) => p.id === pesee.produitId
                             );
+                            const type = pesee.typeDocument || "bon_livraison";
+                            const nums: string[] = [];
+                            if (pesee.numeroBon) nums.push(pesee.numeroBon);
+                            if (pesee.numeroFacture)
+                              nums.push(pesee.numeroFacture);
+
                             return (
                               <TableRow key={pesee.id}>
                                 <TableCell>
@@ -750,11 +794,24 @@ export default function ExportsSpace() {
                                   />
                                 </TableCell>
                                 <TableCell>
+                                  {type === "bon_livraison" ? (
+                                    <Badge variant="outline">📄 Bon</Badge>
+                                  ) : type === "facture" ? (
+                                    <Badge variant="outline">🧾 Facture</Badge>
+                                  ) : (
+                                    <Badge variant="outline">
+                                      📄🧾 Bon + Facture
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
                                   {new Date(pesee.dateHeure).toLocaleDateString(
                                     "fr-FR"
                                   )}
                                 </TableCell>
-                                <TableCell>{pesee.numeroBon}</TableCell>
+                                <TableCell>
+                                  {nums.join(" / ") || "N/A"}
+                                </TableCell>
                                 <TableCell>{pesee.nomEntreprise}</TableCell>
                                 <TableCell>{product?.nom || "N/A"}</TableCell>
                                 <TableCell>{pesee.net?.toFixed(2)} t</TableCell>
@@ -893,7 +950,8 @@ export default function ExportsSpace() {
                                 Clients Sage
                               </h4>
                               <p className="text-sm text-muted-foreground">
-                                Importez vos clients et leurs coordonnées complètes
+                                Importez vos clients et leurs coordonnées
+                                complètes
                               </p>
                             </div>
                             <SageClientImportDialog />
@@ -984,7 +1042,9 @@ export default function ExportsSpace() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
                     <Settings className="h-5 w-5 text-primary" />
-                    <h3 className="text-lg font-semibold">Templates existants</h3>
+                    <h3 className="text-lg font-semibold">
+                      Templates existants
+                    </h3>
                   </div>
                   <SageTemplateManager />
                 </div>

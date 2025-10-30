@@ -79,7 +79,9 @@ export interface Product {
 
 export interface Pesee {
   id?: number;
-  numeroBon: string;
+  numeroBon: string; // "BL50000" ou vide si seulement facture
+  numeroFacture?: string; // "FA50000" ou vide si seulement bon
+  typeDocument: "bon_livraison" | "facture" | "les_deux"; // Type de document validé
   dateHeure: Date;
   plaque: string;
   nomEntreprise: string;
@@ -99,6 +101,8 @@ export interface Pesee {
   version: number; // Version pour détecter les conflits
   lastSyncHash?: string; // Hash de la dernière version synchronisée
   exportedAt?: Date[]; // Dates des exports (support des exports multiples)
+  numeroBonExported?: boolean; // BL déjà exporté
+  numeroFactureExported?: boolean; // FA déjà exporté
   // Track Déchet
   bsdId?: string; // ID du BSD généré dans Track Déchet
   createdAt: Date;
@@ -437,6 +441,29 @@ class AppDatabase extends Dexie {
         "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
       pesees:
         "++id, numeroBon, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      taxes: "++id, nom, taux, active, createdAt, updatedAt",
+      paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
+    });
+
+    // Version 10 - Ajout des champs pour factures et bons de livraison distincts
+    this.version(10).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, codeClient, tvaIntracom, modePaiementPreferentiel, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, numeroFacture, typeDocument, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, numeroBonExported, numeroFactureExported, createdAt, updatedAt",
       users: "++id, nom, prenom, email, role, createdAt, updatedAt",
       userSettings:
         "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
