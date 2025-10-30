@@ -275,8 +275,6 @@ export const PeseeFormSection = ({
               <SelectItem value="CHQ">🏦 Chèque (CHQ)</SelectItem>
               <SelectItem value="VIR">📤 Virement (VIR)</SelectItem>
               <SelectItem value="PRVT">📋 Prélèvement (PRVT)</SelectItem>
-              <SelectItem value="Direct">💵 Direct</SelectItem>
-              <SelectItem value="En compte">📊 En compte</SelectItem>
             </SelectContent>
           </Select>
         </div>

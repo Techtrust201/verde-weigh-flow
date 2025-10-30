@@ -1,8 +1,8 @@
-import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import * as React from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -10,21 +10,27 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
+
+interface ComboboxOption {
+  value: string;
+  label: string;
+  keywords?: string; // texte de recherche additionnel non affiché (ex: code article)
+}
 
 interface ComboboxProps {
-  options: { value: string; label: string }[]
-  value?: string
-  onValueChange: (value: string) => void
-  placeholder?: string
-  searchPlaceholder?: string
-  emptyText?: string
-  className?: string
+  options: ComboboxOption[];
+  value?: string;
+  onValueChange: (value: string) => void;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyText?: string;
+  className?: string;
 }
 
 export function Combobox({
@@ -34,9 +40,9 @@ export function Combobox({
   placeholder = "Sélectionner...",
   searchPlaceholder = "Rechercher...",
   emptyText = "Aucun élément trouvé.",
-  className
+  className,
 }: ComboboxProps) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(false);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -55,30 +61,26 @@ export function Combobox({
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput
-            placeholder={searchPlaceholder}
-            onValueChange={(search) => {
-              // Permettre la saisie libre même si pas dans les options
-              if (search && !options.find(opt => opt.value === search)) {
-                onValueChange(search);
-              }
-            }}
-          />
+          <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty className="text-sm text-center py-6 px-2">
               <div className="space-y-1">
-                <div>{emptyText.split('.')[0]}.</div>
-                <div className="text-xs text-muted-foreground">{emptyText.split('.')[1]}.</div>
+                <div>{emptyText.split(".")[0]}.</div>
+                <div className="text-xs text-muted-foreground">
+                  {emptyText.split(".")[1]}.
+                </div>
               </div>
             </CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.value}
+                  value={`${option.label} ${option.value} ${
+                    option.keywords ?? ""
+                  }`}
                   onSelect={(currentValue) => {
-                    onValueChange(currentValue === value ? "" : currentValue)
-                    setOpen(false)
+                    onValueChange(option.value);
+                    setOpen(false);
                   }}
                 >
                   <Check
@@ -95,5 +97,5 @@ export function Combobox({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

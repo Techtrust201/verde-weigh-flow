@@ -175,6 +175,7 @@ export interface Tax {
   id?: number;
   nom: string;
   taux: number; // Pourcentage (ex: 20 pour 20%)
+  tauxTVA?: number; // Taux de TVA appliqué sur cette taxe (par défaut 20)
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -477,6 +478,41 @@ class AppDatabase extends Dexie {
       taxes: "++id, nom, taux, active, createdAt, updatedAt",
       paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
     });
+
+    // Version 11 - Ajout du champ tauxTVA sur les taxes
+    this.version(11)
+      .stores({
+        clients:
+          "++id, typeClient, raisonSociale, siret, email, ville, codeClient, tvaIntracom, modePaiementPreferentiel, createdAt, updatedAt",
+        transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+        products:
+          "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+        pesees:
+          "++id, numeroBon, numeroFacture, typeDocument, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, synchronized, version, exportedAt, numeroBonExported, numeroFactureExported, createdAt, updatedAt",
+        users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+        userSettings:
+          "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
+        bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+        config: "++id, key, createdAt, updatedAt",
+        syncLogs: "++id, type, status, synchronized, createdAt",
+        conflictLogs:
+          "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+        exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+        sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+        taxes: "++id, nom, taux, tauxTVA, active, createdAt, updatedAt",
+        paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
+      })
+      .upgrade(async (tx) => {
+        // Définir tauxTVA=20 par défaut pour les taxes existantes
+        await tx
+          .table("taxes")
+          .toCollection()
+          .modify((tax: Tax & { tauxTVA?: number }) => {
+            if (tax.tauxTVA === undefined || tax.tauxTVA === null) {
+              tax.tauxTVA = 20;
+            }
+          });
+      });
   }
 }
 

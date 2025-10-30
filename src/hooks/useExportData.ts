@@ -88,10 +88,11 @@ export const useExportData = () => {
     }
 
     // Charger toutes les données nécessaires
-    const [products, clients, transporteurs] = await Promise.all([
+    const [products, clients, transporteurs, taxes] = await Promise.all([
       db.products.toArray(),
       db.clients.toArray(),
       db.transporteurs.toArray(),
+      db.taxes ? db.taxes.toArray() : Promise.resolve([] as any[]),
     ]);
 
     // Créer des maps pour un accès rapide
@@ -109,12 +110,16 @@ export const useExportData = () => {
         transporteurMap
       );
     } else if (format === "sage-bl-complet") {
+      const activeTaxes = (taxes as any[])
+        .filter((t) => t && t.active)
+        .map((t) => ({ nom: t.nom, taux: t.taux, tauxTVA: t.tauxTVA }));
       return generateSageBLCompletFormat(
         pesees,
         productMap,
         clientMap,
         transporteurMap,
-        documentTypeFilter
+        documentTypeFilter,
+        activeTaxes
       );
     } else if (format === "csv-txt") {
       // Format CSV mais avec extension TXT
@@ -336,7 +341,8 @@ export const useExportData = () => {
     documentTypeFilter:
       | "tous"
       | "bons_uniquement"
-      | "factures_uniquement" = "tous"
+      | "factures_uniquement" = "tous",
+    activeTaxes: { nom: string; taux: number; tauxTVA?: number }[] = []
   ): string => {
     // Format Sage 50 complet basé sur import_BL_auto_number.txt
     // Toutes les 87 colonnes du format Sage 50
@@ -437,6 +443,28 @@ export const useExportData = () => {
 
     const rows: string[] = [];
 
+    const mapPaymentToSageCode = (p: string | undefined): string => {
+      switch ((p || "").toUpperCase()) {
+        case "ESP":
+          return "ESP";
+        case "CB":
+          return "CB";
+        case "CHQ":
+          return "CHQ";
+        case "VIR":
+          return "VIR";
+        case "PRVT":
+          return "PRVT";
+        // Compat anciens en base
+        case "DIRECT":
+          return "ESP";
+        case "EN COMPTE":
+          return "PRVT";
+        default:
+          return "PRVT";
+      }
+    };
+
     // Helper function to generate E and L lines for a document type
     const generateLines = (
       typePiece: string,
@@ -454,7 +482,7 @@ export const useExportData = () => {
       const ligneE = [
         "E", // Type de Ligne
         typePiece, // Type de pièce (Bon de livraison ou Facture)
-        numeroPiece, // N° pièce
+        typePiece === "Bon de livraison" ? numeroPiece : "", // N° pièce (vide pour Facture)
         dateFormatted, // Date pièce
         "", // Facturation TTC
         "", // Référence pièce
@@ -476,7 +504,7 @@ export const useExportData = () => {
         "", // Assujetti TPF
         "", // Observations
         "", // Nom contact
-        pesee.moyenPaiement === "Direct" ? "ESP" : "PRVT", // Code mode de paiement
+        mapPaymentToSageCode(pesee.moyenPaiement), // Code mode de paiement
         dateFormatted, // Date échéance
         dateFormatted, // Date livraison pièce
         "", // Validée
@@ -548,7 +576,7 @@ export const useExportData = () => {
 
       rows.push(ligneE.join("\t"));
 
-      // Ligne L (Ligne de détail)
+      // Ligne L (Ligne de détail) – produit
       const ligneL = [
         "L", // Type de Ligne
         "", // Type de pièce (vide pour ligne L)
@@ -645,6 +673,114 @@ export const useExportData = () => {
       ];
 
       rows.push(ligneL.join("\t"));
+
+      // Lignes L supplémentaires pour chaque taxe active
+      if (activeTaxes.length > 0) {
+        let lineNumber = 2; // après la ligne produit = 1
+        activeTaxes.forEach((tax) => {
+          const baseHT = pesee.prixHT; // base hors taxe
+          const montantTaxeHT = baseHT * (tax.taux / 100);
+          const tvaTaxe = montantTaxeHT * ((tax.tauxTVA ?? 20) / 100);
+          const montantTaxeTTC = montantTaxeHT + tvaTaxe;
+
+          const ligneTax = [
+            "L", // Type de Ligne
+            "", // Type de pièce (vide)
+            "", // N° pièce (vide)
+            "", // Date pièce (vide)
+            "", // Facturation TTC
+            "", // Référence pièce
+            "", // Remarque
+            "", // Code représentant pièce
+            "", // Code client
+            "", // Nom client
+            "", // Forme juridique
+            "", // Adresse 1
+            "", // Adresse 2
+            "", // Adresse 3
+            "", // Code postal
+            "", // Ville
+            "", // Code pays
+            "", // Pays
+            "", // Mode gestion TVA
+            "", // Tarif client
+            "", // NII
+            "", // Assujetti TPF
+            "", // Observations
+            "", // Nom contact
+            "", // Code mode de paiement
+            "", // Date échéance
+            "", // Date livraison pièce
+            "", // Validée
+            "", // Transmise
+            "", // Soldée
+            "", // Comptabilisée
+            "", // Irrécouvrable
+            "", // Date irrécouvrabilité
+            "", // Libellé irrécouvrable
+            "", // Compta. irrécouvrable
+            "", // Code affaire pièce
+            "", // Type de remise pièce
+            "", // Taux remise pièce
+            "", // Mt remise pièce
+            "", // Taux Escompte
+            "", // Statut devis
+            "", // Ref. commande
+            "", // Pas de retour stock
+            "", // Port Sans TVA
+            "", // Port Soumis TVA
+            "", // Taux TVA Port Soumis
+            "", // TVA Port Non Perçue
+            "", // Mt total TTC (vide pour ligne L)
+            "ARTDIVERS", // Code article pour ligne taxe
+            "1.000", // Quantité
+            montantTaxeHT.toFixed(2), // PU HT
+            montantTaxeTTC.toFixed(2), // PU TTC
+            (tax.tauxTVA ?? 20).toFixed(2), // Taux TVA
+            "", // Ligne commentaire
+            tax.nom, // Description
+            "0", // Niveau sous-total
+            "", // Taux TPF
+            "", // Code dépôt
+            "", // Pds Unit. Brut
+            "", // Pds Unit. Net
+            "", // Qté par colis
+            "", // Nbre colis
+            dateFormatted, // Date livraison
+            "", // Type remise ligne
+            "", // Taux remise ligne
+            "", // Mt unit. remise HT
+            "", // Mt unit. remise TTC
+            "", // PA HT
+            "", // PAMP
+            "", // Unité
+            "", // Référence fournisseur
+            "REP0017", // Code représentant ligne
+            "", // Type Commission Repr.
+            "", // Taux commission
+            "", // Mt commission
+            "", // Code affaire ligne
+            "", // Mt unit. Eco-part. TTC
+            "1.000", // Qté Livrée
+            "", // TVA Non Perçue
+            String(lineNumber++), // N° ligne
+            "", // Options Sage
+            "", // Catégorie de TVA
+            "", // Motif d'exonération de TVA
+            "", // Société de livraison
+            "", // Adresse 1 de livraison
+            "", // Adresse 2 de livraison
+            "", // Adresse 3 de livraison
+            "", // CP de livraison
+            "", // Ville de livraison
+            "FRA", // Code pays de livraison
+            "France", // Pays de livraison
+            "", // Cadre de facturation
+          ];
+
+          rows.push(ligneTax.join("\t"));
+        });
+      }
     };
 
     // Générer les lignes pour chaque pesée selon son typeDocument
@@ -656,13 +792,13 @@ export const useExportData = () => {
         : null;
 
       const dateFormatted = pesee.dateHeure.toLocaleDateString("fr-FR"); // DD/MM/YYYY
-      const prixUnitaireHT = product
-        ? product.prixHT
-        : pesee.prixHT / pesee.net;
-      const prixUnitaireTTC = product
-        ? product.prixTTC
-        : pesee.prixTTC / pesee.net;
-      const tauxTVA = product ? product.tauxTVA : 20;
+      const prixUnitaireHT = pesee.net > 0 ? pesee.prixHT / pesee.net : 0;
+      const prixUnitaireTTC = pesee.net > 0 ? pesee.prixTTC / pesee.net : 0;
+      const tauxTVA =
+        product?.tauxTVA ??
+        (prixUnitaireHT > 0
+          ? Math.max(0, (prixUnitaireTTC / prixUnitaireHT - 1) * 100)
+          : 20);
 
       // Générer les lignes selon le typeDocument et le filtre
       if (

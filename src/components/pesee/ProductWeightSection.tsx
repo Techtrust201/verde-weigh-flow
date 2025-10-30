@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Select,
   SelectContent,
@@ -12,12 +13,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Calculator, Info } from "lucide-react";
 import { Product, Client, db } from "@/lib/database";
+import { PeseeTabFormData } from "@/hooks/usePeseeTabs";
 import { cn } from "@/lib/utils";
 
 interface ProductWeightSectionProps {
-  currentData: any;
+  currentData: PeseeTabFormData;
   products: Product[];
-  updateCurrentTab: (updates: any) => void;
+  updateCurrentTab: (updates: Partial<PeseeTabFormData>) => void;
   validationErrors?: {
     plaque?: boolean;
     nomEntreprise?: boolean;
@@ -36,38 +38,21 @@ export const ProductWeightSection = ({
   const [calculatedCost, setCalculatedCost] = useState<{
     ht: number;
     ttc: number;
-    taxesDetails?: Array<{ nom: string; taux: number; montant: number }>;
+    taxesDetails?: Array<{
+      nom: string;
+      taux: number;
+      montant: number;
+      tvaAppliquee?: number;
+    }>;
     montantTVA?: number;
     tauxTVA?: number;
   } | null>(null);
 
-  useEffect(() => {
-    if (currentData?.clientId) {
-      loadClient();
-    } else {
+  const loadClient = useCallback(async () => {
+    if (!currentData?.clientId) {
       setClient(null);
+      return;
     }
-  }, [currentData?.clientId]);
-
-  useEffect(() => {
-    if (
-      currentData?.produitId &&
-      currentData?.poidsEntree &&
-      currentData?.poidsSortie
-    ) {
-      calculateCost();
-    } else {
-      setCalculatedCost(null);
-    }
-  }, [
-    currentData?.produitId,
-    currentData?.poidsEntree,
-    currentData?.poidsSortie,
-    client,
-  ]);
-
-  const loadClient = async () => {
-    if (!currentData?.clientId) return;
     try {
       const clientData = await db.clients.get(currentData.clientId);
       setClient(clientData || null);
@@ -75,9 +60,13 @@ export const ProductWeightSection = ({
       console.error("Erreur lors du chargement du client:", error);
       setClient(null);
     }
-  };
+  }, [currentData?.clientId]);
 
-  const calculateCost = async () => {
+  useEffect(() => {
+    loadClient();
+  }, [loadClient]);
+
+  const calculateCost = useCallback(async () => {
     if (
       !currentData?.produitId ||
       !currentData?.poidsEntree ||
@@ -136,6 +125,7 @@ export const ProductWeightSection = ({
         nom: tax.nom,
         taux: tax.taux,
         montant: totalHT * (tax.taux / 100),
+        tvaAppliquee: tax.tauxTVA ?? 20,
       }));
 
       const totalTaxes = taxesDetails.reduce(
@@ -143,7 +133,12 @@ export const ProductWeightSection = ({
         0
       );
       const tauxTVA = selectedProduct.tauxTVA || 20;
-      const montantTVA = totalHT * (tauxTVA / 100);
+      const montantTVAProduit = totalHT * (tauxTVA / 100);
+      const montantTVATaxes = taxesDetails.reduce(
+        (sum, t) => sum + t.montant * ((t.tvaAppliquee ?? 20) / 100),
+        0
+      );
+      const montantTVA = montantTVAProduit + montantTVATaxes;
       const totalTTC = totalHT + montantTVA + totalTaxes;
 
       setCalculatedCost({
@@ -161,7 +156,24 @@ export const ProductWeightSection = ({
         ttc: net * prixTTC,
       });
     }
-  };
+  }, [currentData, products, client]);
+
+  useEffect(() => {
+    if (
+      currentData?.produitId &&
+      currentData?.poidsEntree &&
+      currentData?.poidsSortie
+    ) {
+      calculateCost();
+    } else {
+      setCalculatedCost(null);
+    }
+  }, [
+    calculateCost,
+    currentData?.produitId,
+    currentData?.poidsEntree,
+    currentData?.poidsSortie,
+  ]);
 
   const selectedProduct = products.find((p) => p.id === currentData?.produitId);
 
@@ -210,33 +222,26 @@ export const ProductWeightSection = ({
                   <span className="text-red-500 ml-1">*</span>
                 )}
               </Label>
-              <Select
+              <Combobox
+                options={products.map((product) => ({
+                  value: String(product.id!),
+                  label: product.nom,
+                  keywords: product.codeProduct,
+                }))}
                 value={currentData?.produitId?.toString() || ""}
-                onValueChange={(value) =>
-                  updateCurrentTab({ produitId: parseInt(value) })
-                }
-              >
-                <SelectTrigger
-                  className={cn(
-                    validationErrors.produitId &&
-                      "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
-                  )}
-                >
-                  <SelectValue placeholder="Sélectionner un produit" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id!.toString()}>
-                      <div className="flex flex-col">
-                        <span className="text-start">{product.nom}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {getProductDisplayPrice(product)}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => {
+                  const id = parseInt(value);
+                  if (!Number.isNaN(id)) {
+                    updateCurrentTab({ produitId: id });
+                  }
+                }}
+                placeholder="Sélectionner un produit"
+                searchPlaceholder="Rechercher un produit..."
+                className={cn(
+                  validationErrors.produitId &&
+                    "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+                )}
+              />
               {validationErrors.produitId && (
                 <p className="text-red-600 text-sm mt-1">
                   Ce champ est obligatoire
@@ -330,21 +335,34 @@ export const ProductWeightSection = ({
                         </div>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
-                            <span>TVA ({calculatedCost.tauxTVA}%)</span>
+                            <span>TVA produit ({calculatedCost.tauxTVA}%)</span>
                             <span className="font-semibold">
                               {calculatedCost.montantTVA?.toFixed(2)}€
                             </span>
                           </div>
-                          {calculatedCost.taxesDetails.map((tax, index) => (
-                            <div key={index} className="flex justify-between">
-                              <span>
-                                {tax.nom} ({tax.taux}%)
-                              </span>
-                              <span className="font-semibold">
-                                {tax.montant.toFixed(2)}€
-                              </span>
-                            </div>
-                          ))}
+                          {calculatedCost.taxesDetails.map((tax, index) => {
+                            const tvaTaxe =
+                              tax.montant * ((tax.tvaAppliquee ?? 20) / 100);
+                            return (
+                              <div key={index} className="flex flex-col">
+                                <div className="flex justify-between">
+                                  <span>
+                                    {tax.nom} ({tax.taux}%)
+                                  </span>
+                                  <span className="font-semibold">
+                                    {tax.montant.toFixed(2)}€
+                                  </span>
+                                </div>
+                                <div className="flex justify-between text-muted-foreground">
+                                  <span className="pl-4">
+                                    TVA sur {tax.nom} ({tax.tvaAppliquee ?? 20}
+                                    %)
+                                  </span>
+                                  <span>{tvaTaxe.toFixed(2)}€</span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

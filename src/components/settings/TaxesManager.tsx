@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,14 +31,11 @@ export function TaxesManager() {
   const [formData, setFormData] = useState({
     nom: "",
     taux: "",
+    tauxTVA: "20", // TVA appliquée sur la taxe (par défaut 20)
   });
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadTaxes();
-  }, []);
-
-  const loadTaxes = async () => {
+  const loadTaxes = useCallback(async () => {
     try {
       const allTaxes = await db.taxes.orderBy("nom").toArray();
       setTaxes(allTaxes);
@@ -50,7 +47,11 @@ export function TaxesManager() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadTaxes();
+  }, [loadTaxes]);
 
   const handleOpenDialog = (tax?: Tax) => {
     if (tax) {
@@ -58,10 +59,11 @@ export function TaxesManager() {
       setFormData({
         nom: tax.nom,
         taux: tax.taux.toString(),
+        tauxTVA: (tax.tauxTVA ?? 20).toString(),
       });
     } else {
       setEditingTax(null);
-      setFormData({ nom: "", taux: "" });
+      setFormData({ nom: "", taux: "", tauxTVA: "20" });
     }
     setIsDialogOpen(true);
   };
@@ -69,7 +71,7 @@ export function TaxesManager() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingTax(null);
-    setFormData({ nom: "", taux: "" });
+    setFormData({ nom: "", taux: "", tauxTVA: "20" });
   };
 
   const handleSave = async () => {
@@ -83,7 +85,16 @@ export function TaxesManager() {
     }
 
     const taux = parseFloat(formData.taux);
+    const tauxTVA = parseFloat(formData.tauxTVA || "20");
     if (isNaN(taux) || taux < 0 || taux > 100) {
+      if (isNaN(tauxTVA) || tauxTVA < 0 || tauxTVA > 100) {
+        toast({
+          title: "Erreur",
+          description: "La TVA doit être un nombre entre 0 et 100.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: "Erreur",
         description: "Le taux doit être un nombre entre 0 et 100.",
@@ -99,6 +110,7 @@ export function TaxesManager() {
         await db.taxes.update(editingTax.id!, {
           nom: formData.nom.trim(),
           taux,
+          tauxTVA,
           updatedAt: now,
         });
         toast({
@@ -110,6 +122,7 @@ export function TaxesManager() {
         await db.taxes.add({
           nom: formData.nom.trim(),
           taux,
+          tauxTVA,
           active: true,
           createdAt: now,
           updatedAt: now,
@@ -141,7 +154,9 @@ export function TaxesManager() {
       await loadTaxes();
       toast({
         title: tax.active ? "Taxe désactivée" : "Taxe activée",
-        description: `La taxe "${tax.nom}" a été ${tax.active ? "désactivée" : "activée"}.`,
+        description: `La taxe "${tax.nom}" a été ${
+          tax.active ? "désactivée" : "activée"
+        }.`,
       });
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
@@ -209,6 +224,7 @@ export function TaxesManager() {
                 <TableRow>
                   <TableHead>Nom</TableHead>
                   <TableHead>Taux</TableHead>
+                  <TableHead>TVA taxe</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -218,6 +234,7 @@ export function TaxesManager() {
                   <TableRow key={tax.id}>
                     <TableCell className="font-medium">{tax.nom}</TableCell>
                     <TableCell>{tax.taux}%</TableCell>
+                    <TableCell>{tax.tauxTVA ?? 20}%</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Switch
@@ -297,6 +314,29 @@ export function TaxesManager() {
                 />
                 <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tauxTVA">TVA appliquée à cette taxe (%)</Label>
+              <div className="relative">
+                <Input
+                  id="tauxTVA"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={formData.tauxTVA}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tauxTVA: e.target.value })
+                  }
+                  placeholder="20"
+                />
+                <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Cette taxe est assujettie à la TVA. Ajustez le taux si besoin
+                (20% par défaut).
+              </p>
             </div>
           </div>
 
