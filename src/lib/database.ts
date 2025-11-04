@@ -561,37 +561,11 @@ export const initializeSampleData = async () => {
       return;
     }
 
-    // Créer des produits d'exemple
-    const sampleProducts: Product[] = [
-      {
-        nom: "Sable",
-        description: "Sable de construction",
-        prixHT: 25.0,
-        prixTTC: 30.0,
-        unite: "tonne",
-        tva: 20,
-        tauxTVA: 20,
-        codeProduct: "SAB001",
-        isFavorite: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        nom: "Gravier",
-        description: "Gravier pour béton",
-        prixHT: 30.0,
-        prixTTC: 36.0,
-        unite: "tonne",
-        tva: 20,
-        tauxTVA: 20,
-        codeProduct: "GRA001",
-        isFavorite: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
+    // Créer des produits d'exemple (vide pour ne pas créer de produits par défaut)
+    const sampleProducts: Product[] = [];
 
-    await db.products.bulkAdd(sampleProducts);
+    // Ne pas créer de produits par défaut
+    // await db.products.bulkAdd(sampleProducts);
 
     // Créer des taxes d'exemple
     const sampleTaxes: Tax[] = [
