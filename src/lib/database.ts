@@ -86,6 +86,7 @@ export interface Pesee {
   plaque: string;
   nomEntreprise: string;
   chantier?: string;
+  chantierLibre?: string; // Champ libre pour chantier (similaire à transporteurLibre)
   produitId: number;
   poidsEntree: number; // en tonnes
   poidsSortie: number; // en tonnes

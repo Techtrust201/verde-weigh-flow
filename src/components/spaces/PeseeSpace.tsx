@@ -13,7 +13,12 @@ import { PeseeFormSection } from "@/components/pesee/PeseeFormSection";
 import { ProductWeightSection } from "@/components/pesee/ProductWeightSection";
 import { RecentPeseesTab } from "@/components/pesee/RecentPeseesTab";
 import { SaveConfirmDialog } from "@/components/pesee/SaveConfirmDialog";
-import { handlePrint, handlePrintBothBonAndInvoice } from "@/utils/peseeUtils";
+import {
+  handlePrint,
+  handlePrintDirect,
+  handlePrintBothBonAndInvoice,
+  handlePrintDirectBoth,
+} from "@/utils/peseeUtils";
 import { PrintPreviewDialog } from "@/components/ui/print-preview-dialog";
 import { trackDechetProcessor } from "@/utils/trackdechetSyncProcessor";
 import { isTrackDechetApplicable } from "@/utils/trackdechetValidation";
@@ -71,8 +76,10 @@ export default function PeseeSpace() {
     tarifsPreferentiels: {},
   });
   const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
-  const [printContent, setPrintContent] = useState("");
-  const [printTitle, setPrintTitle] = useState("");
+  const [printContent, setPrintContent] = useState<string>("");
+  const [printTitle, setPrintTitle] = useState<string>(
+    "Aperçu avant impression"
+  );
   const [validationErrors, setValidationErrors] = useState<{
     plaque?: boolean;
     nomEntreprise?: boolean;
@@ -466,19 +473,42 @@ export default function PeseeSpace() {
   };
 
   const handleSaveOnly = async () => {
-    await savePesee();
+    await savePesee("bon_livraison");
     setIsSaveDialogOpen(false);
   };
 
   const handleSaveAndPrint = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
   ) => {
-    const success = await savePesee(typeDocument);
-    if (success) {
-      const currentData = getCurrentTabData();
-      if (currentData) {
+    const savedPeseeId = await savePesee(typeDocument);
+    if (savedPeseeId) {
+      // Récupérer la pesée sauvegardée depuis la DB
+      const savedPesee = await db.pesees.get(savedPeseeId);
+      if (savedPesee) {
+        // Créer formDataForPrint à partir de la pesée sauvegardée
+        const formDataForPrint: PeseeTab["formData"] = {
+          numeroBon: savedPesee.numeroBon,
+          nomEntreprise: savedPesee.nomEntreprise,
+          plaque: savedPesee.plaque,
+          chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
+          chantierLibre: savedPesee.chantierLibre,
+          produitId: savedPesee.produitId,
+          poidsEntree: savedPesee.poidsEntree.toString(),
+          poidsSortie: savedPesee.poidsSortie.toString(),
+          moyenPaiement: savedPesee.moyenPaiement as
+            | "ESP"
+            | "CB"
+            | "CHQ"
+            | "VIR"
+            | "PRVT",
+          clientId: savedPesee.clientId || 0,
+          transporteurId: savedPesee.transporteurId || 0,
+          transporteurLibre: savedPesee.transporteurLibre || "",
+          typeClient: savedPesee.typeClient,
+        };
+        // Utiliser handlePrint pour récupérer le contenu et l'afficher dans le preview
         const content = await handlePrint(
-          currentData,
+          formDataForPrint,
           products,
           transporteurs,
           false
@@ -494,26 +524,48 @@ export default function PeseeSpace() {
   const handleSaveAndPrintInvoice = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "facture"
   ) => {
-    const success = await savePesee(typeDocument);
-    if (success) {
-      const currentData = getCurrentTabData();
-      if (currentData && currentData.clientId) {
-        // Récupérer les données client depuis la base
-        const client = clients.find((c) => c.id === currentData.clientId);
-        if (client) {
-          const { generateInvoiceContent } = await import(
-            "@/utils/invoiceUtils"
-          );
-          const invoiceContent = await generateInvoiceContent(
-            currentData,
-            products,
-            transporteurs,
-            client
-          );
-          setPrintContent(invoiceContent);
-          setPrintTitle("Facture");
-          setPrintPreviewOpen(true);
-        }
+    const savedPeseeId = await savePesee(typeDocument);
+    if (savedPeseeId) {
+      // Récupérer la pesée sauvegardée depuis la DB
+      const savedPesee = await db.pesees.get(savedPeseeId);
+      if (savedPesee) {
+        // Récupérer le client
+        const client = savedPesee.clientId
+          ? clients.find((c) => c.id === savedPesee.clientId) || null
+          : null;
+        // Créer formDataForPrint à partir de la pesée sauvegardée
+        const formDataForPrint: PeseeTab["formData"] = {
+          numeroBon: savedPesee.numeroBon,
+          numeroFacture: savedPesee.numeroFacture,
+          nomEntreprise: savedPesee.nomEntreprise,
+          plaque: savedPesee.plaque,
+          chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
+          chantierLibre: savedPesee.chantierLibre,
+          produitId: savedPesee.produitId,
+          poidsEntree: savedPesee.poidsEntree.toString(),
+          poidsSortie: savedPesee.poidsSortie.toString(),
+          moyenPaiement: savedPesee.moyenPaiement as
+            | "ESP"
+            | "CB"
+            | "CHQ"
+            | "VIR"
+            | "PRVT",
+          clientId: savedPesee.clientId || 0,
+          transporteurId: savedPesee.transporteurId || 0,
+          transporteurLibre: savedPesee.transporteurLibre || "",
+          typeClient: savedPesee.typeClient,
+        };
+        // Utiliser handlePrint pour récupérer le contenu et l'afficher dans le preview
+        const content = await handlePrint(
+          formDataForPrint,
+          products,
+          transporteurs,
+          true,
+          client
+        );
+        setPrintContent(content);
+        setPrintTitle("Facture");
+        setPrintPreviewOpen(true);
       }
     }
     setIsSaveDialogOpen(false);
@@ -522,40 +574,47 @@ export default function PeseeSpace() {
   const handleSavePrintBonAndInvoice = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "les_deux"
   ) => {
-    const success = await savePesee(typeDocument);
-    if (success) {
-      const currentData = getCurrentTabData();
-      if (currentData && currentData.clientId) {
-        // Récupérer les données client depuis la base
-        const client = clients.find((c) => c.id === currentData.clientId);
-        if (client) {
-          const { bonContent } = await handlePrintBothBonAndInvoice(
-            currentData,
+    const savedPeseeId = await savePesee(typeDocument);
+    if (savedPeseeId) {
+      // Récupérer la pesée sauvegardée depuis la DB
+      const savedPesee = await db.pesees.get(savedPeseeId);
+      if (savedPesee) {
+        // Récupérer le client
+        const client = savedPesee.clientId
+          ? clients.find((c) => c.id === savedPesee.clientId) || null
+          : null;
+        // Créer formDataForPrint à partir de la pesée sauvegardée
+        const formDataForPrint: PeseeTab["formData"] = {
+          numeroBon: savedPesee.numeroBon,
+          numeroFacture: savedPesee.numeroFacture,
+          nomEntreprise: savedPesee.nomEntreprise,
+          plaque: savedPesee.plaque,
+          chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
+          chantierLibre: savedPesee.chantierLibre,
+          produitId: savedPesee.produitId,
+          poidsEntree: savedPesee.poidsEntree.toString(),
+          poidsSortie: savedPesee.poidsSortie.toString(),
+          moyenPaiement: savedPesee.moyenPaiement as
+            | "ESP"
+            | "CB"
+            | "CHQ"
+            | "VIR"
+            | "PRVT",
+          clientId: savedPesee.clientId || 0,
+          transporteurId: savedPesee.transporteurId || 0,
+          transporteurLibre: savedPesee.transporteurLibre || "",
+          typeClient: savedPesee.typeClient,
+        };
+        // Utiliser handlePrintBothBonAndInvoice pour récupérer le contenu et l'afficher dans le preview
+        const { bonContent: combinedContent } =
+          await handlePrintBothBonAndInvoice(
+            formDataForPrint,
             products,
             transporteurs,
             client
           );
-          setPrintContent(bonContent);
-          setPrintTitle("Bon de pesée + Facture");
-          setPrintPreviewOpen(true);
-        } else {
-          const { bonContent } = await handlePrintBothBonAndInvoice(
-            currentData,
-            products,
-            transporteurs
-          );
-          setPrintContent(bonContent);
-          setPrintTitle("Bon de pesée + Facture");
-          setPrintPreviewOpen(true);
-        }
-      } else {
-        const { bonContent } = await handlePrintBothBonAndInvoice(
-          currentData,
-          products,
-          transporteurs
-        );
-        setPrintContent(bonContent);
-        setPrintTitle("Bon de pesée + Facture");
+        setPrintContent(combinedContent);
+        setPrintTitle("Bon de livraison + Facture");
         setPrintPreviewOpen(true);
       }
     }
@@ -564,7 +623,7 @@ export default function PeseeSpace() {
 
   const savePesee = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
-  ): Promise<boolean> => {
+  ): Promise<number | null> => {
     const currentData = getCurrentTabData();
 
     // Réinitialiser les erreurs de validation
@@ -601,11 +660,17 @@ export default function PeseeSpace() {
             "Veuillez remplir tous les champs obligatoires marqués en rouge.",
           variant: "destructive",
         });
-        return false;
+        return null;
       }
 
+      // Déterminer le chantier à utiliser (chantierLibre en priorité, sinon chantier)
+      const chantierToUse =
+        currentData?.chantierLibre?.trim() ||
+        currentData?.chantier?.trim() ||
+        "";
+
       // Vérification du chantier obligatoire avec suggestion automatique
-      if (!currentData?.chantier || currentData.chantier.trim() === "") {
+      if (!chantierToUse) {
         errors.chantier = true;
         setValidationErrors(errors);
 
@@ -617,7 +682,10 @@ export default function PeseeSpace() {
             const suggestedChantier = `${client.adresse}, ${client.codePostal} ${client.ville}`;
 
             // Auto-remplir avec la suggestion
-            updateCurrentTab({ chantier: suggestedChantier });
+            updateCurrentTab({
+              chantier: suggestedChantier,
+              chantierLibre: "",
+            });
 
             toast({
               title: "Chantier suggéré automatiquement",
@@ -626,7 +694,7 @@ export default function PeseeSpace() {
               variant: "default",
             });
 
-            return false; // Empêcher la sauvegarde pour permettre à l'utilisateur de vérifier
+            return null; // Empêcher la sauvegarde pour permettre à l'utilisateur de vérifier
           } else {
             // Le client n'a pas d'adresse complète
             const client = clients.find((c) => c.id === currentData.clientId);
@@ -640,7 +708,7 @@ export default function PeseeSpace() {
                 : "Impossible de valider la pesée : aucun chantier sélectionné et aucune adresse client disponible. Ajoutez une adresse au client ou sélectionnez un chantier existant.",
               variant: "destructive",
             });
-            return false;
+            return null;
           }
         } else {
           // Pas de client sélectionné
@@ -650,19 +718,8 @@ export default function PeseeSpace() {
               "Le chantier est obligatoire pour valider la pesée. Veuillez en sélectionner un.",
             variant: "destructive",
           });
-          return false;
+          return null;
         }
-      }
-
-      // Validation finale côté serveur - aucune pesée ne peut être sauvegardée sans chantier
-      if (!currentData?.chantier || currentData.chantier.trim() === "") {
-        toast({
-          title: "Erreur de validation",
-          description:
-            "Le chantier est obligatoire pour sauvegarder une pesée.",
-          variant: "destructive",
-        });
-        return false;
       }
 
       const selectedProduct = products.find(
@@ -674,7 +731,7 @@ export default function PeseeSpace() {
           description: "Veuillez sélectionner un produit.",
           variant: "destructive",
         });
-        return false;
+        return null;
       }
 
       // Convertir les poids en tonnes (pas de division par 1000 car déjà en tonnes)
@@ -789,6 +846,8 @@ export default function PeseeSpace() {
         // déjà en tonnes
         prixHT: totalHT,
         prixTTC: totalTTC,
+        chantier: chantierToUse, // Utiliser chantierLibre en priorité, sinon chantier
+        chantierLibre: currentData.chantierLibre || undefined, // Sauvegarder le chantier libre
         transporteurId: currentData.transporteurId || undefined,
         transporteurLibre: currentData.transporteurLibre || undefined, // Sauvegarder le transporteur libre
         typeClient: currentData.typeClient || "particulier",
@@ -822,10 +881,11 @@ export default function PeseeSpace() {
       });
       updateCurrentTab({
         numeroBon: generateBonNumber(),
-        moyenPaiement: "Direct",
+        moyenPaiement: "ESP",
         plaque: "",
         nomEntreprise: "",
         chantier: "",
+        chantierLibre: "",
         produitId: 0,
         poidsEntree: "",
         poidsSortie: "",
@@ -835,7 +895,7 @@ export default function PeseeSpace() {
         typeClient: "particulier",
       });
       loadData();
-      return true;
+      return savedPeseeId;
     } catch (error) {
       console.error("Error saving pesee:", error);
       toast({
@@ -843,7 +903,7 @@ export default function PeseeSpace() {
         description: "Impossible d'enregistrer la pesée.",
         variant: "destructive",
       });
-      return false;
+      return null;
     }
   };
 

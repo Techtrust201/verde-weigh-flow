@@ -113,11 +113,13 @@ export const PrintPreviewDialog = ({
             .print-container {
               display: flex;
               flex-direction: column;
-              gap: 3rem;
+              gap: 1rem;
+                        padding: 5px;
             }
             .copy-type { 
+              margin-top: 1rem;
+              margin-bottom: 1rem;
               text-align: center; 
-              margin-top: 5px; 
               font-weight: bold; 
               font-size: 11px;
               border: 2px solid #000;

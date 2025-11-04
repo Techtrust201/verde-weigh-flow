@@ -69,8 +69,8 @@ export const SaveConfirmDialog = ({
           <DialogTitle>Confirmer l'enregistrement</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">
+          <div className="space-y-4">
+            <Label className="text-lg font-semibold">
               Type de document à valider :
             </Label>
             <RadioGroup
@@ -78,25 +78,31 @@ export const SaveConfirmDialog = ({
               onValueChange={(value) =>
                 setTypeDocument(value as typeof typeDocument)
               }
+              className="space-y-3"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="bon_livraison" id="bon_livraison" />
+              <div className="flex items-center space-x-3">
+                <RadioGroupItem
+                  value="bon_livraison"
+                  id="bon_livraison"
+                  className="h-6 w-6"
+                />
                 <Label
                   htmlFor="bon_livraison"
-                  className="cursor-pointer font-normal"
+                  className="cursor-pointer font-normal text-base"
                 >
                   Bon de livraison uniquement
                 </Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <RadioGroupItem
                   value="facture"
                   id="facture"
                   disabled={!isPaiementDirect}
+                  className="h-6 w-6"
                 />
                 <Label
                   htmlFor="facture"
-                  className={`cursor-pointer font-normal ${
+                  className={`cursor-pointer font-normal text-base ${
                     !isPaiementDirect ? "text-gray-400 cursor-not-allowed" : ""
                   }`}
                 >
@@ -104,15 +110,16 @@ export const SaveConfirmDialog = ({
                   {!isPaiementDirect && "(Paiement direct requis)"}
                 </Label>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3">
                 <RadioGroupItem
                   value="les_deux"
                   id="les_deux"
                   disabled={!isPaiementDirect}
+                  className="h-6 w-6"
                 />
                 <Label
                   htmlFor="les_deux"
-                  className={`cursor-pointer font-normal ${
+                  className={`cursor-pointer font-normal text-base ${
                     !isPaiementDirect ? "text-gray-400 cursor-not-allowed" : ""
                   }`}
                 >

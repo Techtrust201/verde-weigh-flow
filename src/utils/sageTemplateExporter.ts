@@ -193,7 +193,7 @@ export class SageTemplateExporter {
       case "nomEntreprise":
         return pesee.nomEntreprise;
       case "chantier":
-        return pesee.chantier || "";
+        return pesee.chantierLibre?.trim() || pesee.chantier || "";
       case "poidsEntree":
         return pesee.poidsEntree?.toString() || "";
       case "poidsSortie":

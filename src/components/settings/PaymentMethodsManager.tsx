@@ -152,17 +152,18 @@ export function PaymentMethodsManager() {
 
   const handleToggleActive = async (method: PaymentMethod) => {
     try {
+      const newActiveState = !method.active;
       await db.paymentMethods.update(method.id!, {
-        active: !method.active,
+        active: newActiveState,
         updatedAt: new Date(),
       });
       await loadPaymentMethods();
       toast({
-        title: method.active
-          ? "Mode de paiement désactivé"
-          : "Mode de paiement activé",
+        title: newActiveState
+          ? "Mode de paiement activé"
+          : "Mode de paiement désactivé",
         description: `Le mode "${method.libelle}" a été ${
-          method.active ? "désactivé" : "activé"
+          newActiveState ? "activé" : "désactivé"
         }.`,
       });
     } catch (error) {
@@ -346,4 +347,3 @@ export function PaymentMethodsManager() {
     </div>
   );
 }
-

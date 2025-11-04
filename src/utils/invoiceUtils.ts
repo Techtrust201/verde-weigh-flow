@@ -34,14 +34,21 @@ export const generateInvoiceContent = async (
   let savedPesee = null as unknown as {
     prixHT: number;
     prixTTC: number;
+    numeroBon?: string;
+    numeroFacture?: string;
   } | null;
   try {
-    if (formData.numeroBon) {
+    if (formData.numeroBon && formData.numeroBon !== "À générer") {
       const match = await db.pesees
         .filter((p) => p.numeroBon === formData.numeroBon)
         .first();
       if (match) {
-        savedPesee = { prixHT: match.prixHT, prixTTC: match.prixTTC };
+        savedPesee = {
+          prixHT: match.prixHT,
+          prixTTC: match.prixTTC,
+          numeroBon: match.numeroBon,
+          numeroFacture: match.numeroFacture,
+        };
       }
     }
     // 2) Repli: rechercher la pesée la plus récente correspondant au produit/plaque/net si pas trouvé
@@ -60,7 +67,12 @@ export const generateInvoiceContent = async (
             new Date(b.dateHeure).getTime() - new Date(a.dateHeure).getTime()
         );
         const m = candidates[0];
-        savedPesee = { prixHT: m.prixHT, prixTTC: m.prixTTC };
+        savedPesee = {
+          prixHT: m.prixHT,
+          prixTTC: m.prixTTC,
+          numeroBon: m.numeroBon,
+          numeroFacture: m.numeroFacture,
+        };
       }
     }
   } catch (e) {
@@ -104,7 +116,15 @@ export const generateInvoiceContent = async (
 
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR");
-  const numeroFacture = `FAC-${formData.numeroBon}`;
+  // Récupérer le numéro de facture depuis la pesée sauvegardée
+  let numeroFacture = "N/A";
+  if (savedPesee?.numeroFacture) {
+    numeroFacture = savedPesee.numeroFacture;
+  } else if (savedPesee?.numeroBon) {
+    numeroFacture = `FAC-${savedPesee.numeroBon}`;
+  } else if (formData.numeroBon && formData.numeroBon !== "À générer") {
+    numeroFacture = `FAC-${formData.numeroBon}`;
+  }
 
   // Informations client conditionnelles
   const getClientInfo = () => {
@@ -197,6 +217,12 @@ export const generateInvoiceContent = async (
           font-weight: bold;
           color: #333;
           margin-bottom: 3mm;
+        }
+        
+        .company-siret {
+          font-size: 9px;
+          color: #666;
+          margin-bottom: 3px;
         }
         
         .company-details {
@@ -333,13 +359,14 @@ export const generateInvoiceContent = async (
         @media print { 
           @page { 
             size: A4 portrait; 
-            margin: 0; 
+            margin: 5mm; 
           } 
           body { 
             margin: 0; 
             padding: 0;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            background: white !important;
           }
         }
       </style>
@@ -348,9 +375,12 @@ export const generateInvoiceContent = async (
       <div class="invoice-container">
         <div class="header">
           <div class="company-info">
-            <div class="company-name">BDV ${
-              userSettings?.siret ? `- SIRET: ${userSettings.siret}` : ""
-            }</div>
+            <div class="company-name">BDV</div>
+            ${
+              userSettings?.siret
+                ? `<div class="company-siret">SIRET: ${userSettings.siret}</div>`
+                : ""
+            }
             <div class="company-details">
               600, chemin de la Levade
               Les Iscles<br>
@@ -391,8 +421,10 @@ export const generateInvoiceContent = async (
                 <span style="font-size: 9px; color: #666;">
                   Plaque : ${formData.plaque}
                   ${
-                    formData.chantier
-                      ? `<br>Chantier : ${formData.chantier}`
+                    formData.chantierLibre?.trim() || formData.chantier
+                      ? `<br>Chantier : ${
+                          formData.chantierLibre?.trim() || formData.chantier
+                        }`
                       : ""
                   }
                   ${

@@ -43,6 +43,73 @@ export const generatePrintContent = async (
   const poidsSortie = parseFloat(formData.poidsSortie.replace(",", ".")) || 0;
   const net = Math.abs(poidsEntree - poidsSortie);
 
+  // Récupérer la pesée depuis la DB pour obtenir le numéro réel
+  let numeroBonToDisplay = formData.numeroBon;
+  let match = null;
+  try {
+    if (formData.numeroBon && formData.numeroBon !== "À générer") {
+      match = await db.pesees
+        .filter((p) => p.numeroBon === formData.numeroBon)
+        .first();
+      if (match) {
+        numeroBonToDisplay = match.numeroBon;
+      }
+    }
+    // Si pas trouvé par numeroBon, rechercher par correspondance (produit + client + net)
+    if (!match || numeroBonToDisplay === "À générer") {
+      const candidates = await db.pesees
+        .filter(
+          (p) =>
+            p.produitId === formData.produitId &&
+            p.nomEntreprise === formData.nomEntreprise &&
+            Math.abs(p.net - net) < 1e-6 // tolérance stricte sur le net
+        )
+        .toArray();
+      if (candidates.length > 0) {
+        candidates.sort(
+          (a, b) =>
+            new Date(b.dateHeure).getTime() - new Date(a.dateHeure).getTime()
+        );
+        if (candidates[0].numeroBon) {
+          numeroBonToDisplay = candidates[0].numeroBon;
+        }
+      }
+    }
+    // Fallback si toujours pas trouvé
+    if (!numeroBonToDisplay || numeroBonToDisplay === "À générer") {
+      numeroBonToDisplay = "N/A";
+    }
+  } catch (e) {
+    // En cas d'erreur, utiliser le formData ou fallback
+    if (!numeroBonToDisplay || numeroBonToDisplay === "À générer") {
+      numeroBonToDisplay = "N/A";
+    }
+  }
+
+  // Récupérer le client si nécessaire (pour utiliser son adresse si chantier vide)
+  let clientForChantier = client;
+  if (!clientForChantier && formData.clientId) {
+    try {
+      clientForChantier = await db.clients.get(formData.clientId);
+    } catch (e) {
+      // Ignorer l'erreur
+    }
+  }
+
+  // Déterminer le chantier à afficher (chantierLibre en priorité, sinon chantier, sinon adresse client)
+  let chantierToDisplay =
+    formData.chantierLibre?.trim() || formData.chantier?.trim() || "";
+  if (!chantierToDisplay) {
+    if (
+      clientForChantier &&
+      clientForChantier.adresse &&
+      clientForChantier.codePostal &&
+      clientForChantier.ville
+    ) {
+      chantierToDisplay = `${clientForChantier.adresse}, ${clientForChantier.codePostal} ${clientForChantier.ville}`;
+    }
+  }
+
   const clientLabel =
     formData.typeClient === "particulier" ? "Client" : "Entreprise";
   const documentTitle = "Bon de pesée";
@@ -55,9 +122,12 @@ export const generatePrintContent = async (
     <div class="bon">
       <div class="header">
         <div class="company-info">
-          <div class="company-name">BDV ${
-            userSettings?.siret ? `- SIRET: ${userSettings.siret}` : ""
-          }</div>
+          <div class="company-name">BDV</div>
+          ${
+            userSettings?.siret
+              ? `<div class="company-siret">SIRET: ${userSettings.siret}</div>`
+              : ""
+          }
           <div class="address">600, chemin de la Levade, Les Iscles</div>
           
           <div class="address">06550 LA ROQUETTE-SUR-SIAGNE</div>
@@ -65,12 +135,12 @@ export const generatePrintContent = async (
         </div>
         <div class="document-title">
           <h2>${documentTitle}</h2>
-          <p>N° ${formData.numeroBon}</p>
+          <p>N° ${numeroBonToDisplay}</p>
           <p>Le ${dateStr} à ${timeStr}</p>
         </div>
-      </div>
+       </div>
       
-      <div class="content-columns">
+       <div class="content-columns">
         <div class="column-left">
           <div class="row">
             <span class="label">${clientLabel}:</span>
@@ -98,22 +168,22 @@ export const generatePrintContent = async (
               : ""
           }
           ${
-            formData.chantier
+            chantierToDisplay
               ? `
           <div class="row">
             <span class="label">Chantier:</span>
-            <span>${formData.chantier}</span>
+            <span>${chantierToDisplay}</span>
           </div>
           `
               : ""
           }
+        </div>
+        
+        <div class="column-right">
           <div class="row">
             <span class="label">Poids Entrée:</span>
             <span>${poidsEntree.toFixed(3)} tonnes</span>
           </div>
-        </div>
-        
-        <div class="column-right">
           <div class="row">
             <span class="label">Poids Sortie:</span>
             <span>${poidsSortie.toFixed(3)} tonnes</span>
@@ -121,10 +191,6 @@ export const generatePrintContent = async (
           <div class="row">
             <span class="label">Poids Net:</span>
             <span>${net.toFixed(3)} tonnes</span>
-          </div>
-          <div class="row">
-            <span class="label">Paiement:</span>
-            <span>${formData.moyenPaiement}</span>
           </div>
         </div>
       </div>
@@ -191,9 +257,8 @@ export const generatePrintContent = async (
           margin: 0 auto;
           display: flex;
           flex-direction: column;
-          gap: 3rem;
+          gap: 1rem;
           padding: 5px;
-          margin-top: 20px; /* Espacement supplémentaire pour éviter le chevauchement avec le timestamp */
         }
         
         .bon { 
@@ -201,7 +266,7 @@ export const generatePrintContent = async (
           padding: 12px; 
           width: 100%;
           min-height: 320px;
-          max-height: 390px;
+          max-height: 490px;
           box-sizing: border-box; 
           background: white;
           display: flex;
@@ -261,7 +326,6 @@ export const generatePrintContent = async (
           display: flex;
           justify-content: space-between;
           flex-grow: 1;
-          margin: 8px 0;
           gap: 10px;
           flex-wrap: wrap;
         }
@@ -297,16 +361,12 @@ export const generatePrintContent = async (
         .signature-section {
           margin-top: auto;
           padding-top: 6px;
-          border-top: 1px solid #ddd;
           height: 60px;
         }
         
         .signatures-bottom {
           display: flex;
           justify-content: space-between;
-          margin-top: 20px;
-          padding-top: 10px;
-          border-top: 1px solid #ddd;
         }
         
         .signatures-bottom .signature-section {
@@ -361,8 +421,9 @@ export const generatePrintContent = async (
         }
         
         .copy-type { 
-          text-align: center; 
-          margin-top: 5px; 
+          text-align: center;
+          margin-top: 1rem;
+          margin-bottom: 1rem;
           font-weight: bold; 
           font-size: 11px;
           border: 2px solid #000;
@@ -415,19 +476,20 @@ export const generatePrintContent = async (
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             background: white !important;
-            height: 100vh;
-            overflow: hidden;
           }
           .print-timestamp {
-            position: fixed !important;
-            top: 5px !important;
-            right: 10px !important;
+            position: relative !important;
+            top: auto !important;
+            right: auto !important;
+            text-align: right !important;
             font-size: 8px !important;
             color: #666 !important;
-            z-index: 10000 !important;
+            margin-bottom: 5px !important;
+            padding: 0 !important;
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
+            page-break-after: avoid !important;
           }
           /* Masquer tous les éléments de l'interface */
           [data-lov-id],
@@ -474,9 +536,8 @@ export const generatePrintContent = async (
             max-width: none;
             width: 100%;
             flex-direction: column !important;
-            gap: 2rem !important;
+            gap: 1rem !important;
             padding: 0;
-            margin-top: 20px !important; /* Espacement supplémentaire pour éviter le chevauchement avec le timestamp */
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
@@ -488,7 +549,7 @@ export const generatePrintContent = async (
             margin-bottom: 1rem !important;
             page-break-inside: avoid;
             min-height: 320px;
-            max-height: 390px;
+            max-height: 490px;
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
@@ -512,12 +573,12 @@ export const generatePrintContent = async (
       </style>
     </head>
     <body>
-      <div class="print-timestamp">
-        Imprimé le ${dateStr} à ${timeStr}
-      </div>
       <div class="print-container">
-        ${bonContent("Copie Client")}
+        <div class="print-timestamp">
+          Imprimé le ${dateStr} à ${timeStr}
+        </div>
         ${bonContent("Copie BDV")}
+        ${bonContent("Copie Client")}
       </div>
     </body>
     </html>
@@ -601,6 +662,31 @@ export const handlePrintBothBonAndInvoice = async (
   return { bonContent: combinedContent, invoiceContent: "" };
 };
 
+// Fonction pour l'impression directe des deux documents (bon + facture)
+export const handlePrintDirectBoth = async (
+  formData: PeseeTab["formData"],
+  products: Product[],
+  transporteurs: Transporteur[],
+  client?: Client | null
+) => {
+  if (!formData) return;
+
+  // Générer le contenu combiné
+  const { bonContent } = await handlePrintBothBonAndInvoice(
+    formData,
+    products,
+    transporteurs,
+    client || null
+  );
+
+  const printWindow = window.open("", "_blank");
+  if (printWindow) {
+    printWindow.document.write(bonContent);
+    printWindow.document.close();
+    printWindow.print();
+  }
+};
+
 // Nouvelle fonction pour générer un contenu combiné avec des styles unifiés
 const generateCombinedPrintContent = (
   bonContent: string,
@@ -608,7 +694,12 @@ const generateCombinedPrintContent = (
 ): string => {
   // Extraire le contenu du bon (sans les balises HTML complètes)
   const bonBodyMatch = bonContent.match(/<body[^>]*>([\s\S]*?)<\/body>/);
-  const bonBodyContent = bonBodyMatch ? bonBodyMatch[1] : bonContent;
+  let bonBodyContent = bonBodyMatch ? bonBodyMatch[1] : bonContent;
+
+  // Retirer le timestamp existant du bonBodyContent pour éviter le doublon
+  bonBodyContent = bonBodyContent
+    .replace(/<div class="print-timestamp">[\s\S]*?<\/div>/gi, "")
+    .trim();
 
   // Extraire le contenu de la facture (sans les balises HTML complètes)
   const invoiceBodyMatch = invoiceContent.match(
@@ -654,13 +745,12 @@ const generateCombinedPrintContent = (
           max-width: none;
           margin: 0;
           padding: 5px;
-          margin-top: 20px; /* Espacement supplémentaire pour éviter le chevauchement avec le timestamp */
           box-sizing: border-box;
           position: relative; /* Pour positionner le timestamp relativement à cette section */
         }
         
         .bon-section .print-timestamp {
-          position: absolute;
+          position: fixed;
           top: 5px;
           right: 10px;
           font-size: 8px;
@@ -677,7 +767,7 @@ const generateCombinedPrintContent = (
           padding: 12px; 
           width: 100%;
           min-height: 320px;
-          max-height: 390px;
+          max-height: 490px;
           box-sizing: border-box; 
           background: white;
           display: flex;
@@ -737,7 +827,6 @@ const generateCombinedPrintContent = (
           display: flex;
           justify-content: space-between;
           flex-grow: 1;
-          margin: 8px 0;
           gap: 10px;
           flex-wrap: wrap;
         }
@@ -773,16 +862,12 @@ const generateCombinedPrintContent = (
         .signature-section {
           margin-top: auto;
           padding-top: 6px;
-          border-top: 1px solid #ddd;
           height: 60px;
         }
         
         .signatures-bottom {
           display: flex;
           justify-content: space-between;
-          margin-top: 20px;
-          padding-top: 10px;
-          border-top: 1px solid #ddd;
         }
         
         .signatures-bottom .signature-section {
@@ -837,8 +922,9 @@ const generateCombinedPrintContent = (
         }
         
         .copy-type { 
+          margin-top: 1rem; 
+          margin-bottom: 1rem; 
           text-align: center; 
-          margin-top: 5px; 
           font-weight: bold; 
           font-size: 11px;
           border: 2px solid #000;
@@ -857,7 +943,6 @@ const generateCombinedPrintContent = (
         
         .invoice-container {
           width: 210mm;
-          min-height: 297mm;
           padding: 15mm;
           box-sizing: border-box;
           background: white;
@@ -1024,26 +1109,26 @@ const generateCombinedPrintContent = (
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             background: white !important;
-            height: 100vh;
-            overflow: hidden;
           }
           .print-timestamp {
-            position: fixed !important;
-            top: 5px !important;
-            right: 10px !important;
+            position: relative !important;
+            top: auto !important;
+            right: auto !important;
+            text-align: right !important;
             font-size: 8px !important;
             color: #666 !important;
-            z-index: 10000 !important;
+            margin-bottom: 5px !important;
+            padding: 0 !important;
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
+            page-break-after: avoid !important;
           }
           .bon-section {
-            page-break-after: always !important;
+            page-break-after: auto !important;
             page-break-inside: avoid !important;
             width: 100% !important;
-            margin: 0 !important;
-            margin-top: 20px !important; /* Espacement supplémentaire pour éviter le chevauchement avec le timestamp */
+            margin: 0;
             padding: 5px !important;
             display: block !important;
             visibility: visible !important;
@@ -1052,21 +1137,25 @@ const generateCombinedPrintContent = (
             z-index: 9999 !important;
           }
           .bon-section .print-timestamp {
-            position: absolute !important;
-            top: 5px !important;
-            right: 10px !important;
+            position: relative !important;
+            top: auto !important;
+            right: auto !important;
+            text-align: right !important;
             font-size: 8px !important;
             color: #666 !important;
-            z-index: 10000 !important;
+            margin-bottom: 5px !important;
+            padding: 0 !important;
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
+            page-break-after: avoid !important;
           }
           .bon-section:last-child {
             page-break-after: auto !important;
           }
           .invoice-section {
             page-break-inside: avoid !important;
+            page-break-after: auto !important;
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -1081,7 +1170,7 @@ const generateCombinedPrintContent = (
             margin-bottom: 1rem !important;
             page-break-inside: avoid !important;
             min-height: 320px !important;
-            max-height: 390px !important;
+            max-height: 430px !important;
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
@@ -1108,6 +1197,8 @@ const generateCombinedPrintContent = (
             position: static !important;
             z-index: 9999 !important;
             page-break-inside: avoid !important;
+            page-break-after: auto !important;
+            min-height: auto !important;
           }
           /* Masquer tous les éléments de l'interface */
           [data-lov-id],

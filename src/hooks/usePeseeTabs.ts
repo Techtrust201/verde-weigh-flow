@@ -9,9 +9,11 @@ export interface PeseeTab {
 
 export interface PeseeTabFormData {
   numeroBon: string;
+  numeroFacture?: string;
   nomEntreprise: string;
   plaque: string;
   chantier: string;
+  chantierLibre?: string; // Champ libre pour chantier (similaire à transporteurLibre)
   produitId: number;
   transporteurId: number;
   transporteurLibre?: string; // Nouveau champ
@@ -56,6 +58,7 @@ export const usePeseeTabs = () => {
         nomEntreprise: "",
         plaque: "",
         chantier: "",
+        chantierLibre: "",
         produitId: 0,
         transporteurId: 0,
         transporteurLibre: "",
@@ -91,11 +94,24 @@ export const usePeseeTabs = () => {
     return tabs.length > 0 ? tabs[0].id : null;
   });
 
+  const updateCurrentTab = (newData: Partial<PeseeTabFormData>) => {
+    setTabs((prevTabs) => {
+      const updatedTabs = prevTabs.map((tab) =>
+        tab.id === activeTabId
+          ? { ...tab, formData: { ...tab.formData, ...newData } }
+          : tab
+      );
+      // 💾 Sauvegarder dans localStorage
+      localStorage.setItem("pesee-tabs", JSON.stringify(updatedTabs));
+      return updatedTabs;
+    });
+  };
+
   // Effet pour corriger les anciens onglets avec des formats obsolètes
   useEffect(() => {
     const initializeFirstTab = async () => {
-      if (tabs.length > 0) {
-        const firstTab = tabs[0];
+      if (tabs.length > 0 && activeTabId) {
+        const firstTab = tabs.find((t) => t.id === activeTabId) || tabs[0];
         // Corriger seulement les onglets avec des formats obsolètes (ancien système)
         // Les nouveaux onglets doivent afficher "À générer"
         const isOldFormat =
@@ -276,6 +292,7 @@ export const usePeseeTabs = () => {
         nomEntreprise: "",
         plaque: "",
         chantier: "",
+        chantierLibre: "",
         produitId: 0,
         transporteurId: 0,
         transporteurLibre: "",
@@ -310,20 +327,8 @@ export const usePeseeTabs = () => {
       localStorage.setItem("pesee-active-tab", newActiveTabId);
     } else {
       localStorage.removeItem("pesee-active-tab");
+      // Ne pas créer automatiquement un nouvel onglet si l'utilisateur a fermé tous les onglets volontairement
     }
-  };
-
-  const updateCurrentTab = (newData: Partial<PeseeTabFormData>) => {
-    setTabs((prevTabs) => {
-      const updatedTabs = prevTabs.map((tab) =>
-        tab.id === activeTabId
-          ? { ...tab, formData: { ...tab.formData, ...newData } }
-          : tab
-      );
-      // 💾 Sauvegarder dans localStorage
-      localStorage.setItem("pesee-tabs", JSON.stringify(updatedTabs));
-      return updatedTabs;
-    });
   };
 
   const getCurrentTabData = (): PeseeTabFormData | undefined => {

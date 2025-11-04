@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +23,7 @@ import {
   Check,
   ChevronsUpDown,
   Search,
+  Plus,
 } from "lucide-react";
 import { Client, Transporteur } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
@@ -108,6 +109,27 @@ export const PeseeFormSection = ({
   const [transporteurLibre, setTransporteurLibre] = useState("");
   const [transporteurSelectorOpen, setTransporteurSelectorOpen] =
     useState(false);
+  const [chantierLibre, setChantierLibre] = useState("");
+  const [chantierSelectorOpen, setChantierSelectorOpen] = useState(false);
+  const [chantierSearchValue, setChantierSearchValue] = useState("");
+
+  // Synchroniser l'état local chantierLibre avec currentData
+  useEffect(() => {
+    if (currentData?.chantierLibre !== undefined) {
+      setChantierLibre(currentData.chantierLibre);
+    } else {
+      setChantierLibre("");
+    }
+  }, [currentData?.chantierLibre]);
+
+  // Synchroniser l'état local transporteurLibre avec currentData
+  useEffect(() => {
+    if (currentData?.transporteurLibre !== undefined) {
+      setTransporteurLibre(currentData.transporteurLibre);
+    } else {
+      setTransporteurLibre("");
+    }
+  }, [currentData?.transporteurLibre]);
 
   // Fonction pour vérifier si l'adresse client est complète
   const isClientAddressComplete = (client: Client): boolean => {
@@ -180,9 +202,12 @@ export const PeseeFormSection = ({
         | "micro-entreprise",
       plaque: client.plaques?.[0] || "",
       chantier: client.chantiers?.[0] || "",
+      chantierLibre: "",
       transporteurId: transporteurId,
-      moyenPaiement: moyenPaiement as any, // Auto-complétion du mode de paiement
+      moyenPaiement: moyenPaiement as PeseeTab["formData"]["moyenPaiement"], // Auto-complétion du mode de paiement
     });
+    // Vider le chantier libre car on utilise un chantier existant
+    setChantierLibre("");
 
     setClientSelectorOpen(false);
     setClientSearchValue("");
@@ -217,9 +242,11 @@ export const PeseeFormSection = ({
       typeClient: "particulier",
       plaque: "",
       chantier: "",
+      chantierLibre: "",
       moyenPaiement: "ESP",
     });
     setTransporteurLibre("");
+    setChantierLibre("");
   };
 
   // Obtenir la valeur réelle affichée dans l'input transporteur
@@ -263,7 +290,9 @@ export const PeseeFormSection = ({
           <Select
             value={currentData?.moyenPaiement || "ESP"}
             onValueChange={(value) =>
-              updateCurrentTab({ moyenPaiement: value as any })
+              updateCurrentTab({
+                moyenPaiement: value as PeseeTab["formData"]["moyenPaiement"],
+              })
             }
           >
             <SelectTrigger>
@@ -665,44 +694,256 @@ export const PeseeFormSection = ({
           )}
         </div>
         <div>
-          <ChantierAutocomplete
-            value={currentData?.chantier || ""}
-            clients={clients}
-            currentClientId={currentData?.clientId}
-            onSelect={(chantier) => updateCurrentTab({ chantier })}
-            onChange={(chantier) => updateCurrentTab({ chantier })}
-            isAddChantierDialogOpen={isAddChantierDialogOpen}
-            setIsAddChantierDialogOpen={setIsAddChantierDialogOpen}
-            newChantier={newChantier}
-            setNewChantier={setNewChantier}
-            handleAddChantier={handleAddChantier}
-            disabled={!currentData?.clientId}
-            isSuggested={(() => {
-              // Vérifier si le chantier actuel correspond à l'adresse du client (donc si c'est une suggestion)
+          <div className="mb-2">
+            <Label
+              htmlFor="chantier"
+              className={cn(
+                "flex items-center gap-2",
+                validationErrors.chantier && "text-red-600"
+              )}
+            >
+              Chantier <span className="text-red-500">*</span>
+              {validationErrors.chantier && (
+                <span className="text-red-500 ml-1">*</span>
+              )}
+            </Label>
+            {(() => {
+              // Vérifier si le chantier actuel correspond à l'adresse du client (suggestion)
               if (currentData?.clientId && currentData?.chantier) {
                 const client = clients.find(
                   (c) => c.id === currentData.clientId
                 );
                 if (client && isClientAddressComplete(client)) {
                   const suggestedChantier = `${client.adresse}, ${client.codePostal} ${client.ville}`;
-                  return currentData.chantier === suggestedChantier;
+                  if (currentData.chantier === suggestedChantier) {
+                    return (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium border border-green-200">
+                        ✓ Chantier suggéré automatiquement
+                      </span>
+                    );
+                  }
                 }
               }
-              return false;
+              return null;
             })()}
-            suggestedValue={(() => {
-              if (currentData?.clientId) {
-                const client = clients.find(
-                  (c) => c.id === currentData.clientId
-                );
-                if (client && isClientAddressComplete(client)) {
-                  return `${client.adresse}, ${client.codePostal} ${client.ville}`;
-                }
-              }
-              return undefined;
-            })()}
-            validationError={validationErrors.chantier}
-          />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <Popover
+                open={chantierSelectorOpen}
+                onOpenChange={setChantierSelectorOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={chantierSelectorOpen}
+                    className="w-full justify-between"
+                    disabled={!currentData?.clientId}
+                  >
+                    {(() => {
+                      // Priorité: chantierLibre > chantier
+                      const displayValue =
+                        currentData?.chantierLibre?.trim() ||
+                        currentData?.chantier?.trim() ||
+                        "";
+                      return displayValue || "Sélectionner un chantier...";
+                    })()}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Rechercher un chantier..."
+                      value={chantierSearchValue}
+                      onValueChange={setChantierSearchValue}
+                    />
+                    <CommandList>
+                      <CommandEmpty>Aucun chantier trouvé.</CommandEmpty>
+                      <CommandGroup>
+                        {/* Option chantier libre */}
+                        <CommandItem
+                          value="chantier-libre"
+                          onSelect={() => {
+                            // Activer le mode chantier libre
+                            setChantierLibre("");
+                            updateCurrentTab({
+                              chantier: "",
+                              chantierLibre: "",
+                            });
+                            setChantierSelectorOpen(false);
+                            // Le champ input s'affichera automatiquement grâce à la condition
+                          }}
+                          className="font-medium"
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              !currentData?.chantier &&
+                                !currentData?.chantierLibre
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          Chantier libre (saisie manuelle)
+                        </CommandItem>
+                        {/* Chantiers du client actuel */}
+                        {currentData?.clientId &&
+                          (() => {
+                            const client = clients.find(
+                              (c) => c.id === currentData.clientId
+                            );
+                            const clientChantiers = client?.chantiers || [];
+                            const filteredChantiers = clientChantiers.filter(
+                              (c) =>
+                                c
+                                  .toLowerCase()
+                                  .includes(
+                                    chantierSearchValue.toLowerCase()
+                                  ) || chantierSearchValue === ""
+                            );
+                            return filteredChantiers.map((chantier) => (
+                              <CommandItem
+                                key={chantier}
+                                value={chantier}
+                                onSelect={() => {
+                                  setChantierLibre("");
+                                  updateCurrentTab({
+                                    chantier: chantier,
+                                    chantierLibre: "",
+                                  });
+                                  setChantierSelectorOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    currentData?.chantier === chantier &&
+                                      !currentData?.chantierLibre
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {chantier}
+                              </CommandItem>
+                            ));
+                          })()}
+                        {/* Tous les chantiers si aucun client sélectionné */}
+                        {!currentData?.clientId &&
+                          (() => {
+                            const allChantiers = [
+                              ...new Set(
+                                clients.flatMap((c) => c.chantiers || [])
+                              ),
+                            ];
+                            const filteredChantiers = allChantiers.filter(
+                              (c) =>
+                                c
+                                  .toLowerCase()
+                                  .includes(
+                                    chantierSearchValue.toLowerCase()
+                                  ) || chantierSearchValue === ""
+                            );
+                            return filteredChantiers.map((chantier) => (
+                              <CommandItem
+                                key={chantier}
+                                value={chantier}
+                                onSelect={() => {
+                                  setChantierLibre("");
+                                  updateCurrentTab({
+                                    chantier: chantier,
+                                    chantierLibre: "",
+                                  });
+                                  setChantierSelectorOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    currentData?.chantier === chantier &&
+                                      !currentData?.chantierLibre
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {chantier}
+                              </CommandItem>
+                            ));
+                          })()}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {/* Champ pour chantier libre - toujours affiché si aucun chantier existant n'est sélectionné */}
+              {!currentData?.chantier ? (
+                <div className="mt-2">
+                  <Input
+                    placeholder="Nom du chantier libre (ou sélectionnez un chantier ci-dessus)"
+                    value={chantierLibre}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setChantierLibre(value);
+                      updateCurrentTab({
+                        chantierLibre: value,
+                        chantier: "", // S'assurer que chantier est vide quand on utilise chantierLibre
+                      });
+                    }}
+                    className={cn(
+                      validationErrors.chantier &&
+                        "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+                    )}
+                  />
+                </div>
+              ) : null}
+              {validationErrors.chantier && (
+                <p className="text-red-600 text-sm mt-1">
+                  Ce champ est obligatoire
+                </p>
+              )}
+            </div>
+            <Dialog
+              open={isAddChantierDialogOpen}
+              onOpenChange={setIsAddChantierDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-0 self-start shrink-0"
+                  disabled={!currentData?.clientId}
+                  title="Ajouter un nouveau chantier"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Ajouter un nouveau chantier</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Nom du chantier</Label>
+                    <Input
+                      value={newChantier}
+                      onChange={(e) => setNewChantier(e.target.value)}
+                      placeholder="Nom du nouveau chantier"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAddChantierDialogOpen(false)}
+                  >
+                    Annuler
+                  </Button>
+                  <Button onClick={handleAddChantier}>Ajouter</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div>
