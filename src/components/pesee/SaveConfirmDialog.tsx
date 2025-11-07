@@ -61,7 +61,7 @@ export const SaveConfirmDialog = ({
       onConfirm(typeDocument);
     }
   };
-
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -133,7 +133,7 @@ export const SaveConfirmDialog = ({
             <p className="text-sm text-muted-foreground mb-3">
               Choisissez si vous souhaitez enregistrer avec ou sans impression.
             </p>
-            <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-2">
               <Button
                 onClick={handleConfirm}
                 className="flex items-center justify-center"
@@ -154,7 +154,7 @@ export const SaveConfirmDialog = ({
                 {typeDocument === "les_deux" && (
                   <>
                     <Printer className="h-4 w-4 mr-2" />
-                    <FileText className="h-4 w-4 mr-2" />
+                <FileText className="h-4 w-4 mr-2" />
                     Valider et imprimer Bon + Facture
                   </>
                 )}
@@ -167,9 +167,9 @@ export const SaveConfirmDialog = ({
                 <Save className="h-4 w-4 mr-2" />
                 Enregistrer seulement (sans imprimer)
               </Button>
-              <Button onClick={onClose} variant="destructive">
-                Annuler
-              </Button>
+            <Button onClick={onClose} variant="destructive">
+              Annuler
+            </Button>
             </div>
           </div>
         </div>

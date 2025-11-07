@@ -184,7 +184,12 @@ export const PeseeFormSection = ({
         ? client.transporteurId
         : 0;
     const moyenPaiement = client.modePaiementPreferentiel || "ESP";
-    const chantierToSet = client.chantiers?.[0] || "";
+
+    // Déterminer le chantier : priorité au premier chantier du client, sinon utiliser l'adresse complète
+    let chantierToSet = client.chantiers?.[0] || "";
+    if (!chantierToSet && isClientAddressComplete(client)) {
+      chantierToSet = `${client.adresse}, ${client.codePostal} ${client.ville}`;
+    }
 
     updateCurrentTab({
       clientId: client.id!,
@@ -229,7 +234,7 @@ export const PeseeFormSection = ({
       clientId: 0,
       transporteurId: 0,
       nomEntreprise: "",
-      typeClient: "particulier",
+      typeClient: "professionnel",
       plaque: "",
       chantier: "",
       chantierLibre: "",
@@ -362,7 +367,7 @@ export const PeseeFormSection = ({
             <div>
               <Label htmlFor="typeClient">Type de client</Label>
               <Select
-                value={currentData?.typeClient || "particulier"}
+                value={currentData?.typeClient || "professionnel"}
                 onValueChange={(
                   value: "particulier" | "professionnel" | "micro-entreprise"
                 ) => updateCurrentTab({ typeClient: value })}
@@ -371,10 +376,10 @@ export const PeseeFormSection = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="particulier">👤 Particulier</SelectItem>
                   <SelectItem value="professionnel">
                     🏢 Professionnel
                   </SelectItem>
+                  <SelectItem value="particulier">👤 Particulier</SelectItem>
                   <SelectItem value="micro-entreprise">
                     💼 Micro-entreprise
                   </SelectItem>

@@ -513,7 +513,7 @@ class AppDatabase extends Dexie {
               tax.tauxTVA = 20;
             }
           });
-      });
+    });
   }
 }
 

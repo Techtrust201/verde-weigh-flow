@@ -200,7 +200,7 @@ export default function PeseeSpace({
           moyenPaiement:
             (pesee.moyenPaiement as "ESP" | "CB" | "CHQ" | "VIR" | "PRVT") ||
             "ESP",
-          typeClient: pesee.typeClient || "particulier",
+          typeClient: pesee.typeClient || "professionnel",
           clientId: pesee.clientId || 0,
         });
 
@@ -291,7 +291,7 @@ export default function PeseeSpace({
 
     if (currentData) {
       setNewClientForm({
-        typeClient: currentData.typeClient || "particulier",
+        typeClient: currentData.typeClient || "professionnel",
         codeClient: nextCode,
         raisonSociale: currentData.nomEntreprise || "",
         prenom:
@@ -673,8 +673,8 @@ export default function PeseeSpace({
           );
           await handlePrintDirect(
             formDataForPrint,
-            products,
-            transporteurs,
+          products,
+          transporteurs,
             isInvoice,
             client
           );
@@ -870,8 +870,8 @@ export default function PeseeSpace({
           description: "Une erreur est survenue lors de l'impression.",
           variant: "destructive",
         });
-      }
-    } else {
+        }
+      } else {
       console.warn(
         "[handleSavePrintBonAndInvoice] ATTENTION: savedPeseeId est null, la pesée n'a pas été sauvegardée"
       );
@@ -1111,43 +1111,109 @@ export default function PeseeSpace({
         if (typeDocument === "les_deux") {
           // Si on passe à "les_deux", s'assurer qu'on a les deux numéros
           if (!numeroBon) {
-            numeroBon = await generateUniqueBLNumber();
+            // Si on n'a pas de numéro de bon, essayer d'utiliser le même numéro séquentiel que le FA
+            if (numeroFacture && numeroFacture.startsWith("FA")) {
+              const seqNum = parseInt(numeroFacture.substring(2));
+              if (!isNaN(seqNum)) {
+                numeroBon = `BL${seqNum}`;
+                // Vérifier l'unicité croisée : si un BL avec ce numéro existe déjà dans une autre pesée
+                const peseesWithBL = await db.pesees.where("numeroBon").equals(numeroBon).toArray();
+                const blExists = existingPesee?.id
+                  ? peseesWithBL.some(p => p.id !== existingPesee.id)
+                  : peseesWithBL.length > 0;
+                
+                if (blExists) {
+                  // Si le BL existe déjà dans une autre pesée, on doit incrémenter les deux numéros
+                  // pour garder la cohérence BL+FA avec le même numéro séquentiel
+                  let nextSeqNum = seqNum + 1;
+                  let newBL = `BL${nextSeqNum}`;
+                  let newFA = `FA${nextSeqNum}`;
+                  
+                  // Vérifier que les nouveaux numéros sont disponibles
+                  while (true) {
+                    const blExists2 = (await db.pesees.where("numeroBon").equals(newBL).toArray()).some(
+                      p => existingPesee?.id ? p.id !== existingPesee.id : true
+                    );
+                    const faExists = (await db.pesees.where("numeroFacture").equals(newFA).toArray()).some(
+                      p => existingPesee?.id ? p.id !== existingPesee.id : true
+                    );
+                    
+                    if (!blExists2 && !faExists) {
+                      break; // Numéros disponibles
+                    }
+                    nextSeqNum++;
+                    newBL = `BL${nextSeqNum}`;
+                    newFA = `FA${nextSeqNum}`;
+                  }
+                  
+                  numeroBon = newBL;
+                  numeroFacture = newFA;
+                }
+              } else {
+                numeroBon = await generateUniqueBLNumber(existingPesee?.id);
+              }
+            } else {
+              // Générer un BL unique en excluant la pesée courante (si en mode édition)
+              numeroBon = await generateUniqueBLNumber(existingPesee?.id);
+            }
           }
           if (!numeroFacture) {
-            // Si on n'a pas de numéro de facture, générer un nouveau
-            // Utiliser le même numéro séquentiel que le BL si possible
+            // Si on n'a pas de numéro de facture, essayer d'utiliser le même numéro séquentiel que le BL
             if (numeroBon && numeroBon.startsWith("BL")) {
               const seqNum = parseInt(numeroBon.substring(2));
               if (!isNaN(seqNum)) {
                 numeroFacture = `FA${seqNum}`;
-                // Vérifier l'unicité
-                const faExists =
-                  (await db.pesees
-                    .where("numeroFacture")
-                    .equals(numeroFacture)
-                    .count()) > 0;
+                // Vérifier l'unicité croisée : si un FA avec ce numéro existe déjà dans une autre pesée
+                const peseesWithFA = await db.pesees.where("numeroFacture").equals(numeroFacture).toArray();
+                const faExists = existingPesee?.id
+                  ? peseesWithFA.some(p => p.id !== existingPesee.id)
+                  : peseesWithFA.length > 0;
+                
                 if (faExists) {
-                  // Si le numéro existe déjà, générer un nouveau numéro unique
-                  numeroFacture = await generateUniqueFANumber();
+                  // Si le FA existe déjà dans une autre pesée, on doit incrémenter les deux numéros
+                  // pour garder la cohérence BL+FA avec le même numéro séquentiel
+                  let nextSeqNum = seqNum + 1;
+                  let newBL = `BL${nextSeqNum}`;
+                  let newFA = `FA${nextSeqNum}`;
+                  
+                  // Vérifier que les nouveaux numéros sont disponibles
+                  while (true) {
+                    const blExists = (await db.pesees.where("numeroBon").equals(newBL).toArray()).some(
+                      p => existingPesee?.id ? p.id !== existingPesee.id : true
+                    );
+                    const faExists2 = (await db.pesees.where("numeroFacture").equals(newFA).toArray()).some(
+                      p => existingPesee?.id ? p.id !== existingPesee.id : true
+                    );
+                    
+                    if (!blExists && !faExists2) {
+                      break; // Numéros disponibles
+                    }
+                    nextSeqNum++;
+                    newBL = `BL${nextSeqNum}`;
+                    newFA = `FA${nextSeqNum}`;
+                  }
+                  
+                  numeroBon = newBL;
+                  numeroFacture = newFA;
                 }
               } else {
-                numeroFacture = await generateUniqueFANumber();
+                numeroFacture = await generateUniqueFANumber(existingPesee?.id);
               }
             } else {
-              numeroFacture = await generateUniqueFANumber();
+              numeroFacture = await generateUniqueFANumber(existingPesee?.id);
             }
           }
         } else if (typeDocument === "bon_livraison") {
           // Si on passe à "bon_livraison" uniquement, s'assurer qu'on a un numéro de bon
           if (!numeroBon) {
-            numeroBon = await generateUniqueBLNumber();
+            numeroBon = await generateUniqueBLNumber(existingPesee?.id);
           }
           // Pas de facture nécessaire
           numeroFacture = undefined;
         } else if (typeDocument === "facture") {
           // Si on passe à "facture" uniquement, s'assurer qu'on a un numéro de facture
           if (!numeroFacture) {
-            numeroFacture = await generateUniqueFANumber();
+            numeroFacture = await generateUniqueFANumber(existingPesee?.id);
           }
           // Pas de bon nécessaire
           numeroBon = "";
@@ -1213,7 +1279,7 @@ export default function PeseeSpace({
         chantierLibre: currentData.chantierLibre || undefined, // Sauvegarder le chantier libre
         transporteurId: currentData.transporteurId || undefined,
         transporteurLibre: currentData.transporteurLibre || undefined, // Sauvegarder le transporteur libre
-        typeClient: currentData.typeClient || "particulier",
+        typeClient: currentData.typeClient || "professionnel",
         synchronized: false,
         updatedAt: new Date(),
       };
@@ -1278,21 +1344,21 @@ export default function PeseeSpace({
 
       // Réinitialiser le formulaire seulement si on n'est pas en mode édition
       if (!isEditing) {
-        updateCurrentTab({
-          numeroBon: generateBonNumber(),
+      updateCurrentTab({
+        numeroBon: generateBonNumber(),
           moyenPaiement: "ESP",
-          plaque: "",
-          nomEntreprise: "",
-          chantier: "",
+        plaque: "",
+        nomEntreprise: "",
+        chantier: "",
           chantierLibre: "",
-          produitId: 0,
-          poidsEntree: "",
-          poidsSortie: "",
-          clientId: 0,
-          transporteurId: 0,
-          transporteurLibre: "",
-          typeClient: "particulier",
-        });
+        produitId: 0,
+        poidsEntree: "",
+        poidsSortie: "",
+        clientId: 0,
+        transporteurId: 0,
+        transporteurLibre: "",
+        typeClient: "professionnel",
+      });
       } else {
         // En mode édition, fermer l'onglet actuel et créer un nouvel onglet vide
         // pour éviter toute confusion
@@ -1383,6 +1449,30 @@ export default function PeseeSpace({
   };
 
   const currentData = getCurrentTabData();
+  
+  // Fonction pour gérer la fermeture d'un onglet avec confirmation
+  const handleCloseTab = (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    
+    // Vérifier si l'onglet contient des données non sauvegardées
+    const hasData = tab.formData.clientId > 0 || 
+                     tab.formData.produitId > 0 || 
+                     tab.formData.poidsEntree || 
+                     tab.formData.poidsSortie ||
+                     tab.formData.plaque ||
+                     tab.formData.nomEntreprise;
+    
+    if (hasData) {
+      // Afficher une confirmation
+      if (window.confirm("Cet onglet contient des données non sauvegardées. Êtes-vous sûr de vouloir le fermer ?")) {
+        closeTab(tabId);
+      }
+    } else {
+      closeTab(tabId);
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <div
@@ -1417,7 +1507,7 @@ export default function PeseeSpace({
                   ...tabs.map((tab) => ({
                     id: tab.id,
                     label: getTabLabel(tab.id),
-                    onClose: () => closeTab(tab.id),
+                    onClose: () => handleCloseTab(tab.id),
                     closeable: tabs.length > 1,
                   })),
                   {

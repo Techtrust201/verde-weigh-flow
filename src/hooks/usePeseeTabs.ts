@@ -65,7 +65,7 @@ export const usePeseeTabs = () => {
         poidsEntree: "",
         poidsSortie: "",
         moyenPaiement: "ESP",
-        typeClient: "particulier",
+        typeClient: "professionnel",
         clientId: 0,
       },
     };
@@ -160,13 +160,41 @@ export const usePeseeTabs = () => {
   };
 
   // Fonction pour vérifier et générer un numéro BL unique
-  const generateUniqueBLNumber = async (): Promise<string> => {
+  const generateUniqueBLNumber = async (excludePeseeId?: number): Promise<string> => {
     let numeroBon = await generateNextBLNumber();
     let attempts = 0;
 
-    // Vérifier qu'aucune pesée n'existe déjà avec ce numéro
-    while ((await db.pesees.where("numeroBon").equals(numeroBon).count()) > 0) {
-      const num = parseInt(numeroBon.substring(2)) + 1;
+    // Extraire le numéro séquentiel
+    const getSeqNum = (numStr: string) => parseInt(numStr.substring(2));
+
+    while (true) {
+      // Vérifier qu'aucune pesée n'existe déjà avec ce numeroBon (en excluant la pesée courante si fournie)
+      let blExists = false;
+      const peseesWithBL = await db.pesees.where("numeroBon").equals(numeroBon).toArray();
+      if (excludePeseeId) {
+        blExists = peseesWithBL.some(p => p.id !== excludePeseeId);
+      } else {
+        blExists = peseesWithBL.length > 0;
+      }
+      
+      // Vérifier qu'aucune pesée n'existe déjà avec un numeroFacture ayant le même numéro séquentiel
+      // (en excluant la pesée courante si fournie)
+      const seqNum = getSeqNum(numeroBon);
+      const correspondingFA = `FA${seqNum}`;
+      let faExists = false;
+      const peseesWithFA = await db.pesees.where("numeroFacture").equals(correspondingFA).toArray();
+      if (excludePeseeId) {
+        faExists = peseesWithFA.some(p => p.id !== excludePeseeId);
+      } else {
+        faExists = peseesWithFA.length > 0;
+      }
+      
+      if (!blExists && !faExists) {
+        break; // Numéro unique trouvé
+      }
+      
+      // Incrémenter et réessayer
+      const num = seqNum + 1;
       numeroBon = `BL${num}`;
       attempts++;
 
@@ -214,15 +242,41 @@ export const usePeseeTabs = () => {
   };
 
   // Fonction pour vérifier et générer un numéro FA unique
-  const generateUniqueFANumber = async (): Promise<string> => {
+  const generateUniqueFANumber = async (excludePeseeId?: number): Promise<string> => {
     let numeroFacture = await generateNextFANumber();
     let attempts = 0;
 
-    // Vérifier qu'aucune pesée n'existe déjà avec ce numéro
-    while (
-      (await db.pesees.where("numeroFacture").equals(numeroFacture).count()) > 0
-    ) {
-      const num = parseInt(numeroFacture.substring(2)) + 1;
+    // Extraire le numéro séquentiel
+    const getSeqNum = (numStr: string) => parseInt(numStr.substring(2));
+
+    while (true) {
+      // Vérifier qu'aucune pesée n'existe déjà avec ce numeroFacture (en excluant la pesée courante si fournie)
+      let faExists = false;
+      const peseesWithFA = await db.pesees.where("numeroFacture").equals(numeroFacture).toArray();
+      if (excludePeseeId) {
+        faExists = peseesWithFA.some(p => p.id !== excludePeseeId);
+      } else {
+        faExists = peseesWithFA.length > 0;
+      }
+      
+      // Vérifier qu'aucune pesée n'existe déjà avec un numeroBon ayant le même numéro séquentiel
+      // (en excluant la pesée courante si fournie)
+      const seqNum = getSeqNum(numeroFacture);
+      const correspondingBL = `BL${seqNum}`;
+      let blExists = false;
+      const peseesWithBL = await db.pesees.where("numeroBon").equals(correspondingBL).toArray();
+      if (excludePeseeId) {
+        blExists = peseesWithBL.some(p => p.id !== excludePeseeId);
+      } else {
+        blExists = peseesWithBL.length > 0;
+      }
+      
+      if (!faExists && !blExists) {
+        break; // Numéro unique trouvé
+      }
+      
+      // Incrémenter et réessayer
+      const num = seqNum + 1;
       numeroFacture = `FA${num}`;
       attempts++;
 
@@ -300,7 +354,7 @@ export const usePeseeTabs = () => {
         poidsEntree: "",
         poidsSortie: "",
         moyenPaiement: "ESP",
-        typeClient: "particulier",
+        typeClient: "professionnel",
         clientId: 0,
       },
     };
@@ -340,7 +394,7 @@ export const usePeseeTabs = () => {
         poidsEntree: formData.poidsEntree ?? "",
         poidsSortie: formData.poidsSortie ?? "",
         moyenPaiement: formData.moyenPaiement ?? "ESP",
-        typeClient: formData.typeClient ?? "particulier",
+        typeClient: formData.typeClient ?? "professionnel",
         clientId: formData.clientId ?? 0,
       };
 
@@ -414,7 +468,8 @@ export const usePeseeTabs = () => {
       // Pour les particuliers, utiliser "Part" comme indicateur
       nomAffiche = "Part";
     } else {
-      nomAffiche = "Nvlle"; // Nouvelle pesée
+      // Si pas de nom et pas particulier, utiliser "Nouvelle" au lieu de "Nvlle"
+      nomAffiche = "Nouv";
     }
 
     label += nomAffiche;

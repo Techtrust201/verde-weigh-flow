@@ -118,8 +118,8 @@ export function EnhancedTabs({
                   size="sm"
                   className="absolute -top-1 -right-1 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 bg-destructive/5"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    tab.onClose?.();
+            e.stopPropagation();
+            tab.onClose?.();
                   }}
                 >
                   ×
@@ -171,8 +171,8 @@ export function EnhancedTabs({
                     size="sm"
                     className="h-4 w-4 p-0 ml-2 hover:bg-destructive/10"
                     onClick={(e) => {
-                      e.stopPropagation();
-                      tab.onClose?.();
+            e.stopPropagation();
+            tab.onClose?.();
                     }}
                   >
                     ×
@@ -195,7 +195,7 @@ export function EnhancedTabs({
               className="h-10 w-10 p-0 shrink-0 mx-1 hover:bg-primary/10"
             >
               <Plus className="h-7 w-7" />
-            </Button>
+      </Button>
           </TooltipTrigger>
           <TooltipContent>
             <p>Créer un onglet</p>

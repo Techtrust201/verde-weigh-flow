@@ -80,7 +80,11 @@ export const PeseeDetailDialog = ({
 
   if (!pesee) return null;
 
-  const isExported = Boolean(pesee.exportedAt && pesee.exportedAt.length > 0);
+  const isExported = Boolean(
+    (pesee.exportedAt && pesee.exportedAt.length > 0) ||
+    pesee.numeroBonExported ||
+    pesee.numeroFactureExported
+  );
 
   const selectedProduct = products.find((p) => p.id === pesee.produitId);
   const selectedTransporteur = transporteurs.find(

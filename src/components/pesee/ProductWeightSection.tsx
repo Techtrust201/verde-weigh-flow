@@ -269,6 +269,7 @@ export const ProductWeightSection = ({
                   updateCurrentTab({ poidsEntree: e.target.value })
                 }
                 placeholder="0,000"
+                autoComplete="off"
               />
             </div>
 
@@ -282,6 +283,7 @@ export const ProductWeightSection = ({
                   updateCurrentTab({ poidsSortie: e.target.value })
                 }
                 placeholder="0,000"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -319,10 +321,10 @@ export const ProductWeightSection = ({
                 <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
                   <div className="text-center">
                     <div className="text-2xl font-black text-green-800 mb-2">
-                      {calculatedCost.ttc.toFixed(2)}€ TTC
+                      {calculatedCost.ht.toFixed(2)}€ HT
                     </div>
                     <div className="text-xl font-bold text-green-600">
-                      {calculatedCost.ht.toFixed(2)}€ HT
+                      {calculatedCost.ttc.toFixed(2)}€ TTC
                     </div>
                   </div>
 

@@ -138,9 +138,9 @@ export const generatePrintContent = async (
           <p>N° ${numeroBonToDisplay}</p>
           <p>Le ${dateStr} à ${timeStr}</p>
         </div>
-       </div>
+      </div>
       
-       <div class="content-columns">
+      <div class="content-columns">
         <div class="column-left">
           <div class="row">
             <span class="label">${clientLabel}:</span>
@@ -421,7 +421,7 @@ export const generatePrintContent = async (
         }
         
         .copy-type { 
-          text-align: center;
+          text-align: center; 
           margin-top: 1rem;
           margin-bottom: 1rem;
           font-weight: bold; 
@@ -574,9 +574,9 @@ export const generatePrintContent = async (
     </head>
     <body>
       <div class="print-container">
-        <div class="print-timestamp">
-          Imprimé le ${dateStr} à ${timeStr}
-        </div>
+      <div class="print-timestamp">
+        Imprimé le ${dateStr} à ${timeStr}
+      </div>
         ${bonContent("Copie BDV")}
         ${bonContent("Copie Client")}
       </div>

@@ -212,7 +212,7 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                  <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="text-sm">
                       {flexRender(
@@ -221,7 +221,7 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
                       )}
                     </TableCell>
                   ))}
-                </TableRow>
+                  </TableRow>
               ))
             ) : (
               <TableRow>
