@@ -19,7 +19,7 @@ export interface PeseeTabFormData {
   transporteurLibre?: string; // Nouveau champ
   poidsEntree: string;
   poidsSortie: string;
-  moyenPaiement: "ESP" | "CB" | "CHQ" | "VIR" | "PRVT" | "Direct" | "En compte";
+  moyenPaiement: "ESP" | "CB" | "CHQ" | "VIR" | "PRVT";
   typeClient: "particulier" | "professionnel" | "micro-entreprise";
   clientId: number;
 }
@@ -282,6 +282,7 @@ export const usePeseeTabs = () => {
   };
 
   const createNewTab = useCallback(async () => {
+    console.log("[usePeseeTabs] createNewTab appelé, nombre d'onglets actuel:", tabs.length);
     const newTabId = crypto.randomUUID();
     // Plus de génération immédiate - le numéro sera généré à la validation
     const newTab: PeseeTab = {
@@ -304,12 +305,61 @@ export const usePeseeTabs = () => {
       },
     };
     const newTabs = [...tabs, newTab];
+    console.log("[usePeseeTabs] Nouvel onglet créé:", newTabId, "Total onglets:", newTabs.length);
     setTabs(newTabs);
     setActiveTabId(newTabId);
     // 💾 Sauvegarder dans localStorage
     localStorage.setItem("pesee-tabs", JSON.stringify(newTabs));
     localStorage.setItem("pesee-active-tab", newTabId);
+    console.log("[usePeseeTabs] Onglet sauvegardé dans localStorage");
   }, [tabs]);
+
+  // Fonction pour changer l'onglet actif avec sauvegarde
+  const setActiveTabIdWithSave = useCallback((tabId: string | null) => {
+    setActiveTabId(tabId);
+    if (tabId) {
+      localStorage.setItem("pesee-active-tab", tabId);
+    } else {
+      localStorage.removeItem("pesee-active-tab");
+    }
+  }, []);
+
+  const createTabFromFormData = useCallback(
+    (formData: PeseeTabFormData, label?: string) => {
+      const newTabId = crypto.randomUUID();
+      const formattedFormData: PeseeTabFormData = {
+        numeroBon: formData.numeroBon ?? "À générer",
+        numeroFacture: formData.numeroFacture,
+        nomEntreprise: formData.nomEntreprise ?? "",
+        plaque: formData.plaque ?? "",
+        chantier: formData.chantier ?? "",
+        chantierLibre: formData.chantierLibre ?? "",
+        produitId: formData.produitId ?? 0,
+        transporteurId: formData.transporteurId ?? 0,
+        transporteurLibre: formData.transporteurLibre ?? "",
+        poidsEntree: formData.poidsEntree ?? "",
+        poidsSortie: formData.poidsSortie ?? "",
+        moyenPaiement: formData.moyenPaiement ?? "ESP",
+        typeClient: formData.typeClient ?? "particulier",
+        clientId: formData.clientId ?? 0,
+      };
+
+      const newTab: PeseeTab = {
+        id: newTabId,
+        label: label ?? `Pesée ${tabs.length + 1}`,
+        formData: formattedFormData,
+      };
+
+      setTabs((prevTabs) => {
+        const updatedTabs = [...prevTabs, newTab];
+        localStorage.setItem("pesee-tabs", JSON.stringify(updatedTabs));
+        return updatedTabs;
+      });
+      setActiveTabIdWithSave(newTabId);
+      return newTabId;
+    },
+    [tabs, setActiveTabIdWithSave]
+  );
 
   const closeTab = (tabId: string) => {
     const updatedTabs = tabs.filter((tab) => tab.id !== tabId);
@@ -377,21 +427,13 @@ export const usePeseeTabs = () => {
     return label;
   };
 
-  // Fonction pour changer l'onglet actif avec sauvegarde
-  const setActiveTabIdWithSave = (tabId: string | null) => {
-    setActiveTabId(tabId);
-    if (tabId) {
-      localStorage.setItem("pesee-active-tab", tabId);
-    } else {
-      localStorage.removeItem("pesee-active-tab");
-    }
-  };
 
   return {
     tabs,
     activeTabId,
     setActiveTabId: setActiveTabIdWithSave,
     createNewTab,
+    createTabFromFormData,
     closeTab,
     updateCurrentTab,
     getCurrentTabData,

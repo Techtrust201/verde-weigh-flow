@@ -20,7 +20,7 @@ interface SaveConfirmDialogProps {
   onConfirmPrintAndInvoice?: (
     typeDocument: "bon_livraison" | "facture" | "les_deux"
   ) => void;
-  moyenPaiement: "ESP" | "CB" | "CHQ" | "VIR" | "PRVT" | "Direct" | "En compte";
+  moyenPaiement: "ESP" | "CB" | "CHQ" | "VIR" | "PRVT";
 }
 
 export const SaveConfirmDialog = ({
@@ -44,16 +44,16 @@ export const SaveConfirmDialog = ({
   }, [isOpen]);
 
   // Déterminer si c'est un paiement direct (afficher la facture)
-  const isPaiementDirect = ["ESP", "CB", "CHQ", "Direct"].includes(
-    moyenPaiement
-  );
+  // Paiements directs : ESP, CB, CHQ (paiement immédiat)
+  // Paiements différés : VIR, PRVT (paiement en compte)
+  const isPaiementDirect = ["ESP", "CB", "CHQ"].includes(moyenPaiement);
 
   const handleConfirm = () => {
-    // Selon le typeDocument sélectionné, imprimer automatiquement
+    // Selon le typeDocument sélectionné, sauvegarder et ouvrir la fenêtre d'impression
     if (typeDocument === "bon_livraison") {
       onConfirmAndPrint(typeDocument);
     } else if (typeDocument === "facture") {
-      onConfirm(typeDocument);
+      onConfirmAndPrint(typeDocument); // Appeler onConfirmAndPrint pour imprimer la facture
     } else if (typeDocument === "les_deux" && onConfirmPrintAndInvoice) {
       onConfirmPrintAndInvoice(typeDocument);
     } else {
@@ -131,11 +131,7 @@ export const SaveConfirmDialog = ({
           </div>
           <div className="border-t pt-4">
             <p className="text-sm text-muted-foreground mb-3">
-              Le document sera enregistré et{" "}
-              {typeDocument === "les_deux"
-                ? "les deux documents seront"
-                : "le document sera"}{" "}
-              imprimé automatiquement.
+              Choisissez si vous souhaitez enregistrer avec ou sans impression.
             </p>
             <div className="flex flex-col space-y-2">
               <Button
@@ -162,6 +158,14 @@ export const SaveConfirmDialog = ({
                     Valider et imprimer Bon + Facture
                   </>
                 )}
+              </Button>
+              <Button
+                onClick={() => onConfirm(typeDocument)}
+                variant="outline"
+                className="flex items-center justify-center"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Enregistrer seulement (sans imprimer)
               </Button>
               <Button onClick={onClose} variant="destructive">
                 Annuler

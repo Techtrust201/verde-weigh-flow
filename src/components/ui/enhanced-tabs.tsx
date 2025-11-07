@@ -8,6 +8,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 export interface Tab {
   id: string;
@@ -179,14 +185,23 @@ export function EnhancedTabs({
       )}
 
       {/* Bouton nouveau onglet */}
-      <Button
-        variant="ghost"
-        size="lg"
-        onClick={onNewTab}
-        className="h-10 w-10 p-0 shrink-0 mx-1 hover:bg-primary/10"
-      >
-        <Plus className="h-5 w-5" />
-      </Button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={onNewTab}
+              className="h-10 w-10 p-0 shrink-0 mx-1 hover:bg-primary/10"
+            >
+              <Plus className="h-7 w-7" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Créer un onglet</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 }

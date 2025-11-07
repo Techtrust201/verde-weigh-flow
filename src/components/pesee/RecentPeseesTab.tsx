@@ -129,7 +129,11 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
       cell: ({ row }) => (
         <Badge
           variant={
-            row.original.moyenPaiement === "Direct" ? "default" : "secondary"
+            row.original.moyenPaiement === "ESP" || 
+            row.original.moyenPaiement === "CB" || 
+            row.original.moyenPaiement === "CHQ" 
+              ? "default" 
+              : "secondary"
           }
           className="text-xs"
         >

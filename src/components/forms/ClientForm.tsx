@@ -435,7 +435,7 @@ export default function ClientForm({
             <SelectValue placeholder="Sélectionner un mode de paiement" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Aucun (défaut: Direct)</SelectItem>
+            <SelectItem value="none">Aucun</SelectItem>
             {paymentMethods?.map((method) => (
               <SelectItem key={method.id} value={method.code}>
                 {method.code} - {method.libelle}

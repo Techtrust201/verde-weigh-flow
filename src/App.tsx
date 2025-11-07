@@ -20,6 +20,10 @@ import "./utils/backgroundSyncTrackDechet"; // Démarrage automatique de la sync
 
 const App = () => {
   const [currentSpace, setCurrentSpace] = useState("pesee");
+  const [pendingEdit, setPendingEdit] = useState<{
+    id: number;
+    nonce: number;
+  } | null>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -93,6 +97,15 @@ const App = () => {
     };
   }, []);
 
+  const handleEditPeseeRequest = (peseeId: number) => {
+    setPendingEdit({ id: peseeId, nonce: Date.now() });
+    setCurrentSpace("pesee");
+  };
+
+  const handleEditHandled = () => {
+    setPendingEdit(null);
+  };
+
   const renderCurrentSpace = () => {
     switch (currentSpace) {
       case "clients":
@@ -100,11 +113,16 @@ const App = () => {
       case "produits":
         return <ProductsSpace />;
       case "pesee":
-        return <PeseeSpace />;
+        return (
+          <PeseeSpace
+            editingRequest={pendingEdit}
+            onEditHandled={handleEditHandled}
+          />
+        );
       case "transporteurs":
         return <TransporteursSpace />;
       case "historique":
-        return <HistoriqueSpace />;
+        return <HistoriqueSpace onEditPesee={handleEditPeseeRequest} />;
       case "exports":
         return <ExportsSpace />;
       case "utilisateur":

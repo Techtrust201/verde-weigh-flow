@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +24,15 @@ import { trackDechetProcessor } from "@/utils/trackdechetSyncProcessor";
 import { isTrackDechetApplicable } from "@/utils/trackdechetValidation";
 import { normalizeClientCode } from "@/utils/clientCodeUtils";
 
-export default function PeseeSpace() {
+interface PeseeSpaceProps {
+  editingRequest?: { id: number; nonce: number } | null;
+  onEditHandled?: () => void;
+}
+
+export default function PeseeSpace({
+  editingRequest,
+  onEditHandled,
+}: PeseeSpaceProps = {}) {
   const { toast } = useToast();
   const { pesees, clients, products, loadData } = usePeseeData();
   const { transporteurs, loadTransporteurs } = useTransporteurData();
@@ -46,10 +54,12 @@ export default function PeseeSpace() {
   const [showRecentTab, setShowRecentTab] = useState(false);
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
   const [isAddChantierDialogOpen, setIsAddChantierDialogOpen] = useState(false);
+  const [isAddPlaqueDialogOpen, setIsAddPlaqueDialogOpen] = useState(false);
   const [isAddTransporteurDialogOpen, setIsAddTransporteurDialogOpen] =
     useState(false);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [newChantier, setNewChantier] = useState("");
+  const [newPlaque, setNewPlaque] = useState("");
   const [newTransporteurForm, setNewTransporteurForm] = useState<
     Partial<Transporteur>
   >({
@@ -86,6 +96,7 @@ export default function PeseeSpace() {
     chantier?: boolean;
     produitId?: boolean;
   }>({});
+  const [editingPeseeId, setEditingPeseeId] = useState<number | null>(null);
 
   // Fonction pour vérifier si l'adresse client est complète
   const isClientAddressComplete = (client: Client): boolean => {
@@ -134,9 +145,100 @@ export default function PeseeSpace() {
     }
   };
 
+  // Charger une pesée en mode édition
+  const loadPeseeForEdit = useCallback(
+    async (peseeId: number) => {
+      try {
+        const pesee = await db.pesees.get(peseeId);
+        if (!pesee) {
+          toast({
+            title: "Erreur",
+            description: "Pesée introuvable.",
+            variant: "destructive",
+          });
+          onEditHandled?.();
+          return;
+        }
+
+        // Vérifier si la pesée a déjà été exportée
+        const isExported =
+          (pesee.exportedAt && pesee.exportedAt.length > 0) ||
+          pesee.numeroBonExported ||
+          pesee.numeroFactureExported;
+
+        if (isExported) {
+          toast({
+            title: "Modification impossible",
+            description:
+              "Cette pesée a déjà été exportée et ne peut plus être modifiée.",
+            variant: "destructive",
+          });
+          onEditHandled?.();
+          return;
+        }
+
+        // Charger la pesée dans l'onglet actif
+        const currentTab = tabs.find((tab) => tab.id === activeTabId);
+        if (!currentTab) {
+          // Créer un nouvel onglet si nécessaire
+          await createNewTab();
+        }
+
+        // Mettre à jour l'onglet avec les données de la pesée
+        updateCurrentTab({
+          numeroBon: pesee.numeroBon || "",
+          numeroFacture: pesee.numeroFacture || "",
+          nomEntreprise: pesee.nomEntreprise || "",
+          plaque: pesee.plaque || "",
+          chantier: pesee.chantier || "",
+          chantierLibre: pesee.chantierLibre || "",
+          produitId: pesee.produitId || 0,
+          transporteurId: pesee.transporteurId || 0,
+          transporteurLibre: pesee.transporteurLibre || "",
+          poidsEntree: pesee.poidsEntree?.toString() || "",
+          poidsSortie: pesee.poidsSortie?.toString() || "",
+          moyenPaiement:
+            (pesee.moyenPaiement as "ESP" | "CB" | "CHQ" | "VIR" | "PRVT") ||
+            "ESP",
+          typeClient: pesee.typeClient || "particulier",
+          clientId: pesee.clientId || 0,
+        });
+
+        setEditingPeseeId(peseeId);
+        onEditHandled?.();
+      } catch (error) {
+        console.error("Erreur lors du chargement de la pesée:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger la pesée pour modification.",
+          variant: "destructive",
+        });
+        onEditHandled?.();
+      }
+    },
+    [
+      toast,
+      onEditHandled,
+      tabs,
+      activeTabId,
+      createNewTab,
+      updateCurrentTab,
+      setEditingPeseeId,
+    ]
+  );
+
+  // useEffect pour charger la pesée quand editingRequest change
+  useEffect(() => {
+    if (editingRequest?.id) {
+      loadPeseeForEdit(editingRequest.id);
+    }
+  }, [editingRequest?.id, editingRequest?.nonce, loadPeseeForEdit]);
+
   // Wrapper pour createNewTab asynchrone
   const handleCreateNewTab = async () => {
     try {
+      // Réinitialiser le mode édition si on crée un nouvel onglet
+      setEditingPeseeId(null);
       await createNewTab();
     } catch (error) {
       console.error("Erreur lors de la création d'un nouvel onglet:", error);
@@ -242,6 +344,49 @@ export default function PeseeSpace() {
       }
     } catch (error) {
       console.error("Error adding chantier:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter le chantier.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddPlaque = async () => {
+    const currentData = getCurrentTabData();
+    if (!currentData?.clientId || !newPlaque.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un client et saisir une plaque.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const client = clients.find((c) => c.id === currentData.clientId);
+      if (client) {
+        const updatedPlaques = [...(client.plaques || []), newPlaque.trim()];
+        await db.clients.update(client.id!, {
+          plaques: updatedPlaques,
+        });
+        updateCurrentTab({
+          plaque: newPlaque.trim(),
+        });
+        setNewPlaque("");
+        setIsAddPlaqueDialogOpen(false);
+        toast({
+          title: "Plaque ajoutée",
+          description: "La nouvelle plaque a été ajoutée au client.",
+        });
+        loadData();
+      }
+    } catch (error) {
+      console.error("Error adding plaque:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible d'ajouter la plaque.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -472,51 +617,93 @@ export default function PeseeSpace() {
     }
   };
 
-  const handleSaveOnly = async () => {
-    await savePesee("bon_livraison");
+  const handleSaveOnly = async (
+    typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
+  ) => {
+    await savePesee(typeDocument);
     setIsSaveDialogOpen(false);
   };
 
   const handleSaveAndPrint = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
   ) => {
+    console.log("[handleSaveAndPrint] Début, typeDocument:", typeDocument);
     const savedPeseeId = await savePesee(typeDocument);
+    console.log("[handleSaveAndPrint] savedPeseeId:", savedPeseeId);
     if (savedPeseeId) {
-      // Récupérer la pesée sauvegardée depuis la DB
-      const savedPesee = await db.pesees.get(savedPeseeId);
-      if (savedPesee) {
-        // Créer formDataForPrint à partir de la pesée sauvegardée
-        const formDataForPrint: PeseeTab["formData"] = {
-          numeroBon: savedPesee.numeroBon,
-          nomEntreprise: savedPesee.nomEntreprise,
-          plaque: savedPesee.plaque,
-          chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
-          chantierLibre: savedPesee.chantierLibre,
-          produitId: savedPesee.produitId,
-          poidsEntree: savedPesee.poidsEntree.toString(),
-          poidsSortie: savedPesee.poidsSortie.toString(),
-          moyenPaiement: savedPesee.moyenPaiement as
-            | "ESP"
-            | "CB"
-            | "CHQ"
-            | "VIR"
-            | "PRVT",
-          clientId: savedPesee.clientId || 0,
-          transporteurId: savedPesee.transporteurId || 0,
-          transporteurLibre: savedPesee.transporteurLibre || "",
-          typeClient: savedPesee.typeClient,
-        };
-        // Utiliser handlePrint pour récupérer le contenu et l'afficher dans le preview
-        const content = await handlePrint(
-          formDataForPrint,
-          products,
-          transporteurs,
-          false
+      try {
+        // Récupérer la pesée sauvegardée depuis la DB
+        const savedPesee = await db.pesees.get(savedPeseeId);
+        console.log("[handleSaveAndPrint] savedPesee récupérée:", savedPesee);
+        if (savedPesee) {
+          // Récupérer le client si c'est une facture
+          const client = savedPesee.clientId
+            ? clients.find((c) => c.id === savedPesee.clientId) || null
+            : null;
+
+          // Créer formDataForPrint à partir de la pesée sauvegardée
+          const formDataForPrint: PeseeTab["formData"] = {
+            numeroBon: savedPesee.numeroBon,
+            numeroFacture: savedPesee.numeroFacture,
+            nomEntreprise: savedPesee.nomEntreprise,
+            plaque: savedPesee.plaque,
+            chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
+            chantierLibre: savedPesee.chantierLibre,
+            produitId: savedPesee.produitId,
+            poidsEntree: savedPesee.poidsEntree.toString(),
+            poidsSortie: savedPesee.poidsSortie.toString(),
+            moyenPaiement: savedPesee.moyenPaiement as
+              | "ESP"
+              | "CB"
+              | "CHQ"
+              | "VIR"
+              | "PRVT",
+            clientId: savedPesee.clientId || 0,
+            transporteurId: savedPesee.transporteurId || 0,
+            transporteurLibre: savedPesee.transporteurLibre || "",
+            typeClient: savedPesee.typeClient,
+          };
+
+          // Déterminer si c'est une facture ou un bon de livraison
+          const isInvoice = typeDocument === "facture";
+
+          // Ouvrir directement la fenêtre d'impression du navigateur
+          console.log(
+            `[handleSaveAndPrint] Appel handlePrintDirect avec isInvoice=${isInvoice}...`
+          );
+          await handlePrintDirect(
+            formDataForPrint,
+            products,
+            transporteurs,
+            isInvoice,
+            client
+          );
+          console.log("[handleSaveAndPrint] Fenêtre d'impression ouverte");
+        } else {
+          console.error(
+            "[handleSaveAndPrint] ERREUR: savedPesee est null/undefined"
+          );
+          toast({
+            title: "Erreur",
+            description: "Impossible de récupérer la pesée sauvegardée.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error(
+          "[handleSaveAndPrint] ERREUR lors de la récupération/impression:",
+          error
         );
-        setPrintContent(content);
-        setPrintTitle("Bon de pesée");
-        setPrintPreviewOpen(true);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de l'impression.",
+          variant: "destructive",
+        });
       }
+    } else {
+      console.warn(
+        "[handleSaveAndPrint] ATTENTION: savedPeseeId est null, la pesée n'a pas été sauvegardée"
+      );
     }
     setIsSaveDialogOpen(false);
   };
@@ -524,49 +711,84 @@ export default function PeseeSpace() {
   const handleSaveAndPrintInvoice = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "facture"
   ) => {
+    console.log(
+      "[handleSaveAndPrintInvoice] Début, typeDocument:",
+      typeDocument
+    );
     const savedPeseeId = await savePesee(typeDocument);
+    console.log("[handleSaveAndPrintInvoice] savedPeseeId:", savedPeseeId);
     if (savedPeseeId) {
-      // Récupérer la pesée sauvegardée depuis la DB
-      const savedPesee = await db.pesees.get(savedPeseeId);
-      if (savedPesee) {
-        // Récupérer le client
-        const client = savedPesee.clientId
-          ? clients.find((c) => c.id === savedPesee.clientId) || null
-          : null;
-        // Créer formDataForPrint à partir de la pesée sauvegardée
-        const formDataForPrint: PeseeTab["formData"] = {
-          numeroBon: savedPesee.numeroBon,
-          numeroFacture: savedPesee.numeroFacture,
-          nomEntreprise: savedPesee.nomEntreprise,
-          plaque: savedPesee.plaque,
-          chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
-          chantierLibre: savedPesee.chantierLibre,
-          produitId: savedPesee.produitId,
-          poidsEntree: savedPesee.poidsEntree.toString(),
-          poidsSortie: savedPesee.poidsSortie.toString(),
-          moyenPaiement: savedPesee.moyenPaiement as
-            | "ESP"
-            | "CB"
-            | "CHQ"
-            | "VIR"
-            | "PRVT",
-          clientId: savedPesee.clientId || 0,
-          transporteurId: savedPesee.transporteurId || 0,
-          transporteurLibre: savedPesee.transporteurLibre || "",
-          typeClient: savedPesee.typeClient,
-        };
-        // Utiliser handlePrint pour récupérer le contenu et l'afficher dans le preview
-        const content = await handlePrint(
-          formDataForPrint,
-          products,
-          transporteurs,
-          true,
-          client
+      try {
+        // Récupérer la pesée sauvegardée depuis la DB
+        const savedPesee = await db.pesees.get(savedPeseeId);
+        console.log(
+          "[handleSaveAndPrintInvoice] savedPesee récupérée:",
+          savedPesee
         );
-        setPrintContent(content);
-        setPrintTitle("Facture");
-        setPrintPreviewOpen(true);
+        if (savedPesee) {
+          // Récupérer le client
+          const client = savedPesee.clientId
+            ? clients.find((c) => c.id === savedPesee.clientId) || null
+            : null;
+          // Créer formDataForPrint à partir de la pesée sauvegardée
+          const formDataForPrint: PeseeTab["formData"] = {
+            numeroBon: savedPesee.numeroBon,
+            numeroFacture: savedPesee.numeroFacture,
+            nomEntreprise: savedPesee.nomEntreprise,
+            plaque: savedPesee.plaque,
+            chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
+            chantierLibre: savedPesee.chantierLibre,
+            produitId: savedPesee.produitId,
+            poidsEntree: savedPesee.poidsEntree.toString(),
+            poidsSortie: savedPesee.poidsSortie.toString(),
+            moyenPaiement: savedPesee.moyenPaiement as
+              | "ESP"
+              | "CB"
+              | "CHQ"
+              | "VIR"
+              | "PRVT",
+            clientId: savedPesee.clientId || 0,
+            transporteurId: savedPesee.transporteurId || 0,
+            transporteurLibre: savedPesee.transporteurLibre || "",
+            typeClient: savedPesee.typeClient,
+          };
+          // Ouvrir directement la fenêtre d'impression du navigateur
+          console.log("[handleSaveAndPrintInvoice] Appel handlePrintDirect...");
+          await handlePrintDirect(
+            formDataForPrint,
+            products,
+            transporteurs,
+            true,
+            client
+          );
+          console.log(
+            "[handleSaveAndPrintInvoice] Fenêtre d'impression ouverte"
+          );
+        } else {
+          console.error(
+            "[handleSaveAndPrintInvoice] ERREUR: savedPesee est null/undefined"
+          );
+          toast({
+            title: "Erreur",
+            description: "Impossible de récupérer la pesée sauvegardée.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error(
+          "[handleSaveAndPrintInvoice] ERREUR lors de la récupération/impression:",
+          error
+        );
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de l'impression.",
+          variant: "destructive",
+        });
       }
+    } else {
+      console.warn(
+        "[handleSaveAndPrintInvoice] ATTENTION: savedPeseeId est null, la pesée n'a pas été sauvegardée"
+      );
     }
     setIsSaveDialogOpen(false);
   };
@@ -574,49 +796,85 @@ export default function PeseeSpace() {
   const handleSavePrintBonAndInvoice = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "les_deux"
   ) => {
+    console.log(
+      "[handleSavePrintBonAndInvoice] Début, typeDocument:",
+      typeDocument
+    );
     const savedPeseeId = await savePesee(typeDocument);
+    console.log("[handleSavePrintBonAndInvoice] savedPeseeId:", savedPeseeId);
     if (savedPeseeId) {
-      // Récupérer la pesée sauvegardée depuis la DB
-      const savedPesee = await db.pesees.get(savedPeseeId);
-      if (savedPesee) {
-        // Récupérer le client
-        const client = savedPesee.clientId
-          ? clients.find((c) => c.id === savedPesee.clientId) || null
-          : null;
-        // Créer formDataForPrint à partir de la pesée sauvegardée
-        const formDataForPrint: PeseeTab["formData"] = {
-          numeroBon: savedPesee.numeroBon,
-          numeroFacture: savedPesee.numeroFacture,
-          nomEntreprise: savedPesee.nomEntreprise,
-          plaque: savedPesee.plaque,
-          chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
-          chantierLibre: savedPesee.chantierLibre,
-          produitId: savedPesee.produitId,
-          poidsEntree: savedPesee.poidsEntree.toString(),
-          poidsSortie: savedPesee.poidsSortie.toString(),
-          moyenPaiement: savedPesee.moyenPaiement as
-            | "ESP"
-            | "CB"
-            | "CHQ"
-            | "VIR"
-            | "PRVT",
-          clientId: savedPesee.clientId || 0,
-          transporteurId: savedPesee.transporteurId || 0,
-          transporteurLibre: savedPesee.transporteurLibre || "",
-          typeClient: savedPesee.typeClient,
-        };
-        // Utiliser handlePrintBothBonAndInvoice pour récupérer le contenu et l'afficher dans le preview
-        const { bonContent: combinedContent } =
-          await handlePrintBothBonAndInvoice(
+      try {
+        // Récupérer la pesée sauvegardée depuis la DB
+        const savedPesee = await db.pesees.get(savedPeseeId);
+        console.log(
+          "[handleSavePrintBonAndInvoice] savedPesee récupérée:",
+          savedPesee
+        );
+        if (savedPesee) {
+          // Récupérer le client
+          const client = savedPesee.clientId
+            ? clients.find((c) => c.id === savedPesee.clientId) || null
+            : null;
+          // Créer formDataForPrint à partir de la pesée sauvegardée
+          const formDataForPrint: PeseeTab["formData"] = {
+            numeroBon: savedPesee.numeroBon,
+            numeroFacture: savedPesee.numeroFacture,
+            nomEntreprise: savedPesee.nomEntreprise,
+            plaque: savedPesee.plaque,
+            chantier: savedPesee.chantier || savedPesee.chantierLibre || "",
+            chantierLibre: savedPesee.chantierLibre,
+            produitId: savedPesee.produitId,
+            poidsEntree: savedPesee.poidsEntree.toString(),
+            poidsSortie: savedPesee.poidsSortie.toString(),
+            moyenPaiement: savedPesee.moyenPaiement as
+              | "ESP"
+              | "CB"
+              | "CHQ"
+              | "VIR"
+              | "PRVT",
+            clientId: savedPesee.clientId || 0,
+            transporteurId: savedPesee.transporteurId || 0,
+            transporteurLibre: savedPesee.transporteurLibre || "",
+            typeClient: savedPesee.typeClient,
+          };
+          // Ouvrir directement la fenêtre d'impression du navigateur
+          console.log(
+            "[handleSavePrintBonAndInvoice] Appel handlePrintDirectBoth..."
+          );
+          await handlePrintDirectBoth(
             formDataForPrint,
             products,
             transporteurs,
             client
           );
-        setPrintContent(combinedContent);
-        setPrintTitle("Bon de livraison + Facture");
-        setPrintPreviewOpen(true);
+          console.log(
+            "[handleSavePrintBonAndInvoice] Fenêtre d'impression ouverte"
+          );
+        } else {
+          console.error(
+            "[handleSavePrintBonAndInvoice] ERREUR: savedPesee est null/undefined"
+          );
+          toast({
+            title: "Erreur",
+            description: "Impossible de récupérer la pesée sauvegardée.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error(
+          "[handleSavePrintBonAndInvoice] ERREUR lors de la récupération/impression:",
+          error
+        );
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de l'impression.",
+          variant: "destructive",
+        });
       }
+    } else {
+      console.warn(
+        "[handleSavePrintBonAndInvoice] ATTENTION: savedPeseeId est null, la pesée n'a pas été sauvegardée"
+      );
     }
     setIsSaveDialogOpen(false);
   };
@@ -790,54 +1048,159 @@ export default function PeseeSpace() {
         totalTTC = net * prixTTC;
       }
 
+      // Vérifier si on est en mode édition
+      const isEditing = editingPeseeId !== null;
+      let existingPesee: Pesee | undefined;
+
+      if (isEditing) {
+        existingPesee = await db.pesees.get(editingPeseeId);
+        if (!existingPesee) {
+          toast({
+            title: "Erreur",
+            description: "Pesée introuvable pour modification.",
+            variant: "destructive",
+          });
+          return null;
+        }
+
+        // Vérifier si la pesée a déjà été exportée
+        const isExported =
+          (existingPesee.exportedAt && existingPesee.exportedAt.length > 0) ||
+          existingPesee.numeroBonExported ||
+          existingPesee.numeroFactureExported;
+
+        if (isExported) {
+          toast({
+            title: "Modification impossible",
+            description:
+              "Cette pesée a déjà été exportée et ne peut plus être modifiée.",
+            variant: "destructive",
+          });
+          return null;
+        }
+      }
+
       // Générer les numéros selon le type de document
       let numeroBon = "";
       let numeroFacture = "";
 
-      if (typeDocument === "bon_livraison" || typeDocument === "les_deux") {
+      if (isEditing && existingPesee) {
+        // En mode édition, gérer les numéros selon le type de document existant et le nouveau type
+        const existingType = existingPesee.typeDocument || "bon_livraison";
+
+        // Conserver le numéro de bon s'il existe et n'est pas exporté
+        if (existingPesee.numeroBon && !existingPesee.numeroBonExported) {
+          numeroBon = existingPesee.numeroBon;
+        } else if (existingPesee.numeroBon) {
+          // Si exporté, conserver quand même
+          numeroBon = existingPesee.numeroBon;
+        }
+
+        // Conserver le numéro de facture s'il existe et n'est pas exporté
+        if (
+          existingPesee.numeroFacture &&
+          !existingPesee.numeroFactureExported
+        ) {
+          numeroFacture = existingPesee.numeroFacture;
+        } else if (existingPesee.numeroFacture) {
+          // Si exporté, conserver quand même
+          numeroFacture = existingPesee.numeroFacture;
+        }
+
+        // Si on change le type de document, générer les numéros manquants
         if (typeDocument === "les_deux") {
-          // Pour "les_deux", utiliser getMaxSequenceNumber pour éviter les conflits
-          let nextSeqNum = await getMaxSequenceNumber();
-          numeroBon = `BL${nextSeqNum}`;
-          numeroFacture = `FA${nextSeqNum}`;
-
-          // Vérifier l'unicité pour les deux numéros
-          let blExists =
-            (await db.pesees.where("numeroBon").equals(numeroBon).count()) > 0;
-          let faExists =
-            (await db.pesees
-              .where("numeroFacture")
-              .equals(numeroFacture)
-              .count()) > 0;
-
-          while (blExists || faExists) {
-            nextSeqNum++;
+          // Si on passe à "les_deux", s'assurer qu'on a les deux numéros
+          if (!numeroBon) {
+            numeroBon = await generateUniqueBLNumber();
+          }
+          if (!numeroFacture) {
+            // Si on n'a pas de numéro de facture, générer un nouveau
+            // Utiliser le même numéro séquentiel que le BL si possible
+            if (numeroBon && numeroBon.startsWith("BL")) {
+              const seqNum = parseInt(numeroBon.substring(2));
+              if (!isNaN(seqNum)) {
+                numeroFacture = `FA${seqNum}`;
+                // Vérifier l'unicité
+                const faExists =
+                  (await db.pesees
+                    .where("numeroFacture")
+                    .equals(numeroFacture)
+                    .count()) > 0;
+                if (faExists) {
+                  // Si le numéro existe déjà, générer un nouveau numéro unique
+                  numeroFacture = await generateUniqueFANumber();
+                }
+              } else {
+                numeroFacture = await generateUniqueFANumber();
+              }
+            } else {
+              numeroFacture = await generateUniqueFANumber();
+            }
+          }
+        } else if (typeDocument === "bon_livraison") {
+          // Si on passe à "bon_livraison" uniquement, s'assurer qu'on a un numéro de bon
+          if (!numeroBon) {
+            numeroBon = await generateUniqueBLNumber();
+          }
+          // Pas de facture nécessaire
+          numeroFacture = undefined;
+        } else if (typeDocument === "facture") {
+          // Si on passe à "facture" uniquement, s'assurer qu'on a un numéro de facture
+          if (!numeroFacture) {
+            numeroFacture = await generateUniqueFANumber();
+          }
+          // Pas de bon nécessaire
+          numeroBon = "";
+        }
+      } else {
+        // Mode création : générer de nouveaux numéros
+        if (typeDocument === "bon_livraison" || typeDocument === "les_deux") {
+          if (typeDocument === "les_deux") {
+            // Pour "les_deux", utiliser getMaxSequenceNumber pour éviter les conflits
+            let nextSeqNum = await getMaxSequenceNumber();
             numeroBon = `BL${nextSeqNum}`;
             numeroFacture = `FA${nextSeqNum}`;
-            blExists =
+
+            // Vérifier l'unicité pour les deux numéros
+            let blExists =
               (await db.pesees.where("numeroBon").equals(numeroBon).count()) >
               0;
-            faExists =
+            let faExists =
               (await db.pesees
                 .where("numeroFacture")
                 .equals(numeroFacture)
                 .count()) > 0;
+
+            while (blExists || faExists) {
+              nextSeqNum++;
+              numeroBon = `BL${nextSeqNum}`;
+              numeroFacture = `FA${nextSeqNum}`;
+              blExists =
+                (await db.pesees.where("numeroBon").equals(numeroBon).count()) >
+                0;
+              faExists =
+                (await db.pesees
+                  .where("numeroFacture")
+                  .equals(numeroFacture)
+                  .count()) > 0;
+            }
+          } else {
+            numeroBon = await generateUniqueBLNumber();
           }
-        } else {
-          numeroBon = await generateUniqueBLNumber();
+        }
+
+        if (typeDocument === "facture") {
+          numeroFacture = await generateUniqueFANumber();
         }
       }
 
-      if (typeDocument === "facture") {
-        numeroFacture = await generateUniqueFANumber();
-      }
-
-      const peseeData: Pesee = {
+      const peseeData: Partial<Pesee> = {
         ...currentData,
         numeroBon: numeroBon || "", // Vide si seulement facture
         numeroFacture: numeroFacture || undefined,
         typeDocument,
-        dateHeure: new Date(),
+        dateHeure:
+          isEditing && existingPesee ? existingPesee.dateHeure : new Date(),
         poidsEntree,
         // déjà en tonnes
         poidsSortie,
@@ -852,48 +1215,99 @@ export default function PeseeSpace() {
         transporteurLibre: currentData.transporteurLibre || undefined, // Sauvegarder le transporteur libre
         typeClient: currentData.typeClient || "particulier",
         synchronized: false,
-        version: 1,
-        // Version initiale
-        numeroBonExported: false,
-        numeroFactureExported: false,
-        createdAt: new Date(),
         updatedAt: new Date(),
       };
 
-      const savedPeseeId = await db.pesees.add(peseeData);
+      // En mode création, ajouter les champs initiaux
+      if (!isEditing) {
+        (peseeData as Pesee).version = 1;
+        (peseeData as Pesee).numeroBonExported = false;
+        (peseeData as Pesee).numeroFactureExported = false;
+        (peseeData as Pesee).createdAt = new Date();
+      } else {
+        // En mode édition, conserver les valeurs existantes
+        if (existingPesee) {
+          peseeData.version = existingPesee.version || 1;
+          peseeData.numeroBonExported = existingPesee.numeroBonExported;
+          peseeData.numeroFactureExported = existingPesee.numeroFactureExported;
+          peseeData.createdAt = existingPesee.createdAt;
+          peseeData.exportedAt = existingPesee.exportedAt;
+        }
+      }
 
-      // Vérifier Track Déchet automatique
-      await checkAndGenerateTrackDechet(savedPeseeId, peseeData);
+      let savedPeseeId: number;
+
+      if (isEditing && editingPeseeId) {
+        // Mise à jour de la pesée existante
+        await db.pesees.update(editingPeseeId, peseeData);
+        savedPeseeId = editingPeseeId;
+      } else {
+        // Création d'une nouvelle pesée
+        savedPeseeId = await db.pesees.add(peseeData as Pesee);
+      }
+
+      // Vérifier Track Déchet automatique (seulement pour les nouvelles pesées)
+      if (!isEditing) {
+        await checkAndGenerateTrackDechet(savedPeseeId, peseeData as Pesee);
+      }
 
       // Créer le message de succès selon le type de document
       let successMessage = "";
-      if (typeDocument === "bon_livraison") {
-        successMessage = `Bon de livraison n°${numeroBon} créé avec succès.`;
-      } else if (typeDocument === "facture") {
-        successMessage = `Facture n°${numeroFacture} créée avec succès.`;
+      if (isEditing) {
+        if (typeDocument === "bon_livraison") {
+          successMessage = `Bon de livraison n°${numeroBon} modifié avec succès.`;
+        } else if (typeDocument === "facture") {
+          successMessage = `Facture n°${numeroFacture} modifiée avec succès.`;
+        } else {
+          successMessage = `Bon de livraison n°${numeroBon} et Facture n°${numeroFacture} modifiés avec succès.`;
+        }
       } else {
-        successMessage = `Bon de livraison n°${numeroBon} et Facture n°${numeroFacture} créés avec succès.`;
+        if (typeDocument === "bon_livraison") {
+          successMessage = `Bon de livraison n°${numeroBon} créé avec succès.`;
+        } else if (typeDocument === "facture") {
+          successMessage = `Facture n°${numeroFacture} créée avec succès.`;
+        } else {
+          successMessage = `Bon de livraison n°${numeroBon} et Facture n°${numeroFacture} créés avec succès.`;
+        }
       }
 
       toast({
-        title: "Pesée enregistrée",
+        title: isEditing ? "Pesée modifiée" : "Pesée enregistrée",
         description: successMessage,
       });
-      updateCurrentTab({
-        numeroBon: generateBonNumber(),
-        moyenPaiement: "ESP",
-        plaque: "",
-        nomEntreprise: "",
-        chantier: "",
-        chantierLibre: "",
-        produitId: 0,
-        poidsEntree: "",
-        poidsSortie: "",
-        clientId: 0,
-        transporteurId: 0,
-        transporteurLibre: "",
-        typeClient: "particulier",
-      });
+
+      // Réinitialiser le formulaire seulement si on n'est pas en mode édition
+      if (!isEditing) {
+        updateCurrentTab({
+          numeroBon: generateBonNumber(),
+          moyenPaiement: "ESP",
+          plaque: "",
+          nomEntreprise: "",
+          chantier: "",
+          chantierLibre: "",
+          produitId: 0,
+          poidsEntree: "",
+          poidsSortie: "",
+          clientId: 0,
+          transporteurId: 0,
+          transporteurLibre: "",
+          typeClient: "particulier",
+        });
+      } else {
+        // En mode édition, fermer l'onglet actuel et créer un nouvel onglet vide
+        // pour éviter toute confusion
+        const currentTabId = activeTabId;
+        setEditingPeseeId(null);
+
+        // Fermer l'onglet actuel
+        if (currentTabId) {
+          closeTab(currentTabId);
+        }
+
+        // Créer un nouvel onglet vide pour continuer à travailler
+        await createNewTab();
+      }
+
       loadData();
       return savedPeseeId;
     } catch (error) {
@@ -1046,9 +1460,26 @@ export default function PeseeSpace() {
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id}>
             <Card className="shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50">
-                <CardTitle className="text-lg text-gray-800">
-                  Nouvelle Pesée - {getTabLabel(tab.id)}
+              <CardHeader
+                className={`bg-gradient-to-r ${
+                  editingPeseeId
+                    ? "from-orange-50 to-yellow-50"
+                    : "from-gray-50 to-blue-50"
+                }`}
+              >
+                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+                  {editingPeseeId ? (
+                    <>
+                      <span className="text-orange-600">
+                        ✏️ Modifier une pesée
+                      </span>
+                      <span className="text-sm font-normal text-gray-500">
+                        - {getTabLabel(tab.id)}
+                      </span>
+                    </>
+                  ) : (
+                    <>Nouvelle Pesée - {getTabLabel(tab.id)}</>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6 p-6">
@@ -1070,6 +1501,11 @@ export default function PeseeSpace() {
                   newChantier={newChantier}
                   setNewChantier={setNewChantier}
                   handleAddChantier={handleAddChantier}
+                  isAddPlaqueDialogOpen={isAddPlaqueDialogOpen}
+                  setIsAddPlaqueDialogOpen={setIsAddPlaqueDialogOpen}
+                  newPlaque={newPlaque}
+                  setNewPlaque={setNewPlaque}
+                  handleAddPlaque={handleAddPlaque}
                   isAddTransporteurDialogOpen={isAddTransporteurDialogOpen}
                   setIsAddTransporteurDialogOpen={
                     setIsAddTransporteurDialogOpen
@@ -1134,7 +1570,7 @@ export default function PeseeSpace() {
       <SaveConfirmDialog
         isOpen={isSaveDialogOpen}
         onClose={() => setIsSaveDialogOpen(false)}
-        onConfirm={handleSaveAndPrintInvoice}
+        onConfirm={handleSaveOnly}
         onConfirmAndPrint={handleSaveAndPrint}
         onConfirmPrintAndInvoice={handleSavePrintBonAndInvoice}
         moyenPaiement={currentData?.moyenPaiement || "ESP"}

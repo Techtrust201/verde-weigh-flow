@@ -620,11 +620,67 @@ export const handlePrintDirect = async (
     client
   );
 
-  const printWindow = window.open("", "_blank");
-  if (printWindow) {
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.print();
+  // Créer un iframe caché pour l'impression sans ouvrir un nouvel onglet
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
+  iframe.style.visibility = "hidden";
+  document.body.appendChild(iframe);
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (iframeDoc) {
+    iframeDoc.open();
+    iframeDoc.write(printContent);
+    iframeDoc.close();
+
+    // Fonction pour nettoyer l'iframe
+    const cleanup = () => {
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 100);
+    };
+
+    // Flag pour éviter le double appel d'impression
+    let printCalled = false;
+
+    // Fonction pour appeler print une seule fois
+    const callPrint = () => {
+      if (printCalled || !iframe.contentWindow) return;
+      printCalled = true;
+
+      // Écouter les événements de fermeture de la fenêtre d'impression
+      const beforePrintHandler = () => {
+        // L'utilisateur a commencé l'impression
+      };
+      const afterPrintHandler = () => {
+        // L'impression est terminée (ou annulée)
+        cleanup();
+      };
+
+      iframe.contentWindow.addEventListener("beforeprint", beforePrintHandler);
+      iframe.contentWindow.addEventListener("afterprint", afterPrintHandler);
+
+      iframe.contentWindow.print();
+
+      // Fallback : nettoyer après un délai si les événements ne se déclenchent pas
+      setTimeout(cleanup, 2000);
+    };
+
+    // Attendre que le contenu soit chargé puis imprimer
+    iframe.onload = () => {
+      setTimeout(callPrint, 500);
+    };
+
+    // Fallback : si onload ne se déclenche pas, essayer directement après un délai
+    setTimeout(callPrint, 1000);
   }
 };
 
@@ -679,11 +735,67 @@ export const handlePrintDirectBoth = async (
     client || null
   );
 
-  const printWindow = window.open("", "_blank");
-  if (printWindow) {
-    printWindow.document.write(bonContent);
-    printWindow.document.close();
-    printWindow.print();
+  // Créer un iframe caché pour l'impression sans ouvrir un nouvel onglet
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
+  iframe.style.visibility = "hidden";
+  document.body.appendChild(iframe);
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (iframeDoc) {
+    iframeDoc.open();
+    iframeDoc.write(bonContent);
+    iframeDoc.close();
+
+    // Fonction pour nettoyer l'iframe
+    const cleanup = () => {
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 100);
+    };
+
+    // Flag pour éviter le double appel d'impression
+    let printCalled = false;
+
+    // Fonction pour appeler print une seule fois
+    const callPrint = () => {
+      if (printCalled || !iframe.contentWindow) return;
+      printCalled = true;
+
+      // Écouter les événements de fermeture de la fenêtre d'impression
+      const beforePrintHandler = () => {
+        // L'utilisateur a commencé l'impression
+      };
+      const afterPrintHandler = () => {
+        // L'impression est terminée (ou annulée)
+        cleanup();
+      };
+
+      iframe.contentWindow.addEventListener("beforeprint", beforePrintHandler);
+      iframe.contentWindow.addEventListener("afterprint", afterPrintHandler);
+
+      iframe.contentWindow.print();
+
+      // Fallback : nettoyer après un délai si les événements ne se déclenchent pas
+      setTimeout(cleanup, 2000);
+    };
+
+    // Attendre que le contenu soit chargé puis imprimer
+    iframe.onload = () => {
+      setTimeout(callPrint, 500);
+    };
+
+    // Fallback : si onload ne se déclenche pas, essayer directement après un délai
+    setTimeout(callPrint, 1000);
   }
 };
 

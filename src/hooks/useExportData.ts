@@ -455,7 +455,7 @@ export const useExportData = () => {
           return "VIR";
         case "PRVT":
           return "PRVT";
-        // Compat anciens en base
+        // Compatibilité avec d'anciennes données en base (à supprimer après migration complète)
         case "DIRECT":
           return "ESP";
         case "EN COMPTE":

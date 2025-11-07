@@ -473,7 +473,8 @@ export const generateInvoiceContent = async (
           <div class="payment-title">CONDITIONS DE PAIEMENT</div>
           <div>Mode de paiement : ${formData.moyenPaiement}</div>
           ${
-            formData.moyenPaiement === "En compte"
+            formData.moyenPaiement === "VIR" ||
+            formData.moyenPaiement === "PRVT"
               ? "<div>Paiement à 30 jours fin de mois</div>"
               : "<div>Paiement à la livraison</div>"
           }

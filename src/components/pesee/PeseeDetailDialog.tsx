@@ -26,6 +26,12 @@ import {
 import { PrintPreviewDialog } from "@/components/ui/print-preview-dialog";
 import { TrackDechetDialog } from "@/components/trackdechet/TrackDechetDialog";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PeseeDetailDialogProps {
   isOpen: boolean;
@@ -33,6 +39,7 @@ interface PeseeDetailDialogProps {
   pesee: Pesee | null;
   products: Product[];
   transporteurs: Transporteur[];
+  onEdit?: (pesee: Pesee) => void;
 }
 
 export const PeseeDetailDialog = ({
@@ -41,6 +48,7 @@ export const PeseeDetailDialog = ({
   pesee,
   products,
   transporteurs,
+  onEdit,
 }: PeseeDetailDialogProps) => {
   const [isPrinting, setIsPrinting] = useState(false);
   const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
@@ -71,6 +79,8 @@ export const PeseeDetailDialog = ({
   }, [pesee, isOpen]);
 
   if (!pesee) return null;
+
+  const isExported = Boolean(pesee.exportedAt && pesee.exportedAt.length > 0);
 
   const selectedProduct = products.find((p) => p.id === pesee.produitId);
   const selectedTransporteur = transporteurs.find(
@@ -116,14 +126,8 @@ export const PeseeDetailDialog = ({
     produitId: pesee.produitId,
     poidsEntree: pesee.poidsEntree.toString(),
     poidsSortie: pesee.poidsSortie.toString(),
-    moyenPaiement: pesee.moyenPaiement as
-      | "ESP"
-      | "CB"
-      | "CHQ"
-      | "VIR"
-      | "PRVT"
-      | "Direct"
-      | "En compte",
+    moyenPaiement:
+      (pesee.moyenPaiement as "ESP" | "CB" | "CHQ" | "VIR" | "PRVT") || "ESP",
     clientId: pesee.clientId || 0,
     transporteurId: pesee.transporteurId || 0,
     transporteurLibre: pesee.transporteurLibre || "",
@@ -469,6 +473,33 @@ export const PeseeDetailDialog = ({
                       Bon + Facture
                     </Button>
                   )}
+
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="block">
+                          <Button
+                            onClick={() => onEdit?.(pesee)}
+                            disabled={isExported || !onEdit}
+                            variant="default"
+                            className="w-full justify-center text-sm"
+                            size="sm"
+                          >
+                            Modifier la pesée
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {isExported
+                            ? "Impossible de modifier une pesée déjà exportée."
+                            : onEdit
+                            ? "Modifier les informations de cette pesée."
+                            : "La modification n'est pas disponible dans ce contexte."}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
 
                   {/* Bouton Track Déchet - visible seulement pour professionnels */}
                   {pesee && client?.typeClient !== "particulier" && (

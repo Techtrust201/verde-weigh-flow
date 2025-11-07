@@ -23,7 +23,11 @@ import { TrackDechetEmptyState } from "@/components/trackdechet/TrackDechetEmpty
 import { useTrackDechetHistory } from "@/hooks/useTrackDechetHistory";
 import { useTrackDechetStats } from "@/hooks/useTrackDechetStats";
 
-export default function HistoriqueSpace() {
+interface HistoriqueSpaceProps {
+  onEditPesee?: (peseeId: number) => void;
+}
+
+export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
   const [pesees, setPesees] = useState<Pesee[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [transporteurs, setTransporteurs] = useState<Transporteur[]>([]);
@@ -466,6 +470,19 @@ export default function HistoriqueSpace() {
             pesee={selectedPesee}
             products={products}
             transporteurs={transporteurs}
+            onEdit={(pesee) => {
+              if (!pesee.id) {
+                toast({
+                  title: "Modification impossible",
+                  description:
+                    "Impossible de modifier cette pesée car son identifiant est introuvable.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              setIsDetailDialogOpen(false);
+              onEditPesee?.(pesee.id);
+            }}
           />
 
           {/* Dialog de confirmation de suppression */}
