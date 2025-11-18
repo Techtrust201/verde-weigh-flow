@@ -20,6 +20,7 @@ export interface Tab {
   label: string;
   onClose?: () => void;
   closeable?: boolean;
+  isEditing?: boolean;
 }
 interface EnhancedTabsProps {
   tabs: Tab[];
@@ -101,31 +102,34 @@ export function EnhancedTabs({
       >
         <div className="flex space-x-1 px-2 min-w-max">
           {visibleTabs.map((tab) => (
-            <button
+            <div
               key={tab.id}
               onClick={() => onTabSelect(tab.id)}
               className={cn(
-                "relative group px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap shrink-0 min-w-0 max-w-40",
+                "relative group px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap shrink-0 min-w-0 max-w-40 cursor-pointer",
                 activeTabId === tab.id
-                  ? "bg-background shadow-sm text-foreground border border-border"
+                  ? tab.isEditing
+                    ? "bg-orange-500 shadow-sm text-white border border-orange-600"
+                    : "bg-background shadow-sm text-foreground border border-border"
+                  : tab.isEditing
+                  ? "bg-orange-100 hover:bg-orange-200 text-orange-900 border border-orange-300"
                   : "hover:bg-background/50 text-muted-foreground hover:text-foreground"
               )}
             >
               <span className="truncate block mx-[10px]">{tab.label}</span>
               {tab.closeable !== false && tabs.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute -top-1 -right-1 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 bg-destructive/5"
+                <button
+                  type="button"
+                  className="absolute -top-1 -right-1 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 bg-destructive/5 rounded-full flex items-center justify-center text-xs font-bold transition-opacity"
                   onClick={(e) => {
-            e.stopPropagation();
-            tab.onClose?.();
+                    e.stopPropagation();
+                    tab.onClose?.();
                   }}
                 >
                   ×
-                </Button>
+                </button>
               )}
-            </button>
+            </div>
           ))}
         </div>
       </div>
@@ -161,22 +165,25 @@ export function EnhancedTabs({
                 onClick={() => onTabSelect(tab.id)}
                 className={cn(
                   "flex items-center justify-between",
-                  activeTabId === tab.id && "bg-accent"
+                  activeTabId === tab.id && tab.isEditing
+                    ? "bg-orange-100"
+                    : activeTabId === tab.id && "bg-accent"
                 )}
               >
-                <span className="truncate">{tab.label}</span>
+                <span className={cn("truncate", tab.isEditing && "text-orange-900 font-medium")}>
+                  {tab.label}
+                </span>
                 {tab.closeable !== false && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 ml-2 hover:bg-destructive/10"
+                  <button
+                    type="button"
+                    className="h-4 w-4 p-0 ml-2 hover:bg-destructive/10 rounded-full flex items-center justify-center text-xs font-bold"
                     onClick={(e) => {
-            e.stopPropagation();
-            tab.onClose?.();
+                      e.stopPropagation();
+                      tab.onClose?.();
                     }}
                   >
                     ×
-                  </Button>
+                  </button>
                 )}
               </DropdownMenuItem>
             ))}

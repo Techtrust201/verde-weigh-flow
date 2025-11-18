@@ -264,7 +264,7 @@ export const PeseeFormSection = ({
       const client = clients.find((c) => c.id === currentData.clientId);
       if (client && isClientAddressComplete(client)) {
         return `${client.adresse}, ${client.codePostal} ${client.ville}`;
-      }
+    }
     }
     return "";
   };
@@ -332,7 +332,7 @@ export const PeseeFormSection = ({
                   moyenPaiement: (firstActive?.code ||
                     "ESP") as PeseeTab["formData"]["moyenPaiement"],
                 });
-              }
+            }
             }}
           >
             <SelectTrigger>
@@ -882,12 +882,12 @@ export const PeseeFormSection = ({
             </Label>
             {currentData?.clientId
               ? (() => {
-                  const client = clients.find(
-                    (c) => c.id === currentData.clientId
-                  );
+                const client = clients.find(
+                  (c) => c.id === currentData.clientId
+                );
                   if (client && isClientAddressComplete(client)) {
                     const defaultChantier = `${client.adresse}, ${client.codePostal} ${client.ville}`;
-                    return (
+                return (
                       <p className="text-xs text-muted-foreground my-2">
                         💡 Par défaut :{" "}
                         <span className="font-medium">{defaultChantier}</span>{" "}
@@ -1008,8 +1008,8 @@ export const PeseeFormSection = ({
                       validationErrors.chantier &&
                         "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                     )}
-                  />
-                </div>
+          />
+        </div>
               )}
               {!!validationErrors.chantier && (
                 <p className="text-red-600 text-sm mt-1">
@@ -1026,7 +1026,7 @@ export const PeseeFormSection = ({
                   variant="outline"
                   size="sm"
                   className="mt-0 self-start shrink-0"
-                  disabled={!currentData?.clientId}
+            disabled={!currentData?.clientId}
                   title="Ajouter un nouveau chantier"
                 >
                   <Plus className="h-4 w-4" />
@@ -1061,7 +1061,7 @@ export const PeseeFormSection = ({
         </div>
 
         <div className="flex flex-col h-full">
-          <div>
+        <div>
             <Label htmlFor="transporteur">Transporteur</Label>
             {currentData?.nomEntreprise && (
               <p className="text-xs text-muted-foreground my-2">

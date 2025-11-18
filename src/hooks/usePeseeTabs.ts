@@ -5,6 +5,7 @@ export interface PeseeTab {
   id: string;
   label: string;
   formData: PeseeTabFormData;
+  isEditing?: boolean;
 }
 
 export interface PeseeTabFormData {
@@ -335,38 +336,54 @@ export const usePeseeTabs = () => {
     }
   };
 
-  const createNewTab = useCallback(async () => {
-    console.log("[usePeseeTabs] createNewTab appelé, nombre d'onglets actuel:", tabs.length);
+  const createNewTab = useCallback(async (): Promise<string> => {
     const newTabId = crypto.randomUUID();
-    // Plus de génération immédiate - le numéro sera généré à la validation
-    const newTab: PeseeTab = {
-      id: newTabId,
-      label: `Pesée ${tabs.length + 1}`, // Label initial, sera mis à jour dynamiquement
-      formData: {
-        numeroBon: "À générer",
-        nomEntreprise: "",
-        plaque: "",
-        chantier: "",
-        chantierLibre: "",
-        produitId: 0,
-        transporteurId: 0,
-        transporteurLibre: "",
-        poidsEntree: "",
-        poidsSortie: "",
-        moyenPaiement: "ESP",
-        typeClient: "professionnel",
-        clientId: 0,
-      },
-    };
-    const newTabs = [...tabs, newTab];
-    console.log("[usePeseeTabs] Nouvel onglet créé:", newTabId, "Total onglets:", newTabs.length);
-    setTabs(newTabs);
+
+    setTabs((prevTabs) => {
+      console.log(
+        "[usePeseeTabs] createNewTab appelé, nombre d'onglets actuel:",
+        prevTabs.length
+      );
+
+      const newTab: PeseeTab = {
+        id: newTabId,
+        label: `Pesée ${prevTabs.length + 1}`,
+        formData: {
+          numeroBon: "À générer",
+          nomEntreprise: "",
+          plaque: "",
+          chantier: "",
+          chantierLibre: "",
+          produitId: 0,
+          transporteurId: 0,
+          transporteurLibre: "",
+          poidsEntree: "",
+          poidsSortie: "",
+          moyenPaiement: "ESP",
+          typeClient: "professionnel",
+          clientId: 0,
+        },
+      };
+
+      const updatedTabs = [...prevTabs, newTab];
+      console.log(
+        "[usePeseeTabs] Nouvel onglet créé:",
+        newTabId,
+        "Total onglets:",
+        updatedTabs.length
+      );
+
+      // 💾 Sauvegarder dans localStorage
+      localStorage.setItem("pesee-tabs", JSON.stringify(updatedTabs));
+      return updatedTabs;
+    });
+
     setActiveTabId(newTabId);
-    // 💾 Sauvegarder dans localStorage
-    localStorage.setItem("pesee-tabs", JSON.stringify(newTabs));
     localStorage.setItem("pesee-active-tab", newTabId);
     console.log("[usePeseeTabs] Onglet sauvegardé dans localStorage");
-  }, [tabs]);
+
+    return newTabId;
+  }, []);
 
   // Fonction pour changer l'onglet actif avec sauvegarde
   const setActiveTabIdWithSave = useCallback((tabId: string | null) => {
@@ -415,24 +432,92 @@ export const usePeseeTabs = () => {
     [tabs, setActiveTabIdWithSave]
   );
 
+  // Créer un onglet d'édition au début de la liste
+  const createEditTab = useCallback(
+    (formData: PeseeTabFormData, nomEntreprise: string): string => {
+      const newTabId = crypto.randomUUID();
+      const formattedFormData: PeseeTabFormData = {
+        numeroBon: formData.numeroBon ?? "À générer",
+        numeroFacture: formData.numeroFacture,
+        nomEntreprise: formData.nomEntreprise ?? "",
+        plaque: formData.plaque ?? "",
+        chantier: formData.chantier ?? "",
+        chantierLibre: formData.chantierLibre ?? "",
+        produitId: formData.produitId ?? 0,
+        transporteurId: formData.transporteurId ?? 0,
+        transporteurLibre: formData.transporteurLibre ?? "",
+        poidsEntree: formData.poidsEntree ?? "",
+        poidsSortie: formData.poidsSortie ?? "",
+        moyenPaiement: formData.moyenPaiement ?? "ESP",
+        typeClient: formData.typeClient ?? "professionnel",
+        clientId: formData.clientId ?? 0,
+      };
+
+      // Générer le label "Edit-(début du nom entreprise)"
+      let label = "Edit-";
+      if (nomEntreprise && nomEntreprise.trim()) {
+        label += nomEntreprise.slice(0, 8).trim();
+      } else {
+        label += "Pesée";
+      }
+
+      const newTab: PeseeTab = {
+        id: newTabId,
+        label: label,
+        formData: formattedFormData,
+        isEditing: true,
+      };
+
+      setTabs((prevTabs) => {
+        // Insérer au début de la liste
+        const updatedTabs = [newTab, ...prevTabs];
+        localStorage.setItem("pesee-tabs", JSON.stringify(updatedTabs));
+        return updatedTabs;
+      });
+      setActiveTabIdWithSave(newTabId);
+      return newTabId;
+    },
+    [setActiveTabIdWithSave]
+  );
+
   const closeTab = (tabId: string) => {
-    const updatedTabs = tabs.filter((tab) => tab.id !== tabId);
-    setTabs(updatedTabs);
-    const newActiveTabId =
-      activeTabId === tabId
-        ? updatedTabs.length > 0
-          ? updatedTabs[0].id
-          : null
-        : activeTabId;
-    setActiveTabId(newActiveTabId);
-    // 💾 Sauvegarder dans localStorage
-    localStorage.setItem("pesee-tabs", JSON.stringify(updatedTabs));
-    if (newActiveTabId) {
-      localStorage.setItem("pesee-active-tab", newActiveTabId);
-    } else {
-      localStorage.removeItem("pesee-active-tab");
-      // Ne pas créer automatiquement un nouvel onglet si l'utilisateur a fermé tous les onglets volontairement
-    }
+    setTabs((prevTabs) => {
+      // Trouver l'index de l'onglet à fermer dans la liste originale
+      const tabIndexToClose = prevTabs.findIndex((tab) => tab.id === tabId);
+      
+      const updatedTabs = prevTabs.filter((tab) => tab.id !== tabId);
+
+      let newActiveTabId: string | null = null;
+      
+      if (activeTabId === tabId) {
+        // Si l'onglet fermé était actif, activer l'onglet précédent
+        if (updatedTabs.length > 0) {
+          if (tabIndexToClose > 0) {
+            // Prendre l'onglet juste avant (index - 1 dans la liste originale)
+            // Mais dans updatedTabs, l'index est décalé de -1 après le filtre
+            newActiveTabId = updatedTabs[tabIndexToClose - 1].id;
+          } else {
+            // Si c'était le premier onglet, prendre le premier de la liste mise à jour
+            newActiveTabId = updatedTabs[0].id;
+          }
+        }
+      } else {
+        // Si l'onglet fermé n'était pas actif, garder l'onglet actif actuel
+        newActiveTabId = activeTabId;
+      }
+
+      setActiveTabId(newActiveTabId);
+
+      // 💾 Sauvegarder dans localStorage
+      localStorage.setItem("pesee-tabs", JSON.stringify(updatedTabs));
+      if (newActiveTabId) {
+        localStorage.setItem("pesee-active-tab", newActiveTabId);
+      } else {
+        localStorage.removeItem("pesee-active-tab");
+      }
+
+      return updatedTabs;
+    });
   };
 
   const getCurrentTabData = (): PeseeTabFormData | undefined => {
@@ -489,6 +574,7 @@ export const usePeseeTabs = () => {
     setActiveTabId: setActiveTabIdWithSave,
     createNewTab,
     createTabFromFormData,
+    createEditTab,
     closeTab,
     updateCurrentTab,
     getCurrentTabData,

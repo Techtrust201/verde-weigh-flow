@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,6 +41,7 @@ export default function PeseeSpace({
     activeTabId,
     setActiveTabId,
     createNewTab,
+    createEditTab,
     closeTab,
     updateCurrentTab,
     getCurrentTabData,
@@ -97,6 +98,8 @@ export default function PeseeSpace({
     produitId?: boolean;
   }>({});
   const [editingPeseeId, setEditingPeseeId] = useState<number | null>(null);
+  const [editingTabId, setEditingTabId] = useState<string | null>(null);
+  const isEditingInProgressRef = useRef(false);
 
   // Fonction pour vérifier si l'adresse client est complète
   const isClientAddressComplete = (client: Client): boolean => {
@@ -148,6 +151,17 @@ export default function PeseeSpace({
   // Charger une pesée en mode édition
   const loadPeseeForEdit = useCallback(
     async (peseeId: number) => {
+      // Vérifier si une édition est déjà en cours pour éviter les onglets multiples
+      if (isEditingInProgressRef.current || editingTabId) {
+        console.log(
+          "[loadPeseeForEdit] Une édition est déjà en cours, on ignore cette demande"
+        );
+        return;
+      }
+
+      // Marquer qu'une édition est en cours
+      isEditingInProgressRef.current = true;
+
       try {
         const pesee = await db.pesees.get(peseeId);
         if (!pesee) {
@@ -177,15 +191,8 @@ export default function PeseeSpace({
           return;
         }
 
-        // Charger la pesée dans l'onglet actif
-        const currentTab = tabs.find((tab) => tab.id === activeTabId);
-        if (!currentTab) {
-          // Créer un nouvel onglet si nécessaire
-          await createNewTab();
-        }
-
-        // Mettre à jour l'onglet avec les données de la pesée
-        updateCurrentTab({
+        // Créer systématiquement un nouvel onglet pour l'édition au début de la liste
+        const formDataForEdit = {
           numeroBon: pesee.numeroBon || "",
           numeroFacture: pesee.numeroFacture || "",
           nomEntreprise: pesee.nomEntreprise || "",
@@ -202,37 +209,62 @@ export default function PeseeSpace({
             "ESP",
           typeClient: pesee.typeClient || "professionnel",
           clientId: pesee.clientId || 0,
-        });
+        };
+
+        const newTabId = createEditTab(
+          formDataForEdit,
+          pesee.nomEntreprise || ""
+        );
+
+        if (!newTabId) {
+          throw new Error(
+            "Impossible de créer un nouvel onglet pour l'édition"
+          );
+        }
+
+        // S'assurer que le nouvel onglet est actif (createEditTab le fait déjà, mais on le confirme)
+        setActiveTabId(newTabId);
 
         setEditingPeseeId(peseeId);
+        setEditingTabId(newTabId);
         onEditHandled?.();
       } catch (error) {
         console.error("Erreur lors du chargement de la pesée:", error);
+        // Nettoyer les états d'édition en cas d'erreur
+        setEditingPeseeId(null);
+        setEditingTabId(null);
+        isEditingInProgressRef.current = false;
         toast({
           title: "Erreur",
           description: "Impossible de charger la pesée pour modification.",
           variant: "destructive",
         });
         onEditHandled?.();
+      } finally {
+        // Réinitialiser le flag après un court délai pour permettre la mise à jour de l'état
+        setTimeout(() => {
+          isEditingInProgressRef.current = false;
+        }, 100);
       }
     },
     [
       toast,
       onEditHandled,
-      tabs,
-      activeTabId,
-      createNewTab,
-      updateCurrentTab,
+      editingTabId,
+      createEditTab,
       setEditingPeseeId,
+      setEditingTabId,
+      setActiveTabId,
     ]
   );
 
   // useEffect pour charger la pesée quand editingRequest change
   useEffect(() => {
-    if (editingRequest?.id) {
+    if (editingRequest?.id && !isEditingInProgressRef.current) {
       loadPeseeForEdit(editingRequest.id);
     }
-  }, [editingRequest?.id, editingRequest?.nonce, loadPeseeForEdit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingRequest?.id, editingRequest?.nonce]); // Retirer loadPeseeForEdit des dépendances pour éviter les appels multiples
 
   // Wrapper pour createNewTab asynchrone
   const handleCreateNewTab = async () => {
@@ -620,17 +652,53 @@ export default function PeseeSpace({
   const handleSaveOnly = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
   ) => {
-    await savePesee(typeDocument);
+    // Capturer l'ID de l'onglet actif AVANT la sauvegarde
+    const currentTabId = activeTabId;
+    // Vérifier si c'était le dernier onglet avant la sauvegarde
+    const wasLastTab = tabs.length === 1;
+
+    const result = await savePesee(typeDocument);
     setIsSaveDialogOpen(false);
+
+    if (result && result.savedPeseeId) {
+      // Réinitialiser les états d'édition
+      setEditingPeseeId(null);
+      setEditingTabId(null);
+      isEditingInProgressRef.current = false;
+
+      if (wasLastTab) {
+        // Créer le nouvel onglet AVANT de fermer l'ancien pour éviter une page blanche
+        const newTabId = await createNewTab();
+        // Maintenant fermer l'ancien onglet (le nouvel onglet reste actif)
+        if (currentTabId) {
+          closeTab(currentTabId);
+        }
+        // S'assurer que le nouvel onglet est bien actif
+        if (newTabId) {
+          setActiveTabId(newTabId);
+        }
+      } else {
+        // Si ce n'était pas le dernier onglet, fermer normalement
+        if (currentTabId) {
+          closeTab(currentTabId);
+        }
+      }
+    }
   };
 
   const handleSaveAndPrint = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
   ) => {
     console.log("[handleSaveAndPrint] Début, typeDocument:", typeDocument);
-    const savedPeseeId = await savePesee(typeDocument);
-    console.log("[handleSaveAndPrint] savedPeseeId:", savedPeseeId);
-    if (savedPeseeId) {
+    // Capturer l'ID de l'onglet actif AVANT la sauvegarde
+    const currentTabId = activeTabId;
+    // Vérifier si c'était le dernier onglet avant la sauvegarde
+    const wasLastTab = tabs.length === 1;
+
+    const result = await savePesee(typeDocument);
+    console.log("[handleSaveAndPrint] result:", result);
+    if (result && result.savedPeseeId) {
+      const savedPeseeId = result.savedPeseeId;
       try {
         // Récupérer la pesée sauvegardée depuis la DB
         const savedPesee = await db.pesees.get(savedPeseeId);
@@ -673,12 +741,35 @@ export default function PeseeSpace({
           );
           await handlePrintDirect(
             formDataForPrint,
-          products,
-          transporteurs,
+            products,
+            transporteurs,
             isInvoice,
             client
           );
           console.log("[handleSaveAndPrint] Fenêtre d'impression ouverte");
+
+          // Réinitialiser les états d'édition
+          setEditingPeseeId(null);
+          setEditingTabId(null);
+          isEditingInProgressRef.current = false;
+
+          if (wasLastTab) {
+            // Créer le nouvel onglet AVANT de fermer l'ancien pour éviter une page blanche
+            const newTabId = await createNewTab();
+            // Maintenant fermer l'ancien onglet (le nouvel onglet reste actif)
+            if (currentTabId) {
+              closeTab(currentTabId);
+            }
+            // S'assurer que le nouvel onglet est bien activé
+            if (newTabId) {
+              setActiveTabId(newTabId);
+            }
+          } else {
+            // Si ce n'était pas le dernier onglet, fermer normalement
+            if (currentTabId) {
+              closeTab(currentTabId);
+            }
+          }
         } else {
           console.error(
             "[handleSaveAndPrint] ERREUR: savedPesee est null/undefined"
@@ -702,7 +793,7 @@ export default function PeseeSpace({
       }
     } else {
       console.warn(
-        "[handleSaveAndPrint] ATTENTION: savedPeseeId est null, la pesée n'a pas été sauvegardée"
+        "[handleSaveAndPrint] ATTENTION: result est null, la pesée n'a pas été sauvegardée"
       );
     }
     setIsSaveDialogOpen(false);
@@ -715,9 +806,15 @@ export default function PeseeSpace({
       "[handleSaveAndPrintInvoice] Début, typeDocument:",
       typeDocument
     );
-    const savedPeseeId = await savePesee(typeDocument);
-    console.log("[handleSaveAndPrintInvoice] savedPeseeId:", savedPeseeId);
-    if (savedPeseeId) {
+    // Capturer l'ID de l'onglet actif AVANT la sauvegarde
+    const currentTabId = activeTabId;
+    // Vérifier si c'était le dernier onglet avant la sauvegarde
+    const wasLastTab = tabs.length === 1;
+
+    const result = await savePesee(typeDocument);
+    console.log("[handleSaveAndPrintInvoice] result:", result);
+    if (result && result.savedPeseeId) {
+      const savedPeseeId = result.savedPeseeId;
       try {
         // Récupérer la pesée sauvegardée depuis la DB
         const savedPesee = await db.pesees.get(savedPeseeId);
@@ -764,6 +861,29 @@ export default function PeseeSpace({
           console.log(
             "[handleSaveAndPrintInvoice] Fenêtre d'impression ouverte"
           );
+
+          // Réinitialiser les états d'édition
+          setEditingPeseeId(null);
+          setEditingTabId(null);
+          isEditingInProgressRef.current = false;
+
+          if (wasLastTab) {
+            // Créer le nouvel onglet AVANT de fermer l'ancien pour éviter une page blanche
+            const newTabId = await createNewTab();
+            // Maintenant fermer l'ancien onglet (le nouvel onglet reste actif)
+            if (currentTabId) {
+              closeTab(currentTabId);
+            }
+            // S'assurer que le nouvel onglet est bien activé
+            if (newTabId) {
+              setActiveTabId(newTabId);
+            }
+          } else {
+            // Si ce n'était pas le dernier onglet, fermer normalement
+            if (currentTabId) {
+              closeTab(currentTabId);
+            }
+          }
         } else {
           console.error(
             "[handleSaveAndPrintInvoice] ERREUR: savedPesee est null/undefined"
@@ -787,7 +907,7 @@ export default function PeseeSpace({
       }
     } else {
       console.warn(
-        "[handleSaveAndPrintInvoice] ATTENTION: savedPeseeId est null, la pesée n'a pas été sauvegardée"
+        "[handleSaveAndPrintInvoice] ATTENTION: result est null, la pesée n'a pas été sauvegardée"
       );
     }
     setIsSaveDialogOpen(false);
@@ -800,9 +920,15 @@ export default function PeseeSpace({
       "[handleSavePrintBonAndInvoice] Début, typeDocument:",
       typeDocument
     );
-    const savedPeseeId = await savePesee(typeDocument);
-    console.log("[handleSavePrintBonAndInvoice] savedPeseeId:", savedPeseeId);
-    if (savedPeseeId) {
+    // Capturer l'ID de l'onglet actif AVANT la sauvegarde
+    const currentTabId = activeTabId;
+    // Vérifier si c'était le dernier onglet avant la sauvegarde
+    const wasLastTab = tabs.length === 1;
+
+    const result = await savePesee(typeDocument);
+    console.log("[handleSavePrintBonAndInvoice] result:", result);
+    if (result && result.savedPeseeId) {
+      const savedPeseeId = result.savedPeseeId;
       try {
         // Récupérer la pesée sauvegardée depuis la DB
         const savedPesee = await db.pesees.get(savedPeseeId);
@@ -850,6 +976,29 @@ export default function PeseeSpace({
           console.log(
             "[handleSavePrintBonAndInvoice] Fenêtre d'impression ouverte"
           );
+
+          // Réinitialiser les états d'édition
+          setEditingPeseeId(null);
+          setEditingTabId(null);
+          isEditingInProgressRef.current = false;
+
+          if (wasLastTab) {
+            // Créer le nouvel onglet AVANT de fermer l'ancien pour éviter une page blanche
+            const newTabId = await createNewTab();
+            // Maintenant fermer l'ancien onglet (le nouvel onglet reste actif)
+            if (currentTabId) {
+              closeTab(currentTabId);
+            }
+            // S'assurer que le nouvel onglet est bien activé
+            if (newTabId) {
+              setActiveTabId(newTabId);
+            }
+          } else {
+            // Si ce n'était pas le dernier onglet, fermer normalement
+            if (currentTabId) {
+              closeTab(currentTabId);
+            }
+          }
         } else {
           console.error(
             "[handleSavePrintBonAndInvoice] ERREUR: savedPesee est null/undefined"
@@ -870,10 +1019,10 @@ export default function PeseeSpace({
           description: "Une erreur est survenue lors de l'impression.",
           variant: "destructive",
         });
-        }
-      } else {
+      }
+    } else {
       console.warn(
-        "[handleSavePrintBonAndInvoice] ATTENTION: savedPeseeId est null, la pesée n'a pas été sauvegardée"
+        "[handleSavePrintBonAndInvoice] ATTENTION: result est null, la pesée n'a pas été sauvegardée"
       );
     }
     setIsSaveDialogOpen(false);
@@ -881,7 +1030,7 @@ export default function PeseeSpace({
 
   const savePesee = async (
     typeDocument: "bon_livraison" | "facture" | "les_deux" = "bon_livraison"
-  ): Promise<number | null> => {
+  ): Promise<{ savedPeseeId: number; mode: "creation" | "edition" } | null> => {
     const currentData = getCurrentTabData();
 
     // Réinitialiser les erreurs de validation
@@ -1117,27 +1266,37 @@ export default function PeseeSpace({
               if (!isNaN(seqNum)) {
                 numeroBon = `BL${seqNum}`;
                 // Vérifier l'unicité croisée : si un BL avec ce numéro existe déjà dans une autre pesée
-                const peseesWithBL = await db.pesees.where("numeroBon").equals(numeroBon).toArray();
+                const peseesWithBL = await db.pesees
+                  .where("numeroBon")
+                  .equals(numeroBon)
+                  .toArray();
                 const blExists = existingPesee?.id
-                  ? peseesWithBL.some(p => p.id !== existingPesee.id)
+                  ? peseesWithBL.some((p) => p.id !== existingPesee.id)
                   : peseesWithBL.length > 0;
-                
+
                 if (blExists) {
                   // Si le BL existe déjà dans une autre pesée, on doit incrémenter les deux numéros
                   // pour garder la cohérence BL+FA avec le même numéro séquentiel
                   let nextSeqNum = seqNum + 1;
                   let newBL = `BL${nextSeqNum}`;
                   let newFA = `FA${nextSeqNum}`;
-                  
+
                   // Vérifier que les nouveaux numéros sont disponibles
                   while (true) {
-                    const blExists2 = (await db.pesees.where("numeroBon").equals(newBL).toArray()).some(
-                      p => existingPesee?.id ? p.id !== existingPesee.id : true
+                    const blExists2 = (
+                      await db.pesees.where("numeroBon").equals(newBL).toArray()
+                    ).some((p) =>
+                      existingPesee?.id ? p.id !== existingPesee.id : true
                     );
-                    const faExists = (await db.pesees.where("numeroFacture").equals(newFA).toArray()).some(
-                      p => existingPesee?.id ? p.id !== existingPesee.id : true
+                    const faExists = (
+                      await db.pesees
+                        .where("numeroFacture")
+                        .equals(newFA)
+                        .toArray()
+                    ).some((p) =>
+                      existingPesee?.id ? p.id !== existingPesee.id : true
                     );
-                    
+
                     if (!blExists2 && !faExists) {
                       break; // Numéros disponibles
                     }
@@ -1145,7 +1304,7 @@ export default function PeseeSpace({
                     newBL = `BL${nextSeqNum}`;
                     newFA = `FA${nextSeqNum}`;
                   }
-                  
+
                   numeroBon = newBL;
                   numeroFacture = newFA;
                 }
@@ -1164,27 +1323,37 @@ export default function PeseeSpace({
               if (!isNaN(seqNum)) {
                 numeroFacture = `FA${seqNum}`;
                 // Vérifier l'unicité croisée : si un FA avec ce numéro existe déjà dans une autre pesée
-                const peseesWithFA = await db.pesees.where("numeroFacture").equals(numeroFacture).toArray();
+                const peseesWithFA = await db.pesees
+                  .where("numeroFacture")
+                  .equals(numeroFacture)
+                  .toArray();
                 const faExists = existingPesee?.id
-                  ? peseesWithFA.some(p => p.id !== existingPesee.id)
+                  ? peseesWithFA.some((p) => p.id !== existingPesee.id)
                   : peseesWithFA.length > 0;
-                
+
                 if (faExists) {
                   // Si le FA existe déjà dans une autre pesée, on doit incrémenter les deux numéros
                   // pour garder la cohérence BL+FA avec le même numéro séquentiel
                   let nextSeqNum = seqNum + 1;
                   let newBL = `BL${nextSeqNum}`;
                   let newFA = `FA${nextSeqNum}`;
-                  
+
                   // Vérifier que les nouveaux numéros sont disponibles
                   while (true) {
-                    const blExists = (await db.pesees.where("numeroBon").equals(newBL).toArray()).some(
-                      p => existingPesee?.id ? p.id !== existingPesee.id : true
+                    const blExists = (
+                      await db.pesees.where("numeroBon").equals(newBL).toArray()
+                    ).some((p) =>
+                      existingPesee?.id ? p.id !== existingPesee.id : true
                     );
-                    const faExists2 = (await db.pesees.where("numeroFacture").equals(newFA).toArray()).some(
-                      p => existingPesee?.id ? p.id !== existingPesee.id : true
+                    const faExists2 = (
+                      await db.pesees
+                        .where("numeroFacture")
+                        .equals(newFA)
+                        .toArray()
+                    ).some((p) =>
+                      existingPesee?.id ? p.id !== existingPesee.id : true
                     );
-                    
+
                     if (!blExists && !faExists2) {
                       break; // Numéros disponibles
                     }
@@ -1192,7 +1361,7 @@ export default function PeseeSpace({
                     newBL = `BL${nextSeqNum}`;
                     newFA = `FA${nextSeqNum}`;
                   }
-                  
+
                   numeroBon = newBL;
                   numeroFacture = newFA;
                 }
@@ -1342,40 +1511,13 @@ export default function PeseeSpace({
         description: successMessage,
       });
 
-      // Réinitialiser le formulaire seulement si on n'est pas en mode édition
-      if (!isEditing) {
-      updateCurrentTab({
-        numeroBon: generateBonNumber(),
-          moyenPaiement: "ESP",
-        plaque: "",
-        nomEntreprise: "",
-        chantier: "",
-          chantierLibre: "",
-        produitId: 0,
-        poidsEntree: "",
-        poidsSortie: "",
-        clientId: 0,
-        transporteurId: 0,
-        transporteurLibre: "",
-        typeClient: "professionnel",
-      });
-      } else {
-        // En mode édition, fermer l'onglet actuel et créer un nouvel onglet vide
-        // pour éviter toute confusion
-        const currentTabId = activeTabId;
-        setEditingPeseeId(null);
-
-        // Fermer l'onglet actuel
-        if (currentTabId) {
-          closeTab(currentTabId);
-        }
-
-        // Créer un nouvel onglet vide pour continuer à travailler
-        await createNewTab();
-      }
-
       loadData();
-      return savedPeseeId;
+
+      // Retourner un objet structuré avec les informations nécessaires pour les handlers
+      return {
+        savedPeseeId,
+        mode: isEditing ? ("edition" as const) : ("creation" as const),
+      };
     } catch (error) {
       console.error("Error saving pesee:", error);
       toast({
@@ -1449,30 +1591,44 @@ export default function PeseeSpace({
   };
 
   const currentData = getCurrentTabData();
-  
+
   // Fonction pour gérer la fermeture d'un onglet avec confirmation
   const handleCloseTab = (tabId: string) => {
-    const tab = tabs.find(t => t.id === tabId);
+    const tab = tabs.find((t) => t.id === tabId);
     if (!tab) return;
-    
+
+    // Vérifier si c'est un onglet d'édition
+    const isEditingTab = tabId === editingTabId;
+
     // Vérifier si l'onglet contient des données non sauvegardées
-    const hasData = tab.formData.clientId > 0 || 
-                     tab.formData.produitId > 0 || 
-                     tab.formData.poidsEntree || 
-                     tab.formData.poidsSortie ||
-                     tab.formData.plaque ||
-                     tab.formData.nomEntreprise;
-    
-    if (hasData) {
+    const hasData =
+      tab.formData.clientId > 0 ||
+      tab.formData.produitId > 0 ||
+      tab.formData.poidsEntree ||
+      tab.formData.poidsSortie ||
+      tab.formData.plaque ||
+      tab.formData.nomEntreprise;
+
+    if (hasData || isEditingTab) {
       // Afficher une confirmation
-      if (window.confirm("Cet onglet contient des données non sauvegardées. Êtes-vous sûr de vouloir le fermer ?")) {
+      const message = isEditingTab
+        ? "Cet onglet contient une pesée en cours de modification. Êtes-vous sûr de vouloir le fermer ?"
+        : "Cet onglet contient des données non sauvegardées. Êtes-vous sûr de vouloir le fermer ?";
+
+      if (window.confirm(message)) {
+        // Nettoyer les états d'édition si c'était un onglet d'édition
+        if (isEditingTab) {
+          setEditingPeseeId(null);
+          setEditingTabId(null);
+          isEditingInProgressRef.current = false;
+        }
         closeTab(tabId);
       }
     } else {
       closeTab(tabId);
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div
@@ -1509,6 +1665,7 @@ export default function PeseeSpace({
                     label: getTabLabel(tab.id),
                     onClose: () => handleCloseTab(tab.id),
                     closeable: tabs.length > 1,
+                    isEditing: tab.isEditing || false,
                   })),
                   {
                     id: "recentes",
