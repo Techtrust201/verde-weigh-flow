@@ -196,12 +196,13 @@ export function EnhancedTabs({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="lg"
+              variant="outline"
+              size="default"
               onClick={onNewTab}
-              className="h-10 w-10 p-0 shrink-0 mx-1 hover:bg-primary/10"
+              className="h-10 px-4 shrink-0 mx-1 hover:bg-primary/10 border-dashed flex items-center gap-2"
             >
-              <Plus className="h-7 w-7" />
+              <Plus className="h-4 w-4" />
+              <span>Nouveau</span>
       </Button>
           </TooltipTrigger>
           <TooltipContent>
