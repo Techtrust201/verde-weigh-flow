@@ -1729,76 +1729,84 @@ export default function PeseeSpace({
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6 p-6">
-                <PeseeFormSection
-                  currentData={tab.formData}
-                  clients={clients}
-                  transporteurs={transporteurs}
-                  updateCurrentTab={updateCurrentTabWithValidation}
-                  onAddClient={prepareNewClientForm}
-                  isAddClientDialogOpen={isAddClientDialogOpen}
-                  setIsAddClientDialogOpen={setIsAddClientDialogOpen}
-                  newClientForm={newClientForm}
-                  setNewClientForm={setNewClientForm}
-                  handleAddNewClient={handleAddNewClient}
-                  handleUpdateClient={handleUpdateClient}
-                  validateNewClient={validateNewClient}
-                  isAddChantierDialogOpen={isAddChantierDialogOpen}
-                  setIsAddChantierDialogOpen={setIsAddChantierDialogOpen}
-                  newChantier={newChantier}
-                  setNewChantier={setNewChantier}
-                  handleAddChantier={handleAddChantier}
-                  isAddPlaqueDialogOpen={isAddPlaqueDialogOpen}
-                  setIsAddPlaqueDialogOpen={setIsAddPlaqueDialogOpen}
-                  newPlaque={newPlaque}
-                  setNewPlaque={setNewPlaque}
-                  handleAddPlaque={handleAddPlaque}
-                  isAddTransporteurDialogOpen={isAddTransporteurDialogOpen}
-                  setIsAddTransporteurDialogOpen={
-                    setIsAddTransporteurDialogOpen
-                  }
-                  newTransporteurForm={newTransporteurForm}
-                  setNewTransporteurForm={setNewTransporteurForm}
-                  handleAddNewTransporteur={handleAddNewTransporteur}
-                  validateNewTransporteur={validateNewTransporteur}
-                  validationErrors={validationErrors}
-                />
-
-                <ProductWeightSection
-                  currentData={tab.formData}
-                  products={products}
-                  updateCurrentTab={updateCurrentTabWithValidation}
-                  validationErrors={validationErrors}
-                />
-
-                <div className="flex justify-end space-x-3 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      if (tab.formData) {
-                        const content = await handlePrint(
-                          tab.formData,
-                          products,
-                          transporteurs,
-                          false
-                        );
-                        setPrintContent(content);
-                        setPrintTitle("Bon de pesée");
-                        setPrintPreviewOpen(true);
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-6">
+                  {/* Colonne gauche : Champs contextuels */}
+                  <div className="space-y-4">
+                    <PeseeFormSection
+                      currentData={tab.formData}
+                      clients={clients}
+                      transporteurs={transporteurs}
+                      updateCurrentTab={updateCurrentTabWithValidation}
+                      onAddClient={prepareNewClientForm}
+                      isAddClientDialogOpen={isAddClientDialogOpen}
+                      setIsAddClientDialogOpen={setIsAddClientDialogOpen}
+                      newClientForm={newClientForm}
+                      setNewClientForm={setNewClientForm}
+                      handleAddNewClient={handleAddNewClient}
+                      handleUpdateClient={handleUpdateClient}
+                      validateNewClient={validateNewClient}
+                      isAddChantierDialogOpen={isAddChantierDialogOpen}
+                      setIsAddChantierDialogOpen={setIsAddChantierDialogOpen}
+                      newChantier={newChantier}
+                      setNewChantier={setNewChantier}
+                      handleAddChantier={handleAddChantier}
+                      isAddPlaqueDialogOpen={isAddPlaqueDialogOpen}
+                      setIsAddPlaqueDialogOpen={setIsAddPlaqueDialogOpen}
+                      newPlaque={newPlaque}
+                      setNewPlaque={setNewPlaque}
+                      handleAddPlaque={handleAddPlaque}
+                      isAddTransporteurDialogOpen={isAddTransporteurDialogOpen}
+                      setIsAddTransporteurDialogOpen={
+                        setIsAddTransporteurDialogOpen
                       }
-                    }}
-                    className="hover:bg-blue-50"
-                  >
-                    <Printer className="h-4 w-4 mr-2" />
-                    Imprimer
-                  </Button>
-                  <Button
-                    onClick={() => setIsSaveDialogOpen(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Enregistrer
-                  </Button>
+                      newTransporteurForm={newTransporteurForm}
+                      setNewTransporteurForm={setNewTransporteurForm}
+                      handleAddNewTransporteur={handleAddNewTransporteur}
+                      validateNewTransporteur={validateNewTransporteur}
+                      validationErrors={validationErrors}
+                    />
+                  </div>
+
+                  {/* Colonne droite : Champs critiques + Actions */}
+                  <div className="space-y-4">
+                    <ProductWeightSection
+                      currentData={tab.formData}
+                      products={products}
+                      updateCurrentTab={updateCurrentTabWithValidation}
+                      validationErrors={validationErrors}
+                    />
+
+                    <div className="flex justify-end space-x-3 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          if (tab.formData) {
+                            const content = await handlePrint(
+                              tab.formData,
+                              products,
+                              transporteurs,
+                              false
+                            );
+                            setPrintContent(content);
+                            setPrintTitle("Bon de pesée");
+                            setPrintPreviewOpen(true);
+                          }
+                        }}
+                        className="hover:bg-blue-50"
+                      >
+                        <Printer className="h-4 w-4 mr-2" />
+                        Imprimer
+                      </Button>
+                      <Button
+                        onClick={() => setIsSaveDialogOpen(true)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Enregistrer
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

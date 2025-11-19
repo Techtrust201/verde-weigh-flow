@@ -320,10 +320,10 @@ export const ProductWeightSection = ({
 
                 <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
                   <div className="text-center">
-                    <div className="text-2xl font-black text-green-800 mb-2">
+                    <div className="text-xl font-black text-green-600 mb-2">
                       {calculatedCost.ht.toFixed(2)}€ HT
                     </div>
-                    <div className="text-xl font-bold text-green-600">
+                    <div className="text-2xl font-bold text-green-800">
                       {calculatedCost.ttc.toFixed(2)}€ TTC
                     </div>
                   </div>

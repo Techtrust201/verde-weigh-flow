@@ -1,3 +1,5 @@
+import { useEffect, useRef, type ElementRef } from "react"
+
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -9,10 +11,44 @@ import {
 } from "@/components/ui/toast"
 
 export function Toaster() {
-  const { toasts } = useToast()
+  const { toasts, dismiss } = useToast()
+  const viewportRef = useRef<ElementRef<typeof ToastViewport> | null>(null)
+
+  useEffect(() => {
+    if (!toasts.length) {
+      return
+    }
+
+    const handleOutsidePress = (event: Event) => {
+      const viewport = viewportRef.current
+      if (!viewport || viewport.contains(event.target as Node)) {
+        return
+      }
+      dismiss()
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        dismiss()
+      }
+    }
+
+    const options: AddEventListenerOptions = { capture: true }
+    document.addEventListener("pointerdown", handleOutsidePress, options)
+    document.addEventListener("mousedown", handleOutsidePress, options)
+    document.addEventListener("touchstart", handleOutsidePress, options)
+    document.addEventListener("keydown", handleKeyDown, options)
+
+    return () => {
+      document.removeEventListener("pointerdown", handleOutsidePress, options)
+      document.removeEventListener("mousedown", handleOutsidePress, options)
+      document.removeEventListener("touchstart", handleOutsidePress, options)
+      document.removeEventListener("keydown", handleKeyDown, options)
+    }
+  }, [dismiss, toasts.length])
 
   return (
-    <ToastProvider>
+    <ToastProvider duration={3000}>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
@@ -27,7 +63,7 @@ export function Toaster() {
           </Toast>
         )
       })}
-      <ToastViewport />
+      <ToastViewport ref={viewportRef} />
     </ToastProvider>
   )
 }
