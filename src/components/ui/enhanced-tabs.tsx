@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 export interface Tab {
   id: string;
   label: string;
@@ -9,6 +10,7 @@ export interface Tab {
   closeable?: boolean;
   isEditing?: boolean;
 }
+
 interface EnhancedTabsProps {
   tabs: Tab[];
   activeTabId: string | null;
@@ -16,6 +18,7 @@ interface EnhancedTabsProps {
   className?: string;
   onOverflowChange?: (isOverflowing: boolean) => void;
 }
+
 export function EnhancedTabs({
   tabs,
   activeTabId,
@@ -26,23 +29,33 @@ export function EnhancedTabs({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+
   const isOverflowing = useMemo(
     () => canScrollLeft || canScrollRight,
     [canScrollLeft, canScrollRight]
   );
+
   useEffect(() => {
-    const checkScroll = () => {
-      if (scrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-        setCanScrollLeft(scrollLeft > 0);
-        setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
-      }
-    };
     const element = scrollRef.current;
     if (!element) return;
+
+    const checkScroll = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = element;
+      setCanScrollLeft(scrollLeft > 1);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    };
+
     checkScroll();
+
+    // Observer pour détecter les changements de taille
+    const resizeObserver = new ResizeObserver(checkScroll);
+    resizeObserver.observe(element);
     element.addEventListener("scroll", checkScroll);
-    return () => element.removeEventListener("scroll", checkScroll);
+
+    return () => {
+      resizeObserver.disconnect();
+      element.removeEventListener("scroll", checkScroll);
+    };
   }, [tabs]);
 
   useEffect(() => {
@@ -57,6 +70,7 @@ export function EnhancedTabs({
       });
     }
   };
+
   const scrollRight = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({
@@ -65,10 +79,11 @@ export function EnhancedTabs({
       });
     }
   };
+
   return (
     <div
       className={cn(
-        "flex items-center bg-muted rounded-lg h-12 relative",
+        "flex items-center bg-muted rounded-lg h-12 w-full",
         className
       )}
     >
@@ -78,7 +93,7 @@ export function EnhancedTabs({
         size="sm"
         onClick={scrollLeft}
         className={cn(
-          "h-8 w-8 p-0 shrink-0 mx-1 transition-opacity",
+          "h-8 w-8 p-0 shrink-0 transition-opacity",
           canScrollLeft ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
       >
@@ -86,13 +101,15 @@ export function EnhancedTabs({
       </Button>
 
       {/* Zone de défilement des onglets */}
-      <div className="flex-1 relative mx-1">
-        {isOverflowing && (
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-muted to-transparent z-[1]" />
+      <div className="flex-1 overflow-hidden relative">
+        {/* Gradient gauche */}
+        {isOverflowing && canScrollLeft && (
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-muted to-transparent z-10" />
         )}
+
         <div
           ref={scrollRef}
-          className="overflow-x-auto scroll-smooth scrollbar-hide relative z-[2]"
+          className="overflow-x-auto scroll-smooth scrollbar-hide h-full flex items-center"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -131,8 +148,10 @@ export function EnhancedTabs({
             ))}
           </div>
         </div>
-        {isOverflowing && (
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-muted to-transparent z-[1]" />
+
+        {/* Gradient droite */}
+        {isOverflowing && canScrollRight && (
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-muted to-transparent z-10" />
         )}
       </div>
 
@@ -142,7 +161,7 @@ export function EnhancedTabs({
         size="sm"
         onClick={scrollRight}
         className={cn(
-          "h-8 w-8 p-0 shrink-0 mx-1 transition-opacity",
+          "h-8 w-8 p-0 shrink-0 transition-opacity",
           canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
       >
