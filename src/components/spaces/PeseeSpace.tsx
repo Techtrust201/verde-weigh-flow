@@ -1646,23 +1646,27 @@ export default function PeseeSpace({
         </div>
 
         <div className="px-6 py-3 bg-white">
-          <div className="flex items-center gap-3 flex-nowrap">
-            <EnhancedTabs
-              tabs={tabs.map((tab) => ({
-                id: tab.id,
-                label: getTabLabel(tab.id),
-                onClose: () => handleCloseTab(tab.id),
-                closeable: tabs.length > 1,
-                isEditing: tab.isEditing || false,
-              }))}
-              activeTabId={showRecentTab ? null : activeTabId}
-              onTabSelect={(tabId) => {
-                setShowRecentTab(false);
-                setActiveTabId(tabId);
-              }}
-              className="max-w-[calc(100%-280px)] min-w-0"
-            />
-            <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            {/* Zone des onglets - prend l'espace disponible */}
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <EnhancedTabs
+                tabs={tabs.map((tab) => ({
+                  id: tab.id,
+                  label: getTabLabel(tab.id),
+                  onClose: () => handleCloseTab(tab.id),
+                  closeable: tabs.length > 1,
+                  isEditing: tab.isEditing || false,
+                }))}
+                activeTabId={showRecentTab ? null : activeTabId}
+                onTabSelect={(tabId) => {
+                  setShowRecentTab(false);
+                  setActiveTabId(tabId);
+                }}
+              />
+            </div>
+
+            {/* Boutons à droite - largeur fixe */}
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant={showRecentTab ? "default" : "outline"}
                 onClick={() => setShowRecentTab(true)}
