@@ -1646,7 +1646,7 @@ export default function PeseeSpace({
         </div>
 
         <div className="px-6 py-3 bg-white">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-nowrap">
             <EnhancedTabs
               tabs={tabs.map((tab) => ({
                 id: tab.id,
@@ -1660,9 +1660,9 @@ export default function PeseeSpace({
                 setShowRecentTab(false);
                 setActiveTabId(tabId);
               }}
-              className="flex-1"
+              className="max-w-[calc(100%-280px)] min-w-0"
             />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Button
                 variant={showRecentTab ? "default" : "outline"}
                 onClick={() => setShowRecentTab(true)}
