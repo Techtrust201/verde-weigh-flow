@@ -202,11 +202,11 @@ export const ProductWeightSection = ({
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+    <div className="space-y-3 flex-1 flex flex-col h-full">
+      <Card className="border-2 border-gray-200">
+        <CardHeader className="bg-gray-50/50 py-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Calculator className="h-4 w-4" />
             Produit et Poids
           </CardTitle>
         </CardHeader>
@@ -288,12 +288,12 @@ export const ProductWeightSection = ({
             </div>
           </div>
 
-          {/* Calcul du coût en temps réel - VERSION AMÉLIORÉE */}
+          {/* Calcul du coût en temps réel - VERSION OPTIMISÉE */}
           {calculatedCost && (
-            <Card className="border-2 border-green-600 bg-white shadow-lg">
-              <CardContent className="pt-6 pb-6">
-                <div className="text-center mb-4">
-                  <h3 className="text-xl font-bold text-green-700 mb-2">
+            <Card className="border-2 border-green-600 bg-white shadow-md">
+              <CardContent className="pt-4 pb-4">
+                <div className="text-center mb-3">
+                  <h3 className="text-lg font-bold text-green-700 mb-1.5">
                     COÛT CALCULÉ
                   </h3>
                   <div className="text-2xl font-semibold text-gray-700 mb-1">

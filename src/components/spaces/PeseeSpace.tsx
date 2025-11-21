@@ -1646,52 +1646,46 @@ export default function PeseeSpace({
         </div>
 
         <div className="px-6 py-3 bg-white">
-          <Tabs
-            value={showRecentTab ? "recentes" : activeTabId}
-            onValueChange={(value) => {
-              if (value === "recentes") {
-                setShowRecentTab(true);
-              } else {
+          <div className="flex items-center gap-3">
+            <EnhancedTabs
+              tabs={tabs.map((tab) => ({
+                id: tab.id,
+                label: getTabLabel(tab.id),
+                onClose: () => handleCloseTab(tab.id),
+                closeable: tabs.length > 1,
+                isEditing: tab.isEditing || false,
+              }))}
+              activeTabId={showRecentTab ? null : activeTabId}
+              onTabSelect={(tabId) => {
                 setShowRecentTab(false);
-                setActiveTabId(value);
-              }
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <EnhancedTabs
-                tabs={[
-                  ...tabs.map((tab) => ({
-                    id: tab.id,
-                    label: getTabLabel(tab.id),
-                    onClose: () => handleCloseTab(tab.id),
-                    closeable: tabs.length > 1,
-                    isEditing: tab.isEditing || false,
-                  })),
-                  {
-                    id: "recentes",
-                    label: "📊 Pesées Récentes",
-                    closeable: false,
-                  },
-                ]}
-                activeTabId={showRecentTab ? "recentes" : activeTabId}
-                onTabSelect={(tabId) => {
-                  if (tabId === "recentes") {
-                    setShowRecentTab(true);
-                  } else {
-                    setShowRecentTab(false);
-                    setActiveTabId(tabId);
-                  }
+                setActiveTabId(tabId);
+              }}
+              className="flex-1"
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                variant={showRecentTab ? "default" : "outline"}
+                onClick={() => setShowRecentTab(true)}
+                className="h-10 px-4"
+              >
+                📊 Pesées récentes
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRecentTab(false);
+                  handleCreateNewTab();
                 }}
-                onNewTab={handleCreateNewTab}
-                maxVisibleTabs={5}
-                className="flex-1"
-              />
+                className="h-10 px-4 border-dashed"
+              >
+                + Nouveau
+              </Button>
             </div>
-          </Tabs>
+          </div>
         </div>
       </div>
 
-      <div className="h-32 bg-transparent"></div>
+      <div className="h-20 bg-transparent"></div>
 
       <Tabs
         value={showRecentTab ? "recentes" : activeTabId}
@@ -1706,33 +1700,11 @@ export default function PeseeSpace({
       >
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id}>
-            <Card className="shadow-lg">
-              <CardHeader
-                className={`bg-gradient-to-r ${
-                  editingPeseeId
-                    ? "from-orange-50 to-yellow-50"
-                    : "from-gray-50 to-blue-50"
-                }`}
-              >
-                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-                  {editingPeseeId ? (
-                    <>
-                      <span className="text-orange-600">
-                        ✏️ Modifier une pesée
-                      </span>
-                      <span className="text-sm font-normal text-gray-500">
-                        - {getTabLabel(tab.id)}
-                      </span>
-                    </>
-                  ) : (
-                    <>Nouvelle Pesée - {getTabLabel(tab.id)}</>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-[35%_65%] gap-6">
+            <Card className="shadow-lg border-2">
+              <CardContent className="p-4">
+                <div className="grid grid-cols-1 lg:grid-cols-[50%_50%] items-stretch">
                   {/* Colonne gauche : Champs contextuels */}
-                  <div className="space-y-4">
+                  <div className="space-y-3 lg:border-r lg:border-gray-200 lg:pr-4 flex flex-col h-full">
                     <PeseeFormSection
                       currentData={tab.formData}
                       clients={clients}
@@ -1769,7 +1741,7 @@ export default function PeseeSpace({
                   </div>
 
                   {/* Colonne droite : Champs critiques + Actions */}
-                  <div className="space-y-4">
+                  <div className="space-y-3 lg:pl-4 flex flex-col h-full">
                     <ProductWeightSection
                       currentData={tab.formData}
                       products={products}
@@ -1777,7 +1749,7 @@ export default function PeseeSpace({
                       validationErrors={validationErrors}
                     />
 
-                    <div className="flex justify-end space-x-3 pt-4 border-t">
+                    <div className="flex justify-center space-x-3 pt-3 mt-auto">
                       <Button
                         variant="outline"
                         onClick={async () => {
