@@ -23,6 +23,7 @@ export interface PeseeTabFormData {
   moyenPaiement: "ESP" | "CB" | "CHQ" | "VIR" | "PRVT";
   typeClient: "particulier" | "professionnel" | "micro-entreprise";
   clientId: number;
+  reference?: string; // Champ référence optionnel pour les factures
 }
 
 export const usePeseeTabs = () => {

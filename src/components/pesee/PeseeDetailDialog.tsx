@@ -82,8 +82,8 @@ export const PeseeDetailDialog = ({
 
   const isExported = Boolean(
     (pesee.exportedAt && pesee.exportedAt.length > 0) ||
-    pesee.numeroBonExported ||
-    pesee.numeroFactureExported
+      pesee.numeroBonExported ||
+      pesee.numeroFactureExported
   );
 
   const selectedProduct = products.find((p) => p.id === pesee.produitId);
@@ -257,6 +257,16 @@ export const PeseeDetailDialog = ({
                     </label>
                     <p className="mt-1">{pesee.moyenPaiement}</p>
                   </div>
+                  {pesee.reference?.trim() && (
+                    <div className="col-span-2">
+                      <label className="text-sm font-medium text-gray-500">
+                        Référence
+                      </label>
+                      <p className="mt-1 font-medium text-gray-900">
+                        {pesee.reference.trim()}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

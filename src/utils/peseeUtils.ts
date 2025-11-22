@@ -577,8 +577,8 @@ export const generatePrintContent = async (
       <div class="print-timestamp">
         Imprimé le ${dateStr} à ${timeStr}
       </div>
-        ${bonContent("Copie BDV")}
         ${bonContent("Copie Client")}
+        ${bonContent("Copie BDV")}
       </div>
     </body>
     </html>

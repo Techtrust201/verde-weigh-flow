@@ -258,7 +258,7 @@ export const ProductWeightSection = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="poidsEntree">Poids d'entrée (tonnes)</Label>
               <Input
@@ -283,6 +283,20 @@ export const ProductWeightSection = ({
                   updateCurrentTab({ poidsSortie: e.target.value })
                 }
                 placeholder="0,000"
+                autoComplete="off"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="reference">Référence (optionnel)</Label>
+              <Input
+                id="reference"
+                type="text"
+                value={currentData?.reference || ""}
+                onChange={(e) =>
+                  updateCurrentTab({ reference: e.target.value })
+                }
+                placeholder="Référence pour la facture"
                 autoComplete="off"
               />
             </div>
@@ -320,10 +334,10 @@ export const ProductWeightSection = ({
 
                 <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
                   <div className="text-center">
-                    <div className="text-xl font-black text-green-600 mb-2">
+                    <div className="text-xl font-black text-green-800 mb-2">
                       {calculatedCost.ht.toFixed(2)}€ HT
                     </div>
-                    <div className="text-2xl font-bold text-green-800">
+                    <div className="text-2xl font-bold text-green-600">
                       {calculatedCost.ttc.toFixed(2)}€ TTC
                     </div>
                   </div>

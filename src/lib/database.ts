@@ -98,6 +98,7 @@ export interface Pesee {
   transporteurId?: number;
   transporteurLibre?: string; // Nouveau champ pour le transporteur saisi manuellement
   typeClient: "particulier" | "professionnel" | "micro-entreprise";
+  reference?: string; // Champ référence optionnel pour les factures
   synchronized: boolean;
   version: number; // Version pour détecter les conflits
   lastSyncHash?: string; // Hash de la dernière version synchronisée
@@ -513,6 +514,29 @@ class AppDatabase extends Dexie {
               tax.tauxTVA = 20;
             }
           });
+    });
+
+    // Version 12 - Ajout du champ référence aux pesées
+    this.version(12).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, codeClient, tvaIntracom, modePaiementPreferentiel, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, numeroFacture, typeDocument, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, reference, synchronized, version, exportedAt, numeroBonExported, numeroFactureExported, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      taxes: "++id, nom, taux, tauxTVA, active, createdAt, updatedAt",
+      paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
     });
   }
 }

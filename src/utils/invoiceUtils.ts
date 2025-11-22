@@ -36,6 +36,7 @@ export const generateInvoiceContent = async (
     prixTTC: number;
     numeroBon?: string;
     numeroFacture?: string;
+    reference?: string;
   } | null;
   try {
     if (formData.numeroBon && formData.numeroBon !== "À générer") {
@@ -48,6 +49,7 @@ export const generateInvoiceContent = async (
           prixTTC: match.prixTTC,
           numeroBon: match.numeroBon,
           numeroFacture: match.numeroFacture,
+          reference: match.reference,
         };
       }
     }
@@ -72,6 +74,7 @@ export const generateInvoiceContent = async (
           prixTTC: m.prixTTC,
           numeroBon: m.numeroBon,
           numeroFacture: m.numeroFacture,
+          reference: m.reference,
         };
       }
     }
@@ -400,6 +403,13 @@ export const generateInvoiceContent = async (
           <div class="client-title">FACTURÉ À</div>
           <div class="client-info">
             ${clientInfo.lignes.join("")}
+            ${
+              savedPesee?.reference?.trim() || formData.reference?.trim()
+                ? `<div class="client-line" style="margin-top: 5mm;">ref: ${
+                    savedPesee?.reference?.trim() || formData.reference?.trim()
+                  }</div>`
+                : ""
+            }
           </div>
         </div>
 

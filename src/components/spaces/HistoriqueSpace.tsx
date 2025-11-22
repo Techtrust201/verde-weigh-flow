@@ -294,33 +294,33 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
 
           {/* Filters */}
           <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Calendar className="h-5 w-5 mr-2" />
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Calendar className="h-5 w-5 mr-2" />
                 Filtres
-          </CardTitle>
-        </CardHeader>
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="dateDebut">Date de début</Label>
-              <Input
-                id="dateDebut"
-                type="date"
-                value={dateDebut}
-                onChange={(e) => setDateDebut(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="dateFin">Date de fin</Label>
-              <Input
-                id="dateFin"
-                type="date"
-                value={dateFin}
-                onChange={(e) => setDateFin(e.target.value)}
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="dateDebut">Date de début</Label>
+                  <Input
+                    id="dateDebut"
+                    type="date"
+                    value={dateDebut}
+                    onChange={(e) => setDateDebut(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="dateFin">Date de fin</Label>
+                  <Input
+                    id="dateFin"
+                    type="date"
+                    value={dateFin}
+                    onChange={(e) => setDateFin(e.target.value)}
+                  />
+                </div>
+              </div>
               <div>
                 <Label htmlFor="search">
                   Rechercher (numéro, client, plaque)
@@ -338,138 +338,143 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
                 {searchQuery && filteredPesees.length !== pesees.length && (
                   <span className="ml-2">(sur {pesees.length} au total)</span>
                 )}
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Pesees List */}
-      <div className="space-y-4">
-        {currentPesees.map((pesee) => (
-          <Card key={pesee.id}>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                <div>
+          {/* Pesees List */}
+          <div className="space-y-4">
+            {currentPesees.map((pesee) => (
+              <Card key={pesee.id}>
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                    <div>
                       <div className="font-semibold">
                         {pesee.numeroBon && pesee.numeroFacture
                           ? `${pesee.numeroBon} / ${pesee.numeroFacture}`
                           : pesee.numeroBon || pesee.numeroFacture || "N/A"}
                       </div>
-                  <div className="text-sm text-gray-600">
-                    {new Date(pesee.dateHeure).toLocaleDateString()} à{" "}
-                    {new Date(pesee.dateHeure).toLocaleTimeString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium">{pesee.nomEntreprise}</div>
-                  <div className="text-sm text-gray-600">
-                    Plaque: {pesee.plaque}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Chantier: {pesee.chantier}
-                  </div>
-                </div>
-                <div>
-                  <Badge variant="outline" className="mb-2">
-                    {pesee.net} T
-                  </Badge>
-                  {pesee.exportedAt && pesee.exportedAt.length > 0 && (
-                    <Badge variant="secondary" className="mb-2 text-xs">
-                      Exporté
-                    </Badge>
-                  )}
-                  <div className="text-sm text-gray-600">
-                    {pesee.moyenPaiement}
-                  </div>
-                </div>
-                <div>
-                  {pesee.prixHT && (
-                    <div className="font-medium text-green-600">
-                      {pesee.prixHT.toFixed(2)}€ HT
+                      <div className="text-sm text-gray-600">
+                        {new Date(pesee.dateHeure).toLocaleDateString()} à{" "}
+                        {new Date(pesee.dateHeure).toLocaleTimeString()}
+                      </div>
                     </div>
-                  )}
-                  {pesee.prixTTC && (
-                    <div className="font-medium text-green-600">
-                      {pesee.prixTTC.toFixed(2)}€ TTC
+                    <div>
+                      <div className="font-medium">{pesee.nomEntreprise}</div>
+                      <div className="text-sm text-gray-600">
+                        Plaque: {pesee.plaque}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Chantier: {pesee.chantier}
+                      </div>
+                      {pesee.reference?.trim() && (
+                        <div className="text-sm text-gray-900 font-medium">
+                          Réf: {pesee.reference.trim()}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    onClick={() => handleViewDetails(pesee)}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Détails
-                  </Button>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={() => handleDeletePesee(pesee)}
-                          variant="outline"
-                          size="sm"
-                          disabled={
-                            pesee.exportedAt && pesee.exportedAt.length > 0
-                          }
-                          className={
-                            pesee.exportedAt && pesee.exportedAt.length > 0
-                              ? "text-gray-400 cursor-not-allowed"
-                              : "text-red-600 hover:text-red-700 hover:bg-red-50"
-                          }
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Supprimer
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>
-                          {pesee.exportedAt && pesee.exportedAt.length > 0
-                            ? "Cette pesée a été exportée en CSV et ne peut plus être supprimée pour préserver l'intégrité des données"
-                            : "Supprimer la pesée"}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                    <div>
+                      <Badge variant="outline" className="mb-2">
+                        {pesee.net} T
+                      </Badge>
+                      {pesee.exportedAt && pesee.exportedAt.length > 0 && (
+                        <Badge variant="secondary" className="mb-2 text-xs">
+                          Exporté
+                        </Badge>
+                      )}
+                      <div className="text-sm text-gray-600">
+                        {pesee.moyenPaiement}
+                      </div>
+                    </div>
+                    <div>
+                      {pesee.prixHT && (
+                        <div className="font-medium text-green-600">
+                          {pesee.prixHT.toFixed(2)}€ HT
+                        </div>
+                      )}
+                      {pesee.prixTTC && (
+                        <div className="font-medium text-green-600">
+                          {pesee.prixTTC.toFixed(2)}€ TTC
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        onClick={() => handleViewDetails(pesee)}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Détails
+                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={() => handleDeletePesee(pesee)}
+                              variant="outline"
+                              size="sm"
+                              disabled={
+                                pesee.exportedAt && pesee.exportedAt.length > 0
+                              }
+                              className={
+                                pesee.exportedAt && pesee.exportedAt.length > 0
+                                  ? "text-gray-400 cursor-not-allowed"
+                                  : "text-red-600 hover:text-red-700 hover:bg-red-50"
+                              }
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Supprimer
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {pesee.exportedAt && pesee.exportedAt.length > 0
+                                ? "Cette pesée a été exportée en CSV et ne peut plus être supprimée pour préserver l'intégrité des données"
+                                : "Supprimer la pesée"}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center space-x-2">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-          >
-            Précédent
-          </Button>
-          <span className="flex items-center px-4">
-            Page {currentPage} sur {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-            }
-            disabled={currentPage === totalPages}
-          >
-            Suivant
-          </Button>
-        </div>
-      )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Précédent
+              </Button>
+              <span className="flex items-center px-4">
+                Page {currentPage} sur {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Suivant
+              </Button>
+            </div>
+          )}
 
-      {/* Dialog des détails */}
-      <PeseeDetailDialog
-        isOpen={isDetailDialogOpen}
-        onClose={() => setIsDetailDialogOpen(false)}
-        pesee={selectedPesee}
-        products={products}
-        transporteurs={transporteurs}
+          {/* Dialog des détails */}
+          <PeseeDetailDialog
+            isOpen={isDetailDialogOpen}
+            onClose={() => setIsDetailDialogOpen(false)}
+            pesee={selectedPesee}
+            products={products}
+            transporteurs={transporteurs}
             onEdit={(pesee) => {
               if (!pesee.id) {
                 toast({
@@ -483,19 +488,19 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
               setIsDetailDialogOpen(false);
               onEditPesee?.(pesee.id);
             }}
-      />
+          />
 
-      {/* Dialog de confirmation de suppression */}
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Supprimer la pesée"
-        description={`Êtes-vous sûr de vouloir supprimer définitivement la pesée ${peseeToDelete?.numeroBon} ? Cette action est irréversible.`}
-        confirmText="Supprimer"
-        cancelText="Annuler"
-        onConfirm={confirmDeletePesee}
-        variant="destructive"
-      />
+          {/* Dialog de confirmation de suppression */}
+          <ConfirmDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+            title="Supprimer la pesée"
+            description={`Êtes-vous sûr de vouloir supprimer définitivement la pesée ${peseeToDelete?.numeroBon} ? Cette action est irréversible.`}
+            confirmText="Supprimer"
+            cancelText="Annuler"
+            onConfirm={confirmDeletePesee}
+            variant="destructive"
+          />
         </TabsContent>
 
         <TabsContent value="trackdechet" className="space-y-6">
@@ -544,17 +549,17 @@ function TrackDechetTab() {
 
   return (
     <div className="space-y-6">
-      <TrackDechetStatsCards 
-        stats={stats} 
+      <TrackDechetStatsCards
+        stats={stats}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
       />
-      <TrackDechetFilters 
-        filters={filters} 
+      <TrackDechetFilters
+        filters={filters}
         onFiltersChange={setFilters}
         resultCount={filteredHistory.length}
       />
-      
+
       {loading ? (
         <Card className="border-dashed">
           <CardContent className="p-12 text-center">
