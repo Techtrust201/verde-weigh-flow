@@ -5,17 +5,45 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, FileText, Calendar, Eye, Trash2 } from "lucide-react";
+import {
+  Download,
+  FileText,
+  Calendar,
+  Eye,
+  Trash2,
+  ChevronDown,
+} from "lucide-react";
 import { db, Pesee, Product, Transporteur, Client } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
 import { PeseeDetailDialog } from "@/components/pesee/PeseeDetailDialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TrackDechetStatsCards } from "@/components/trackdechet/TrackDechetStatsCards";
 import { TrackDechetTimelineItem } from "@/components/trackdechet/TrackDechetTimelineItem";
 import { TrackDechetFilters } from "@/components/trackdechet/TrackDechetFilters";
@@ -41,6 +69,31 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
   const [peseeToDelete, setPeseeToDelete] = useState<Pesee | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
+  const [customExportSettings, setCustomExportSettings] = useState({
+    dateDebut: "",
+    dateFin: "",
+    typeDocument: "all",
+    clientId: "all",
+    columns: {
+      date: true,
+      heure: true,
+      type: true,
+      numeroBon: true,
+      numeroFacture: true,
+      plaque: true,
+      produit: true,
+      codeProduct: true,
+      net: true,
+      entreprise: true,
+      siret: true,
+      adresse: true,
+      chantier: true,
+      reference: true,
+      prixHT: true,
+      prixTTC: true,
+    },
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -51,8 +104,18 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
       now.getMonth() - 1,
       now.getDate()
     );
-    setDateDebut(lastMonth.toISOString().split("T")[0]);
-    setDateFin(now.toISOString().split("T")[0]);
+    const dateDebutStr = lastMonth.toISOString().split("T")[0];
+    const dateFinStr = now.toISOString().split("T")[0];
+
+    setDateDebut(dateDebutStr);
+    setDateFin(dateFinStr);
+
+    // Initialiser les dates du dialog personnalisé
+    setCustomExportSettings((prev) => ({
+      ...prev,
+      dateDebut: dateDebutStr,
+      dateFin: dateFinStr,
+    }));
 
     loadData();
   }, []);
@@ -179,29 +242,176 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
     }
   };
 
-  const exportToCSV = async () => {
+  // Fonction utilitaire pour générer le CSV
+  const generateCSVContent = (peseesToExport: Pesee[], filename: string) => {
+    const headers = [
+      "Date",
+      "Heure",
+      "Type",
+      "Numéro Bon",
+      "Numéro Facture",
+      "Plaque",
+      "Produit",
+      "Code Produit",
+      "Net (T)",
+      "Entreprise",
+      "SIRET",
+      "Adresse",
+      "Chantier",
+      "Référence",
+      "Prix HT",
+      "Prix TTC",
+    ];
+
+    const csvContent = [
+      headers.join(","),
+      ...peseesToExport.map((pesee) => {
+        const product = products.find((p) => p.id === pesee.produitId);
+        const type = pesee.typeDocument || "bon_livraison";
+        const typeLabel =
+          type === "bon_livraison"
+            ? "Bon de livraison"
+            : type === "facture"
+            ? "Facture"
+            : "Bon + Facture";
+
+        return [
+          new Date(pesee.dateHeure).toLocaleDateString(),
+          new Date(pesee.dateHeure).toLocaleTimeString(),
+          typeLabel,
+          pesee.numeroBon || "",
+          pesee.numeroFacture || "",
+          pesee.plaque,
+          product?.nom || "",
+          product?.codeProduct || "",
+          pesee.net.toString(),
+          pesee.nomEntreprise,
+          pesee.clientId
+            ? clients.find((c) => c.id === pesee.clientId)?.siret || ""
+            : "",
+          pesee.clientId
+            ? clients.find((c) => c.id === pesee.clientId)?.adresse || ""
+            : "",
+          pesee.chantier || "",
+          pesee.reference || "",
+          pesee.prixHT?.toString() || "",
+          pesee.prixTTC?.toString() || "",
+        ].join(",");
+      }),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export des résultats filtrés actuels
+  const exportFilteredToCSV = async () => {
     try {
-      const headers = [
-        "Date",
-        "Heure",
-        "Type",
-        "Numéro Bon",
-        "Numéro Facture",
-        "Plaque",
-        "Produit",
-        "Code Produit",
-        "Net (T)",
-        "Entreprise",
-        "SIRET",
-        "Adresse",
-        "Chantier",
-        "Prix HT",
-        "Prix TTC",
-      ];
+      const filename = `export_resultats_filtres_${dateDebut}_${dateFin}.csv`;
+      generateCSVContent(filteredPesees, filename);
+
+      toast({
+        title: "Export des résultats filtrés réussi",
+        description: `${filteredPesees.length} pesée(s) exportée(s) en CSV${
+          searchQuery ? " (avec filtres de recherche)" : ""
+        }.`,
+      });
+    } catch (error) {
+      console.error("Error exporting filtered CSV:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'export.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Export de toute la période sans filtres de recherche
+  const exportPeriodToCSV = async () => {
+    try {
+      const filename = `export_periode_complete_${dateDebut}_${dateFin}.csv`;
+      generateCSVContent(pesees, filename);
+
+      toast({
+        title: "Export de la période complète réussi",
+        description: `${pesees.length} pesée(s) de la période ${dateDebut} au ${dateFin} exportée(s) en CSV.`,
+      });
+    } catch (error) {
+      console.error("Error exporting period CSV:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'export.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Fonction pour l'export personnalisé avec filtres et colonnes sélectionnées
+  const handleCustomExport = async () => {
+    try {
+      // Filtrer les pesées selon les critères personnalisés
+      let customPesees = await db.pesees
+        .filter((pesee) => {
+          const peseeDate = new Date(pesee.dateHeure);
+          const startDate = new Date(customExportSettings.dateDebut);
+          const endDate = new Date(customExportSettings.dateFin);
+          endDate.setHours(23, 59, 59, 999); // Inclure toute la journée de fin
+
+          return peseeDate >= startDate && peseeDate <= endDate;
+        })
+        .toArray();
+
+      // Filtrer par type de document
+      if (customExportSettings.typeDocument !== "all") {
+        customPesees = customPesees.filter(
+          (pesee) => pesee.typeDocument === customExportSettings.typeDocument
+        );
+      }
+
+      // Filtrer par client
+      if (customExportSettings.clientId !== "all") {
+        const clientId = parseInt(customExportSettings.clientId);
+        customPesees = customPesees.filter(
+          (pesee) => pesee.clientId === clientId
+        );
+      }
+
+      // Générer le CSV avec les colonnes sélectionnées
+      const selectedColumns = Object.entries(customExportSettings.columns)
+        .filter(([_, selected]) => selected)
+        .map(([key, _]) => key);
+
+      const columnLabels: Record<string, string> = {
+        date: "Date",
+        heure: "Heure",
+        type: "Type",
+        numeroBon: "Numéro Bon",
+        numeroFacture: "Numéro Facture",
+        plaque: "Plaque",
+        produit: "Produit",
+        codeProduct: "Code Produit",
+        net: "Net (T)",
+        entreprise: "Entreprise",
+        siret: "SIRET",
+        adresse: "Adresse",
+        chantier: "Chantier",
+        reference: "Référence",
+        prixHT: "Prix HT",
+        prixTTC: "Prix TTC",
+      };
+
+      const headers = selectedColumns.map((col) => columnLabels[col]);
 
       const csvContent = [
         headers.join(","),
-        ...filteredPesees.map((pesee) => {
+        ...customPesees.map((pesee) => {
           const product = products.find((p) => p.id === pesee.produitId);
           const type = pesee.typeDocument || "bon_livraison";
           const typeLabel =
@@ -211,52 +421,55 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
               ? "Facture"
               : "Bon + Facture";
 
-          return [
-            new Date(pesee.dateHeure).toLocaleDateString(),
-            new Date(pesee.dateHeure).toLocaleTimeString(),
-            typeLabel,
-            pesee.numeroBon || "",
-            pesee.numeroFacture || "",
-            pesee.plaque,
-            product?.nom || "",
-            product?.codeProduct || "",
-            pesee.net.toString(),
-            pesee.nomEntreprise,
-            pesee.clientId
+          const rowData: Record<string, string> = {
+            date: new Date(pesee.dateHeure).toLocaleDateString(),
+            heure: new Date(pesee.dateHeure).toLocaleTimeString(),
+            type: typeLabel,
+            numeroBon: pesee.numeroBon || "",
+            numeroFacture: pesee.numeroFacture || "",
+            plaque: pesee.plaque,
+            produit: product?.nom || "",
+            codeProduct: product?.codeProduct || "",
+            net: pesee.net.toString(),
+            entreprise: pesee.nomEntreprise,
+            siret: pesee.clientId
               ? clients.find((c) => c.id === pesee.clientId)?.siret || ""
               : "",
-            pesee.clientId
+            adresse: pesee.clientId
               ? clients.find((c) => c.id === pesee.clientId)?.adresse || ""
               : "",
-            pesee.chantier || "",
-            pesee.prixHT?.toString() || "",
-            pesee.prixTTC?.toString() || "",
-          ].join(",");
+            chantier: pesee.chantier || "",
+            reference: pesee.reference || "",
+            prixHT: pesee.prixHT?.toString() || "",
+            prixTTC: pesee.prixTTC?.toString() || "",
+          };
+
+          return selectedColumns.map((col) => rowData[col]).join(",");
         }),
       ].join("\n");
 
+      const filename = `export_personnalise_${customExportSettings.dateDebut}_${customExportSettings.dateFin}.csv`;
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `export_pesees_${dateDebut}_${dateFin}.csv`
-      );
+      link.setAttribute("download", filename);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
+      setIsCustomExportOpen(false);
+
       toast({
-        title: "Export réussi",
-        description: "Les données ont été exportées en CSV.",
+        title: "Export personnalisé réussi",
+        description: `${customPesees.length} pesée(s) exportée(s) avec ${selectedColumns.length} colonne(s).`,
       });
     } catch (error) {
-      console.error("Error exporting CSV:", error);
+      console.error("Error exporting custom CSV:", error);
       toast({
-        title: "Erreur d'export",
-        description: "Impossible d'exporter les données.",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'export personnalisé.",
         variant: "destructive",
       });
     }
@@ -286,10 +499,40 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
 
         <TabsContent value="pesees" className="space-y-6">
           <div className="flex justify-end">
-            <Button onClick={exportToCSV} variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export CSV
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem onClick={() => exportFilteredToCSV()}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  <div className="flex flex-col">
+                    <span>Export des résultats affichés</span>
+                    <span className="text-xs text-muted-foreground">
+                      {filteredPesees.length} pesée(s){" "}
+                      {searchQuery && "(filtrées)"}
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportPeriodToCSV()}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <div className="flex flex-col">
+                    <span>Export de la période complète</span>
+                    <span className="text-xs text-muted-foreground">
+                      {pesees.length} pesée(s) ({dateDebut} au {dateFin})
+                    </span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsCustomExportOpen(true)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  <span>Export personnalisé...</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Filters */}
@@ -501,6 +744,173 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
             onConfirm={confirmDeletePesee}
             variant="destructive"
           />
+
+          {/* Dialog d'export personnalisé */}
+          <Dialog
+            open={isCustomExportOpen}
+            onOpenChange={setIsCustomExportOpen}
+          >
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Export personnalisé</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-6">
+                {/* Sélection des dates */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Période</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="customDateDebut">Date de début</Label>
+                      <Input
+                        id="customDateDebut"
+                        type="date"
+                        value={customExportSettings.dateDebut}
+                        onChange={(e) =>
+                          setCustomExportSettings((prev) => ({
+                            ...prev,
+                            dateDebut: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="customDateFin">Date de fin</Label>
+                      <Input
+                        id="customDateFin"
+                        type="date"
+                        value={customExportSettings.dateFin}
+                        onChange={(e) =>
+                          setCustomExportSettings((prev) => ({
+                            ...prev,
+                            dateFin: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filtres */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Filtres</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Type de document</Label>
+                      <Select
+                        value={customExportSettings.typeDocument}
+                        onValueChange={(value) =>
+                          setCustomExportSettings((prev) => ({
+                            ...prev,
+                            typeDocument: value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tous les types</SelectItem>
+                          <SelectItem value="bon_livraison">
+                            Bon de livraison
+                          </SelectItem>
+                          <SelectItem value="facture">Facture</SelectItem>
+                          <SelectItem value="les_deux">
+                            Bon + Facture
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Client</Label>
+                      <Select
+                        value={customExportSettings.clientId}
+                        onValueChange={(value) =>
+                          setCustomExportSettings((prev) => ({
+                            ...prev,
+                            clientId: value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tous les clients</SelectItem>
+                          {clients.map((client) => (
+                            <SelectItem
+                              key={client.id}
+                              value={String(client.id)}
+                            >
+                              {client.raisonSociale}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sélection des colonnes */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Colonnes à inclure</h3>
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                    {Object.entries({
+                      date: "Date",
+                      heure: "Heure",
+                      type: "Type",
+                      numeroBon: "Numéro Bon",
+                      numeroFacture: "Numéro Facture",
+                      plaque: "Plaque",
+                      produit: "Produit",
+                      codeProduct: "Code Produit",
+                      net: "Net (T)",
+                      entreprise: "Entreprise",
+                      siret: "SIRET",
+                      adresse: "Adresse",
+                      chantier: "Chantier",
+                      reference: "Référence",
+                      prixHT: "Prix HT",
+                      prixTTC: "Prix TTC",
+                    }).map(([key, label]) => (
+                      <div key={key} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`column-${key}`}
+                          checked={
+                            customExportSettings.columns[
+                              key as keyof typeof customExportSettings.columns
+                            ]
+                          }
+                          onCheckedChange={(checked) =>
+                            setCustomExportSettings((prev) => ({
+                              ...prev,
+                              columns: {
+                                ...prev.columns,
+                                [key]: checked,
+                              },
+                            }))
+                          }
+                        />
+                        <Label htmlFor={`column-${key}`} className="text-sm">
+                          {label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCustomExportOpen(false)}
+                >
+                  Annuler
+                </Button>
+                <Button onClick={handleCustomExport}>Exporter</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="trackdechet" className="space-y-6">
