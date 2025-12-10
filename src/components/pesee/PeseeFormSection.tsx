@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -119,6 +120,9 @@ export const PeseeFormSection = ({
   const [transporteurLibre, setTransporteurLibre] = useState("");
   const [chantierLibre, setChantierLibre] = useState("");
   const [plaqueLibre, setPlaqueLibre] = useState("");
+
+  // Références pour le scroll des listes de recherche
+  const clientListRef = useRef<HTMLDivElement>(null);
 
   // États pour les modes de paiement
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -452,6 +456,8 @@ export const PeseeFormSection = ({
                   <PopoverContent
                     className="w-[700px] p-0 shadow-lg border border-gray-200 rounded-lg overflow-hidden"
                     align="start"
+                    side="bottom"
+                    sideOffset={4}
                   >
                     <Command className="bg-white">
                       <div className="flex items-center border-b border-gray-100 px-4 py-3 bg-gray-50">
@@ -462,7 +468,10 @@ export const PeseeFormSection = ({
                           className="min-w-[400px] border-0 focus:ring-0 text-base placeholder:text-gray-400"
                         />
                       </div>
-                      <CommandList className="max-h-[400px]">
+                      <CommandList
+                        ref={clientListRef}
+                        className="max-h-[400px]"
+                      >
                         <CommandEmpty className="py-6 text-left px-4">
                           <div className="flex items-center gap-3">
                             <div>
@@ -610,6 +619,8 @@ export const PeseeFormSection = ({
                   <PopoverContent
                     className="w-[700px] p-0 shadow-lg border border-gray-200 rounded-lg overflow-hidden"
                     align="start"
+                    side="bottom"
+                    sideOffset={4}
                   >
                     <Command className="bg-white">
                       <div className="flex items-center border-b border-gray-100 px-4 py-3 bg-gray-50">
@@ -620,7 +631,10 @@ export const PeseeFormSection = ({
                           className="min-w-[400px] border-0 focus:ring-0 text-base placeholder:text-gray-400"
                         />
                       </div>
-                      <CommandList className="max-h-[400px]">
+                      <CommandList
+                        ref={clientListRef}
+                        className="max-h-[400px]"
+                      >
                         <CommandEmpty className="py-6 text-left px-4">
                           <div className="flex items-center gap-3">
                             <div>
@@ -777,7 +791,7 @@ export const PeseeFormSection = ({
                         variant="outline"
                         role="combobox"
                         aria-expanded={plaqueSelectorOpen}
-                        className="w-full justify-between min-w-0"
+                        className="w-full justify-between min-w-0 font-normal"
                         disabled={!currentData?.clientId}
                       >
                         <span className="truncate flex-1 text-left">
@@ -961,7 +975,7 @@ export const PeseeFormSection = ({
                         role="combobox"
                         aria-expanded={chantierSelectorOpen}
                         className={cn(
-                          "w-full justify-between min-w-0",
+                          "w-full justify-between min-w-0 font-normal",
                           validationErrors.chantier &&
                             "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                         )}
@@ -1116,7 +1130,7 @@ export const PeseeFormSection = ({
                         variant="outline"
                         role="combobox"
                         aria-expanded={transporteurSelectorOpen}
-                        className="w-full justify-between min-w-0"
+                        className="w-full justify-between min-w-0 font-normal"
                       >
                         <span className="truncate flex-1 text-left">
                           {getTransporteurInputValue() ||

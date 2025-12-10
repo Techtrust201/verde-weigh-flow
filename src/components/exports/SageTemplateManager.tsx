@@ -34,22 +34,32 @@ export default function SageTemplateManager() {
   // Initialiser les formats par défaut s'ils n'existent pas
   const initializeDefaultFormats = async () => {
     try {
-      const existingFormats = await db.exportFormats
-        .where("isDefault")
-        .equals(true)
-        .toArray();
+      // Charger tous les formats et filtrer côté client pour éviter les problèmes avec les booléens
+      const allFormats = await db.exportFormats.toArray();
+      const existingDefaultFormats = allFormats.filter(
+        (f) => f.isDefault === true
+      );
 
-      if (existingFormats.length === 0) {
-        const defaultFormats: ExportFormatConfig[] = Object.keys(
-          DEFAULT_EXPORT_FORMAT_NAMES
-        ).map((formatId) => ({
-          formatId,
-          displayName: DEFAULT_EXPORT_FORMAT_NAMES[formatId],
-          isDefault: true,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }));
-        await db.exportFormats.bulkAdd(defaultFormats);
+      // Vérifier si tous les formats par défaut existent
+      const defaultFormatIds = Object.keys(DEFAULT_EXPORT_FORMAT_NAMES);
+      const existingFormatIds = new Set(
+        existingDefaultFormats.map((f) => f.formatId)
+      );
+      const missingFormatIds = defaultFormatIds.filter(
+        (id) => !existingFormatIds.has(id)
+      );
+
+      if (missingFormatIds.length > 0) {
+        const formatsToAdd: ExportFormatConfig[] = missingFormatIds.map(
+          (formatId) => ({
+            formatId,
+            displayName: DEFAULT_EXPORT_FORMAT_NAMES[formatId],
+            isDefault: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+        );
+        await db.exportFormats.bulkAdd(formatsToAdd);
       }
     } catch (error) {
       console.error("Error initializing default formats:", error);

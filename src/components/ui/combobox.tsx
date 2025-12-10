@@ -16,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 interface ComboboxOption {
   value: string;
@@ -44,6 +45,17 @@ export function Combobox({
   className,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
+  const [searchValue, setSearchValue] = React.useState("");
+
+  // Hook personnalisé pour le scroll automatique vers le haut
+  const listRef = useScrollToTop(searchValue);
+
+  // Réinitialiser la recherche quand le popover se ferme
+  React.useEffect(() => {
+    if (!open) {
+      setSearchValue("");
+    }
+  }, [open]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -63,10 +75,16 @@ export function Combobox({
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] p-0"
         align="start"
+        side="bottom"
+        sideOffset={4}
       >
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
-          <CommandList>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            value={searchValue}
+            onValueChange={setSearchValue}
+          />
+          <CommandList ref={listRef}>
             <CommandEmpty className="text-sm text-center py-6 px-2">
               <div className="space-y-1">
                 <div>{emptyText.split(".")[0]}.</div>
