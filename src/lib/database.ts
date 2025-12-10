@@ -232,6 +232,15 @@ export interface SageTemplate {
   updatedAt: Date;
 }
 
+export interface ExportFormatConfig {
+  id?: number;
+  formatId: string; // "csv", "csv-txt", "sage-articles", etc.
+  displayName: string; // Nom personnalisé par l'utilisateur
+  isDefault: boolean; // true pour les formats par défaut
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface SageColumn {
   name: string; // "Type de pièce", "N° pièce", etc.
   type: "text" | "number" | "date" | "boolean";
@@ -256,6 +265,16 @@ export interface ColumnMapping {
   isConfigured: boolean; // Si le mapping est configuré
 }
 
+// Noms par défaut des formats d'export
+export const DEFAULT_EXPORT_FORMAT_NAMES: Record<string, string> = {
+  csv: "CSV Standard - Compatible Excel (.csv)",
+  "csv-txt": "CSV Standard - Format TXT (.txt)",
+  "sage-articles": "Sage 50 - Import Articles (.txt)",
+  "sage-ventes": "Sage 50 - Import Ventes (.txt)",
+  "sage-bl-complet": "Sage 50 - Bons de livraison et Factures complets (.txt)",
+  "sage-template": "Sage 50 - Template personnalisé (.txt)",
+};
+
 class AppDatabase extends Dexie {
   clients!: Table<Client>;
   transporteurs!: Table<Transporteur>;
@@ -269,6 +288,7 @@ class AppDatabase extends Dexie {
   conflictLogs!: Table<ConflictLog>;
   exportLogs!: Table<ExportLog>;
   sageTemplates!: Table<SageTemplate>;
+  exportFormats!: Table<ExportFormatConfig>;
   taxes!: Table<Tax>;
   paymentMethods!: Table<PaymentMethod>;
 
@@ -514,7 +534,7 @@ class AppDatabase extends Dexie {
               tax.tauxTVA = 20;
             }
           });
-    });
+      });
 
     // Version 12 - Ajout du champ référence aux pesées
     this.version(12).stores({
@@ -535,6 +555,31 @@ class AppDatabase extends Dexie {
         "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
       exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
       sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      taxes: "++id, nom, taux, tauxTVA, active, createdAt, updatedAt",
+      paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
+    });
+
+    // Version 13 - Ajout de la table exportFormats pour les noms personnalisés des formats d'export
+    this.version(13).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, codeClient, tvaIntracom, modePaiementPreferentiel, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, numeroFacture, typeDocument, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, reference, synchronized, version, exportedAt, numeroBonExported, numeroFactureExported, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      exportFormats:
+        "++id, formatId, displayName, isDefault, createdAt, updatedAt",
       taxes: "++id, nom, taux, tauxTVA, active, createdAt, updatedAt",
       paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
     });

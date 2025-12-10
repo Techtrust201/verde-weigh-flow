@@ -56,12 +56,23 @@ interface HistoriqueSpaceProps {
 }
 
 export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
+  // Fonction helper pour obtenir les dates par défaut (hier et aujourd'hui)
+  const getDefaultDates = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const today = new Date();
+    return {
+      dateDebut: yesterday.toISOString().split("T")[0],
+      dateFin: today.toISOString().split("T")[0],
+    };
+  };
+
   const [pesees, setPesees] = useState<Pesee[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [transporteurs, setTransporteurs] = useState<Transporteur[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [dateDebut, setDateDebut] = useState("");
-  const [dateFin, setDateFin] = useState("");
+  const [dateDebut, setDateDebut] = useState(() => getDefaultDates().dateDebut);
+  const [dateFin, setDateFin] = useState(() => getDefaultDates().dateFin);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
   const [selectedPesee, setSelectedPesee] = useState<Pesee | null>(null);
@@ -70,55 +81,80 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
-  const [customExportSettings, setCustomExportSettings] = useState({
-    dateDebut: "",
-    dateFin: "",
-    typeDocument: "all",
-    clientId: "all",
-    columns: {
-      date: true,
-      heure: true,
-      type: true,
-      numeroBon: true,
-      numeroFacture: true,
-      plaque: true,
-      produit: true,
-      codeProduct: true,
-      net: true,
-      entreprise: true,
-      siret: true,
-      adresse: true,
-      chantier: true,
-      reference: true,
-      prixHT: true,
-      prixTTC: true,
-    },
+  const [customExportSettings, setCustomExportSettings] = useState(() => {
+    const dates = getDefaultDates();
+    return {
+      dateDebut: dates.dateDebut,
+      dateFin: dates.dateFin,
+      typeDocument: "all",
+      clientId: "all",
+      columns: {
+        date: true,
+        heure: true,
+        type: true,
+        numeroBon: true,
+        numeroFacture: true,
+        plaque: true,
+        produit: true,
+        codeProduct: true,
+        net: true,
+        entreprise: true,
+        siret: true,
+        adresse: true,
+        chantier: true,
+        reference: true,
+        prixHT: true,
+        prixTTC: true,
+      },
+    };
   });
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set default to last month
-    const now = new Date();
-    const lastMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() - 1,
-      now.getDate()
-    );
-    const dateDebutStr = lastMonth.toISOString().split("T")[0];
-    const dateFinStr = now.toISOString().split("T")[0];
+    // Mettre à jour les dates automatiquement chaque jour
+    const updateDatesIfNeeded = () => {
+      const dates = getDefaultDates();
+      const today = dates.dateFin;
 
-    setDateDebut(dateDebutStr);
-    setDateFin(dateFinStr);
+      // Vérifier si la date de fin actuelle est différente d'aujourd'hui
+      // Si oui, mettre à jour les dates (nouveau jour)
+      if (dateFin !== today) {
+        setDateDebut(dates.dateDebut);
+        setDateFin(dates.dateFin);
 
-    // Initialiser les dates du dialog personnalisé
-    setCustomExportSettings((prev) => ({
-      ...prev,
-      dateDebut: dateDebutStr,
-      dateFin: dateFinStr,
-    }));
+        // Mettre à jour aussi les dates du dialog personnalisé
+        setCustomExportSettings((prev) => ({
+          ...prev,
+          dateDebut: dates.dateDebut,
+          dateFin: dates.dateFin,
+        }));
+      }
+    };
 
+    updateDatesIfNeeded();
     loadData();
-  }, []);
+  }, []); // Exécuté une fois au mount
+
+  // Vérifier périodiquement si on est un nouveau jour (toutes les heures)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const dates = getDefaultDates();
+      const today = dates.dateFin;
+
+      if (dateFin !== today) {
+        setDateDebut(dates.dateDebut);
+        setDateFin(dates.dateFin);
+
+        setCustomExportSettings((prev) => ({
+          ...prev,
+          dateDebut: dates.dateDebut,
+          dateFin: dates.dateFin,
+        }));
+      }
+    }, 3600000); // Vérifier toutes les heures (3600000 ms)
+
+    return () => clearInterval(interval);
+  }, [dateFin]);
 
   useEffect(() => {
     loadPesees();

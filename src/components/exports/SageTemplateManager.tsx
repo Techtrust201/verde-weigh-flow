@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Table,
   TableBody,
@@ -11,27 +10,51 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Trash2, Settings, AlertCircle, CheckCircle } from "lucide-react";
 import {
-  Trash2,
-  Plus,
-  Eye,
-  Settings,
-  AlertCircle,
-  CheckCircle,
-} from "lucide-react";
-import { SageTemplate } from "@/lib/database";
-import { db } from "@/lib/database";
+  SageTemplate,
+  ExportFormatConfig,
+  db,
+  DEFAULT_EXPORT_FORMAT_NAMES,
+} from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
 import SageTemplateCreator from "@/components/import/SageTemplateCreator";
+import ExportFormatNameEditor from "./ExportFormatNameEditor";
 
 export default function SageTemplateManager() {
   const [templates, setTemplates] = useState<SageTemplate[]>([]);
+  const [exportFormats, setExportFormats] = useState<ExportFormatConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showTemplateCreator, setShowTemplateCreator] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<SageTemplate | null>(
     null
   );
   const { toast } = useToast();
+
+  // Initialiser les formats par défaut s'ils n'existent pas
+  const initializeDefaultFormats = async () => {
+    try {
+      const existingFormats = await db.exportFormats
+        .where("isDefault")
+        .equals(true)
+        .toArray();
+
+      if (existingFormats.length === 0) {
+        const defaultFormats: ExportFormatConfig[] = Object.keys(
+          DEFAULT_EXPORT_FORMAT_NAMES
+        ).map((formatId) => ({
+          formatId,
+          displayName: DEFAULT_EXPORT_FORMAT_NAMES[formatId],
+          isDefault: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+        await db.exportFormats.bulkAdd(defaultFormats);
+      }
+    } catch (error) {
+      console.error("Error initializing default formats:", error);
+    }
+  };
 
   const loadTemplates = async () => {
     try {
@@ -53,18 +76,48 @@ export default function SageTemplateManager() {
     }
   };
 
-  useEffect(() => {
-    loadTemplates();
+  const loadExportFormats = async () => {
+    try {
+      const formatsData = await db.exportFormats.toArray();
+      setExportFormats(formatsData);
+    } catch (error) {
+      console.error("Error loading export formats:", error);
+      toast({
+        title: "Erreur de chargement",
+        description: "Impossible de charger les formats d'export.",
+        variant: "destructive",
+      });
+    }
+  };
 
-    // Écouter les événements de mise à jour des templates
+  useEffect(() => {
+    const initializeAndLoad = async () => {
+      await initializeDefaultFormats();
+      await loadExportFormats();
+      await loadTemplates();
+    };
+
+    initializeAndLoad();
+
+    // Écouter les événements de mise à jour
     const handleTemplatesUpdated = () => {
       loadTemplates();
+      loadExportFormats();
+    };
+
+    const handleExportFormatsUpdated = () => {
+      loadExportFormats();
     };
 
     window.addEventListener("templatesUpdated", handleTemplatesUpdated);
+    window.addEventListener("exportFormatsUpdated", handleExportFormatsUpdated);
 
     return () => {
       window.removeEventListener("templatesUpdated", handleTemplatesUpdated);
+      window.removeEventListener(
+        "exportFormatsUpdated",
+        handleExportFormatsUpdated
+      );
     };
   }, []);
 
@@ -99,6 +152,38 @@ export default function SageTemplateManager() {
     setShowTemplateCreator(false);
   };
 
+  const handleFormatUpdate = () => {
+    loadExportFormats();
+    window.dispatchEvent(new CustomEvent("exportFormatsUpdated"));
+  };
+
+  // Obtenir tous les formats par défaut (depuis la DB ou depuis les constantes)
+  const defaultFormatsList = useMemo(() => {
+    // Créer une map des formats depuis la DB
+    const dbFormatsMap = new Map<string, ExportFormatConfig>();
+    exportFormats
+      .filter((f) => f.isDefault === true)
+      .forEach((format) => {
+        dbFormatsMap.set(format.formatId, format);
+      });
+
+    // Pour chaque format par défaut, utiliser celui de la DB s'il existe, sinon utiliser la constante
+    return Object.keys(DEFAULT_EXPORT_FORMAT_NAMES).map((formatId) => {
+      const dbFormat = dbFormatsMap.get(formatId);
+      if (dbFormat) {
+        return dbFormat;
+      }
+      // Format pas encore dans la DB, utiliser la constante par défaut
+      return {
+        formatId,
+        displayName: DEFAULT_EXPORT_FORMAT_NAMES[formatId],
+        isDefault: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    });
+  }, [exportFormats]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-4">
@@ -109,9 +194,51 @@ export default function SageTemplateManager() {
 
   return (
     <div className="space-y-3">
+      {/* Section Formats d'export par défaut */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Liste des templates</CardTitle>
+          <CardTitle className="text-sm">Formats d'export par défaut</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Format ID</TableHead>
+                <TableHead>Nom d'affichage</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {defaultFormatsList.map((format) => {
+                // Trouver le format dans la DB pour avoir l'ID si disponible
+                const dbFormat = exportFormats.find(
+                  (f) => f.formatId === format.formatId
+                );
+                const formatToEdit = dbFormat || format;
+
+                return (
+                  <TableRow key={format.formatId}>
+                    <TableCell className="font-mono text-sm">
+                      {format.formatId}
+                    </TableCell>
+                    <TableCell>
+                      <ExportFormatNameEditor
+                        formatConfig={formatToEdit}
+                        onUpdate={handleFormatUpdate}
+                        isDefault={true}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Section Templates personnalisés */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Templates personnalisés</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>

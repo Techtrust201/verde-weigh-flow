@@ -39,7 +39,14 @@ import {
   ExportStats,
   ExportFormat,
 } from "@/hooks/useExportData";
-import { db, Pesee, Product, SageTemplate } from "@/lib/database";
+import {
+  db,
+  Pesee,
+  Product,
+  SageTemplate,
+  ExportFormatConfig,
+  DEFAULT_EXPORT_FORMAT_NAMES,
+} from "@/lib/database";
 import {
   Select,
   SelectContent,
@@ -55,13 +62,28 @@ import SageClientImportDialog from "@/components/import/SageClientImportDialog";
 import SageArticleImportDialog from "@/components/import/SageArticleImportDialog";
 
 export default function ExportsSpace() {
-  const [dateDebut, setDateDebut] = useState("");
-  const [dateFin, setDateFin] = useState("");
+  // Fonction helper pour obtenir les dates par défaut (hier et aujourd'hui)
+  const getDefaultDates = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const today = new Date();
+    return {
+      dateDebut: yesterday.toISOString().split("T")[0],
+      dateFin: today.toISOString().split("T")[0],
+    };
+  };
+
+  const [dateDebut, setDateDebut] = useState(() => getDefaultDates().dateDebut);
+  const [dateFin, setDateFin] = useState(() => getDefaultDates().dateFin);
   const [exportStats, setExportStats] = useState<ExportStats | null>(null);
   const [selectedExportType, setSelectedExportType] = useState<
     "new" | "selective" | "complete"
   >("new");
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("csv");
+  const [selectedFormat, setSelectedFormat] =
+    useState<ExportFormat>("sage-bl-complet");
+  const [formatNames, setFormatNames] = useState<Record<string, string>>(
+    DEFAULT_EXPORT_FORMAT_NAMES
+  );
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
     null
   );
@@ -92,20 +114,73 @@ export default function ExportsSpace() {
     loadExportLogs,
   } = useExportData();
 
-  useEffect(() => {
-    // Set default to last month
-    const now = new Date();
-    const lastMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() - 1,
-      now.getDate()
-    );
-    setDateDebut(lastMonth.toISOString().split("T")[0]);
-    setDateFin(now.toISOString().split("T")[0]);
+  // Charger les noms des formats d'export
+  const loadFormatNames = async () => {
+    try {
+      const formats = await db.exportFormats.toArray();
+      const namesMap: Record<string, string> = {
+        ...DEFAULT_EXPORT_FORMAT_NAMES,
+      };
 
+      formats.forEach((format) => {
+        if (format.displayName) {
+          namesMap[format.formatId] = format.displayName;
+        }
+      });
+
+      setFormatNames(namesMap);
+    } catch (error) {
+      console.error("Error loading format names:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Mettre à jour les dates automatiquement chaque jour
+    const updateDatesIfNeeded = () => {
+      const dates = getDefaultDates();
+      const today = dates.dateFin;
+
+      // Vérifier si la date de fin actuelle est différente d'aujourd'hui
+      if (dateFin !== today) {
+        setDateDebut(dates.dateDebut);
+        setDateFin(dates.dateFin);
+      }
+    };
+
+    updateDatesIfNeeded();
+    loadFormatNames();
     // Load products
     loadProducts();
-  }, []);
+
+    // Écouter les événements de mise à jour des formats
+    const handleExportFormatsUpdated = () => {
+      loadFormatNames();
+    };
+
+    window.addEventListener("exportFormatsUpdated", handleExportFormatsUpdated);
+
+    return () => {
+      window.removeEventListener(
+        "exportFormatsUpdated",
+        handleExportFormatsUpdated
+      );
+    };
+  }, []); // Exécuté une fois au mount
+
+  // Vérifier périodiquement si on est un nouveau jour (toutes les heures)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const dates = getDefaultDates();
+      const today = dates.dateFin;
+
+      if (dateFin !== today) {
+        setDateDebut(dates.dateDebut);
+        setDateFin(dates.dateFin);
+      }
+    }, 3600000); // Vérifier toutes les heures (3600000 ms)
+
+    return () => clearInterval(interval);
+  }, [dateFin]);
 
   useEffect(() => {
     if (dateDebut && dateFin) {
@@ -439,23 +514,29 @@ export default function ExportsSpace() {
                       <SelectValue placeholder="Sélectionner un format" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="sage-bl-complet">
+                        {formatNames["sage-bl-complet"] ||
+                          "Sage 50 - Bons de livraison et Factures complets (.txt)"}
+                      </SelectItem>
                       <SelectItem value="csv">
-                        CSV Standard - Compatible Excel (.csv)
+                        {formatNames["csv"] ||
+                          "CSV Standard - Compatible Excel (.csv)"}
                       </SelectItem>
                       <SelectItem value="csv-txt">
-                        CSV Standard - Format TXT (.txt)
+                        {formatNames["csv-txt"] ||
+                          "CSV Standard - Format TXT (.txt)"}
                       </SelectItem>
                       <SelectItem value="sage-articles">
-                        Sage 50 - Import Articles (.txt)
+                        {formatNames["sage-articles"] ||
+                          "Sage 50 - Import Articles (.txt)"}
                       </SelectItem>
                       <SelectItem value="sage-ventes">
-                        Sage 50 - Import Ventes (.txt)
-                      </SelectItem>
-                      <SelectItem value="sage-bl-complet">
-                        Sage 50 - Bons de livraison complets (.txt)
+                        {formatNames["sage-ventes"] ||
+                          "Sage 50 - Import Ventes (.txt)"}
                       </SelectItem>
                       <SelectItem value="sage-template">
-                        Sage 50 - Template personnalisé (.txt)
+                        {formatNames["sage-template"] ||
+                          "Sage 50 - Template personnalisé (.txt)"}
                       </SelectItem>
                     </SelectContent>
                   </Select>
