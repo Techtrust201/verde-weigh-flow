@@ -624,103 +624,141 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
 
           {/* Pesees List */}
           <div className="space-y-4">
-            {currentPesees.map((pesee) => (
-              <Card key={pesee.id}>
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                    <div>
-                      <div className="font-semibold">
-                        {pesee.numeroBon && pesee.numeroFacture
-                          ? `${pesee.numeroBon} / ${pesee.numeroFacture}`
-                          : pesee.numeroBon || pesee.numeroFacture || "N/A"}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {new Date(pesee.dateHeure).toLocaleDateString()} à{" "}
-                        {new Date(pesee.dateHeure).toLocaleTimeString()}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="font-medium">{pesee.nomEntreprise}</div>
-                      <div className="text-sm text-gray-600">
-                        Plaque: {pesee.plaque}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Chantier: {pesee.chantier}
-                      </div>
-                      {pesee.reference?.trim() && (
-                        <div className="text-sm text-gray-900 font-medium">
-                          Réf: {pesee.reference.trim()}
+            {currentPesees.map((pesee) => {
+              const product = products.find((p) => p.id === pesee.produitId);
+              return (
+                <Card key={pesee.id}>
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-center">
+                      <div>
+                        <div className="font-semibold">
+                          {pesee.numeroBon && pesee.numeroFacture
+                            ? `${pesee.numeroBon} / ${pesee.numeroFacture}`
+                            : pesee.numeroBon || pesee.numeroFacture || "N/A"}
                         </div>
-                      )}
-                    </div>
-                    <div>
-                      <Badge variant="outline" className="mb-2">
-                        {formatWeight(pesee.net)} T
-                      </Badge>
-                      {pesee.exportedAt && pesee.exportedAt.length > 0 && (
-                        <Badge variant="secondary" className="mb-2 text-xs">
-                          Exporté
+                        <div className="text-sm text-gray-600">
+                          {new Date(pesee.dateHeure).toLocaleDateString()} à{" "}
+                          {new Date(pesee.dateHeure).toLocaleTimeString()}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-medium">{pesee.nomEntreprise}</div>
+                        <div className="text-sm text-gray-600">
+                          Plaque: {pesee.plaque}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          Chantier: {pesee.chantier}
+                        </div>
+                        {pesee.reference?.trim() && (
+                          <div className="text-sm text-gray-900 font-medium">
+                            Réf: {pesee.reference.trim()}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        {product ? (
+                          <>
+                            <div className="font-medium text-sm mb-1">
+                              {product.nom}
+                            </div>
+                            {product.categorieDechet && (
+                              <Badge
+                                variant={
+                                  product.categorieDechet === "dangereux"
+                                    ? "destructive"
+                                    : product.categorieDechet ===
+                                      "non-dangereux"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className="text-xs"
+                              >
+                                {product.categorieDechet === "dangereux"
+                                  ? "Dangereux"
+                                  : product.categorieDechet === "non-dangereux"
+                                  ? "Non-dangereux"
+                                  : "Inerte"}
+                              </Badge>
+                            )}
+                            {!product.categorieDechet && (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-sm text-gray-400">N/A</span>
+                        )}
+                      </div>
+                      <div>
+                        <Badge variant="outline" className="mb-2">
+                          {formatWeight(pesee.net)} T
                         </Badge>
-                      )}
-                      <div className="text-sm text-gray-600">
-                        {pesee.moyenPaiement}
+                        {pesee.exportedAt && pesee.exportedAt.length > 0 && (
+                          <Badge variant="secondary" className="mb-2 text-xs">
+                            Exporté
+                          </Badge>
+                        )}
+                        <div className="text-sm text-gray-600">
+                          {pesee.moyenPaiement}
+                        </div>
+                      </div>
+                      <div>
+                        {pesee.prixHT && (
+                          <div className="font-medium text-green-600">
+                            {pesee.prixHT.toFixed(2)}€ HT
+                          </div>
+                        )}
+                        {pesee.prixTTC && (
+                          <div className="font-medium text-green-600">
+                            {pesee.prixTTC.toFixed(2)}€ TTC
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          onClick={() => handleViewDetails(pesee)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Détails
+                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => handleDeletePesee(pesee)}
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  pesee.exportedAt &&
+                                  pesee.exportedAt.length > 0
+                                }
+                                className={
+                                  pesee.exportedAt &&
+                                  pesee.exportedAt.length > 0
+                                    ? "text-gray-400 cursor-not-allowed"
+                                    : "text-red-600 hover:text-red-700 hover:bg-red-50"
+                                }
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {pesee.exportedAt && pesee.exportedAt.length > 0
+                                  ? "Cette pesée a été exportée en CSV et ne peut plus être supprimée pour préserver l'intégrité des données"
+                                  : "Supprimer la pesée"}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
-                    <div>
-                      {pesee.prixHT && (
-                        <div className="font-medium text-green-600">
-                          {pesee.prixHT.toFixed(2)}€ HT
-                        </div>
-                      )}
-                      {pesee.prixTTC && (
-                        <div className="font-medium text-green-600">
-                          {pesee.prixTTC.toFixed(2)}€ TTC
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        onClick={() => handleViewDetails(pesee)}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Détails
-                      </Button>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              onClick={() => handleDeletePesee(pesee)}
-                              variant="outline"
-                              size="sm"
-                              disabled={
-                                pesee.exportedAt && pesee.exportedAt.length > 0
-                              }
-                              className={
-                                pesee.exportedAt && pesee.exportedAt.length > 0
-                                  ? "text-gray-400 cursor-not-allowed"
-                                  : "text-red-600 hover:text-red-700 hover:bg-red-50"
-                              }
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Supprimer
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>
-                              {pesee.exportedAt && pesee.exportedAt.length > 0
-                                ? "Cette pesée a été exportée en CSV et ne peut plus être supprimée pour préserver l'intégrité des données"
-                                : "Supprimer la pesée"}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
           {/* Pagination */}
