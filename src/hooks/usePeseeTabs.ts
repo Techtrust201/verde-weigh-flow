@@ -162,7 +162,9 @@ export const usePeseeTabs = () => {
   };
 
   // Fonction pour vérifier et générer un numéro BL unique
-  const generateUniqueBLNumber = async (excludePeseeId?: number): Promise<string> => {
+  const generateUniqueBLNumber = async (
+    excludePeseeId?: number
+  ): Promise<string> => {
     let numeroBon = await generateNextBLNumber();
     let attempts = 0;
 
@@ -172,29 +174,35 @@ export const usePeseeTabs = () => {
     while (true) {
       // Vérifier qu'aucune pesée n'existe déjà avec ce numeroBon (en excluant la pesée courante si fournie)
       let blExists = false;
-      const peseesWithBL = await db.pesees.where("numeroBon").equals(numeroBon).toArray();
+      const peseesWithBL = await db.pesees
+        .where("numeroBon")
+        .equals(numeroBon)
+        .toArray();
       if (excludePeseeId) {
-        blExists = peseesWithBL.some(p => p.id !== excludePeseeId);
+        blExists = peseesWithBL.some((p) => p.id !== excludePeseeId);
       } else {
         blExists = peseesWithBL.length > 0;
       }
-      
+
       // Vérifier qu'aucune pesée n'existe déjà avec un numeroFacture ayant le même numéro séquentiel
       // (en excluant la pesée courante si fournie)
       const seqNum = getSeqNum(numeroBon);
       const correspondingFA = `FA${seqNum}`;
       let faExists = false;
-      const peseesWithFA = await db.pesees.where("numeroFacture").equals(correspondingFA).toArray();
+      const peseesWithFA = await db.pesees
+        .where("numeroFacture")
+        .equals(correspondingFA)
+        .toArray();
       if (excludePeseeId) {
-        faExists = peseesWithFA.some(p => p.id !== excludePeseeId);
+        faExists = peseesWithFA.some((p) => p.id !== excludePeseeId);
       } else {
         faExists = peseesWithFA.length > 0;
       }
-      
+
       if (!blExists && !faExists) {
         break; // Numéro unique trouvé
       }
-      
+
       // Incrémenter et réessayer
       const num = seqNum + 1;
       numeroBon = `BL${num}`;
@@ -244,7 +252,9 @@ export const usePeseeTabs = () => {
   };
 
   // Fonction pour vérifier et générer un numéro FA unique
-  const generateUniqueFANumber = async (excludePeseeId?: number): Promise<string> => {
+  const generateUniqueFANumber = async (
+    excludePeseeId?: number
+  ): Promise<string> => {
     let numeroFacture = await generateNextFANumber();
     let attempts = 0;
 
@@ -254,29 +264,35 @@ export const usePeseeTabs = () => {
     while (true) {
       // Vérifier qu'aucune pesée n'existe déjà avec ce numeroFacture (en excluant la pesée courante si fournie)
       let faExists = false;
-      const peseesWithFA = await db.pesees.where("numeroFacture").equals(numeroFacture).toArray();
+      const peseesWithFA = await db.pesees
+        .where("numeroFacture")
+        .equals(numeroFacture)
+        .toArray();
       if (excludePeseeId) {
-        faExists = peseesWithFA.some(p => p.id !== excludePeseeId);
+        faExists = peseesWithFA.some((p) => p.id !== excludePeseeId);
       } else {
         faExists = peseesWithFA.length > 0;
       }
-      
+
       // Vérifier qu'aucune pesée n'existe déjà avec un numeroBon ayant le même numéro séquentiel
       // (en excluant la pesée courante si fournie)
       const seqNum = getSeqNum(numeroFacture);
       const correspondingBL = `BL${seqNum}`;
       let blExists = false;
-      const peseesWithBL = await db.pesees.where("numeroBon").equals(correspondingBL).toArray();
+      const peseesWithBL = await db.pesees
+        .where("numeroBon")
+        .equals(correspondingBL)
+        .toArray();
       if (excludePeseeId) {
-        blExists = peseesWithBL.some(p => p.id !== excludePeseeId);
+        blExists = peseesWithBL.some((p) => p.id !== excludePeseeId);
       } else {
         blExists = peseesWithBL.length > 0;
       }
-      
+
       if (!faExists && !blExists) {
         break; // Numéro unique trouvé
       }
-      
+
       // Incrémenter et réessayer
       const num = seqNum + 1;
       numeroFacture = `FA${num}`;
@@ -340,6 +356,39 @@ export const usePeseeTabs = () => {
   const createNewTab = useCallback(async (): Promise<string> => {
     const newTabId = crypto.randomUUID();
 
+    // Rechercher le produit par défaut : DECHETS VERTS, sinon premier favori, sinon premier produit
+    let defaultProduitId = 0;
+    try {
+      // 1. Chercher DECHETS VERTS
+      const dechetsVerts = await db.products
+        .filter((p) => p.nom.toUpperCase() === "DECHETS VERTS")
+        .first();
+
+      if (dechetsVerts && dechetsVerts.id) {
+        defaultProduitId = dechetsVerts.id;
+      } else {
+        // 2. Si pas trouvé, chercher le premier produit favori
+        const firstFavorite = await db.products
+          .filter((p) => p.isFavorite === true)
+          .first();
+
+        if (firstFavorite && firstFavorite.id) {
+          defaultProduitId = firstFavorite.id;
+        } else {
+          // 3. Si pas de favori, prendre le premier produit de la liste
+          const firstProduct = await db.products.orderBy("id").first();
+          if (firstProduct && firstProduct.id) {
+            defaultProduitId = firstProduct.id;
+          }
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Erreur lors de la recherche du produit par défaut:",
+        error
+      );
+    }
+
     setTabs((prevTabs) => {
       console.log(
         "[usePeseeTabs] createNewTab appelé, nombre d'onglets actuel:",
@@ -355,7 +404,7 @@ export const usePeseeTabs = () => {
           plaque: "",
           chantier: "",
           chantierLibre: "",
-          produitId: 0,
+          produitId: defaultProduitId,
           transporteurId: 0,
           transporteurLibre: "",
           poidsEntree: "",
@@ -485,11 +534,11 @@ export const usePeseeTabs = () => {
     setTabs((prevTabs) => {
       // Trouver l'index de l'onglet à fermer dans la liste originale
       const tabIndexToClose = prevTabs.findIndex((tab) => tab.id === tabId);
-      
+
       const updatedTabs = prevTabs.filter((tab) => tab.id !== tabId);
 
       let newActiveTabId: string | null = null;
-      
+
       if (activeTabId === tabId) {
         // Si l'onglet fermé était actif, activer l'onglet précédent
         if (updatedTabs.length > 0) {
@@ -567,7 +616,6 @@ export const usePeseeTabs = () => {
 
     return label;
   };
-
 
   return {
     tabs,

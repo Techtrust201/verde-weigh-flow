@@ -25,6 +25,8 @@ interface ProductWeightSectionProps {
     nomEntreprise?: boolean;
     chantier?: boolean;
     produitId?: boolean;
+    poidsEntree?: boolean;
+    poidsSortie?: boolean;
   };
 }
 
@@ -269,7 +271,15 @@ export const ProductWeightSection = ({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="poidsEntree">Poids d'entrée (tonnes)</Label>
+              <Label
+                htmlFor="poidsEntree"
+                className={cn(validationErrors?.poidsEntree && "text-red-600")}
+              >
+                Poids d'entrée (tonnes) *
+                {validationErrors?.poidsEntree && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
+              </Label>
               <Input
                 id="poidsEntree"
                 type="text"
@@ -279,11 +289,28 @@ export const ProductWeightSection = ({
                 }
                 placeholder="0,000"
                 autoComplete="off"
+                className={cn(
+                  validationErrors?.poidsEntree &&
+                    "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+                )}
               />
+              {validationErrors?.poidsEntree && (
+                <p className="text-red-600 text-sm mt-1">
+                  Ce champ est obligatoire
+                </p>
+              )}
             </div>
 
             <div>
-              <Label htmlFor="poidsSortie">Poids de sortie (tonnes)</Label>
+              <Label
+                htmlFor="poidsSortie"
+                className={cn(validationErrors?.poidsSortie && "text-red-600")}
+              >
+                Poids de sortie (tonnes) *
+                {validationErrors?.poidsSortie && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
+              </Label>
               <Input
                 id="poidsSortie"
                 type="text"
@@ -293,7 +320,16 @@ export const ProductWeightSection = ({
                 }
                 placeholder="0,000"
                 autoComplete="off"
+                className={cn(
+                  validationErrors?.poidsSortie &&
+                    "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+                )}
               />
+              {validationErrors?.poidsSortie && (
+                <p className="text-red-600 text-sm mt-1">
+                  Ce champ est obligatoire
+                </p>
+              )}
             </div>
 
             <div>

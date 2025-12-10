@@ -136,6 +136,7 @@ export const PeseeDetailDialog = ({
     transporteurId: pesee.transporteurId || 0,
     transporteurLibre: pesee.transporteurLibre || "",
     typeClient: pesee.typeClient,
+    reference: pesee.reference || "",
   };
 
   const handlePrintBon = async () => {

@@ -96,6 +96,8 @@ export default function PeseeSpace({
     nomEntreprise?: boolean;
     chantier?: boolean;
     produitId?: boolean;
+    poidsEntree?: boolean;
+    poidsSortie?: boolean;
   }>({});
   const [editingPeseeId, setEditingPeseeId] = useState<number | null>(null);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
@@ -265,6 +267,43 @@ export default function PeseeSpace({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingRequest?.id, editingRequest?.nonce]); // Retirer loadPeseeForEdit des dépendances pour éviter les appels multiples
+
+  // useEffect pour initialiser DECHETS VERTS sur le premier onglet après chargement des produits
+  useEffect(() => {
+    const initializeDefaultProduct = async () => {
+      if (tabs.length > 0 && products.length > 0) {
+        const currentTab = tabs.find((t) => t.id === activeTabId);
+        if (currentTab && currentTab.formData.produitId === 0) {
+          // Rechercher DECHETS VERTS
+          let defaultProduitId = 0;
+          const dechetsVerts = products.find(
+            (p) => p.nom.toUpperCase() === "DECHETS VERTS"
+          );
+
+          if (dechetsVerts && dechetsVerts.id) {
+            defaultProduitId = dechetsVerts.id;
+          } else {
+            // Si pas trouvé, chercher le premier produit favori
+            const firstFavorite = products.find((p) => p.isFavorite === true);
+            if (firstFavorite && firstFavorite.id) {
+              defaultProduitId = firstFavorite.id;
+            } else {
+              // Si pas de favori, prendre le premier produit de la liste
+              if (products.length > 0 && products[0].id) {
+                defaultProduitId = products[0].id;
+              }
+            }
+          }
+
+          if (defaultProduitId > 0) {
+            updateCurrentTab({ produitId: defaultProduitId });
+          }
+        }
+      }
+    };
+
+    initializeDefaultProduct();
+  }, [products, tabs, activeTabId, updateCurrentTab]);
 
   // Wrapper pour createNewTab asynchrone
   const handleCreateNewTab = async () => {
@@ -896,6 +935,7 @@ export default function PeseeSpace({
             transporteurId: savedPesee.transporteurId || 0,
             transporteurLibre: savedPesee.transporteurLibre || "",
             typeClient: savedPesee.typeClient,
+            reference: savedPesee.reference || "",
           };
           // Ouvrir directement la fenêtre d'impression du navigateur
           console.log("[handleSaveAndPrintInvoice] Appel handlePrintDirect...");
@@ -1010,6 +1050,7 @@ export default function PeseeSpace({
             transporteurId: savedPesee.transporteurId || 0,
             transporteurLibre: savedPesee.transporteurLibre || "",
             typeClient: savedPesee.typeClient,
+            reference: savedPesee.reference || "",
           };
           // Ouvrir directement la fenêtre d'impression du navigateur
           console.log(
@@ -1189,7 +1230,28 @@ export default function PeseeSpace({
         return null;
       }
 
-      // Convertir les poids en tonnes (pas de division par 1000 car déjà en tonnes)
+      // Validation : les poids doivent être remplis
+      if (!currentData.poidsEntree || currentData.poidsEntree.trim() === "") {
+        errors.poidsEntree = true;
+        hasErrors = true;
+      }
+
+      if (!currentData.poidsSortie || currentData.poidsSortie.trim() === "") {
+        errors.poidsSortie = true;
+        hasErrors = true;
+      }
+
+      if (hasErrors) {
+        setValidationErrors(errors);
+        toast({
+          title: "Erreur",
+          description: "Les poids d'entrée et de sortie sont obligatoires.",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      // Convertir les poids en tonnes (après validation)
       const poidsEntree =
         parseFloat(currentData.poidsEntree.replace(",", ".")) || 0;
       const poidsSortie =

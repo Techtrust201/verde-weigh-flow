@@ -312,6 +312,7 @@ export const PeseeFormSection = ({
               id="numeroBon"
               value={currentData?.numeroBon || ""}
               onChange={(e) => updateCurrentTab({ numeroBon: e.target.value })}
+              className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
             />
           </div>
           <div>
@@ -714,7 +715,7 @@ export const PeseeFormSection = ({
             <Input
               id="nomEntreprise"
               className={cn(
-                "placeholder:text-black",
+                "max-w-full overflow-hidden text-ellipsis whitespace-nowrap placeholder:text-black",
                 validationErrors.nomEntreprise &&
                   "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
               )}
@@ -842,6 +843,7 @@ export const PeseeFormSection = ({
                           value={newPlaque}
                           onChange={(e) => setNewPlaque(e.target.value)}
                           placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
+                          className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
                         />
                       </div>
                     </div>
@@ -866,6 +868,7 @@ export const PeseeFormSection = ({
                 value={currentData?.plaque || ""}
                 onChange={(e) => updateCurrentTab({ plaque: e.target.value })}
                 className={cn(
+                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap",
                   validationErrors.plaque &&
                     "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                 )}
@@ -913,8 +916,8 @@ export const PeseeFormSection = ({
                   })()
                 : null}
             </div>
-            <div className="flex gap-2 flex-1">
-              <div className="flex-1 flex flex-col">
+            <div className="flex gap-2 flex-1 min-w-0">
+              <div className="flex-1 flex flex-col min-w-0">
                 <Popover
                   open={chantierSelectorOpen}
                   onOpenChange={setChantierSelectorOpen}
@@ -925,13 +928,16 @@ export const PeseeFormSection = ({
                       role="combobox"
                       aria-expanded={chantierSelectorOpen}
                       className={cn(
-                        "w-full justify-between",
+                        "w-full justify-between min-w-0",
                         validationErrors.chantier &&
                           "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                       )}
                       disabled={!currentData?.clientId}
                     >
-                      {getChantierInputValue() || "Sélectionner un chantier..."}
+                      <span className="truncate flex-1 text-left">
+                        {getChantierInputValue() ||
+                          "Sélectionner un chantier..."}
+                      </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -1005,7 +1011,7 @@ export const PeseeFormSection = ({
                   </PopoverContent>
                 </Popover>
                 {/* Champ pour chantier libre - toujours affiché comme pour transporteur */}
-                <div className="mt-2 flex-1 flex flex-col">
+                <div className="mt-2 flex-1 flex flex-col min-w-0">
                   <Input
                     placeholder="Ou saisir un chantier libre (optionnel)"
                     value={chantierLibre}
@@ -1026,6 +1032,7 @@ export const PeseeFormSection = ({
                       }
                     }}
                     className={cn(
+                      "min-w-0",
                       validationErrors.chantier &&
                         "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                     )}
@@ -1063,6 +1070,7 @@ export const PeseeFormSection = ({
                         value={newChantier}
                         onChange={(e) => setNewChantier(e.target.value)}
                         placeholder="Nom du nouveau chantier"
+                        className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
                       />
                     </div>
                   </div>
@@ -1090,8 +1098,8 @@ export const PeseeFormSection = ({
                 </p>
               )}
             </div>
-            <div className="flex gap-2 flex-1">
-              <div className="flex-1 flex flex-col">
+            <div className="flex gap-2 flex-1 min-w-0">
+              <div className="flex-1 flex flex-col min-w-0">
                 <Popover
                   open={transporteurSelectorOpen}
                   onOpenChange={setTransporteurSelectorOpen}
@@ -1101,10 +1109,12 @@ export const PeseeFormSection = ({
                       variant="outline"
                       role="combobox"
                       aria-expanded={transporteurSelectorOpen}
-                      className="w-full justify-between"
+                      className="w-full justify-between min-w-0"
                     >
-                      {getTransporteurInputValue() ||
-                        "Sélectionner un transporteur..."}
+                      <span className="truncate flex-1 text-left">
+                        {getTransporteurInputValue() ||
+                          "Sélectionner un transporteur..."}
+                      </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -1194,7 +1204,7 @@ export const PeseeFormSection = ({
                 </Popover>
 
                 {/* Champ pour transporteur libre - toujours affiché */}
-                <div className="mt-2 flex-1 flex flex-col">
+                <div className="mt-2 flex-1 flex flex-col min-w-0">
                   <Input
                     placeholder="Nom du transporteur libre (optionnel)"
                     value={transporteurLibre}
@@ -1214,6 +1224,7 @@ export const PeseeFormSection = ({
                         });
                       }
                     }}
+                    className="min-w-0"
                   />
                 </div>
               </div>
@@ -1261,6 +1272,7 @@ export const PeseeFormSection = ({
                             })
                           }
                           placeholder="Nom du transporteur"
+                          className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
                         />
                       </div>
                     </div>
@@ -1288,6 +1300,7 @@ export const PeseeFormSection = ({
                           })
                         }
                         placeholder="Adresse"
+                        className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -1302,6 +1315,7 @@ export const PeseeFormSection = ({
                             })
                           }
                           placeholder="Code postal"
+                          className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
                         />
                       </div>
                       <div>
@@ -1330,6 +1344,7 @@ export const PeseeFormSection = ({
                           })
                         }
                         placeholder="Email"
+                        className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
                       />
                     </div>
                   </div>

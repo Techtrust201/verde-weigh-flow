@@ -119,112 +119,124 @@ export const generatePrintContent = async (
   const timeStr = now.toLocaleTimeString("fr-FR");
 
   const bonContent = (copyType: string) => `
-    <div class="bon">
-      <div class="header">
-        <div class="company-info">
-          <div class="company-name">BDV</div>
-          ${
-            userSettings?.siret
-              ? `<div class="company-siret">SIRET: ${userSettings.siret}</div>`
-              : ""
-          }
-          <div class="address">600, chemin de la Levade, Les Iscles</div>
+    <div class="bon-wrapper">
+      <div class="bon">
+        <div class="header">
+          <div class="company-info">
+            <div class="company-name">BDV</div>
+            ${
+              userSettings?.siret
+                ? `<div class="company-siret">SIRET: ${userSettings.siret}</div>`
+                : ""
+            }
+            <div class="address">600, chemin de la Levade, Les Iscles</div>
+            
+            <div class="address">06550 LA ROQUETTE-SUR-SIAGNE</div>
+            <div class="phone">Tél : 07 85 99 19 99</div>
+          </div>
+          <div class="document-title">
+            <h2>${documentTitle}</h2>
+            <p>N° ${numeroBonToDisplay}</p>
+            <p>Le ${dateStr} à ${timeStr}</p>
+          </div>
+        </div>
+        
+        <div class="content-columns">
+          <div class="column-left">
+            <div class="row">
+              <span class="label">${clientLabel}:</span>
+              <span>${formData.nomEntreprise}</span>
+            </div>
+            <div class="row">
+              <span class="label">Plaque:</span>
+              <span>${formData.plaque}</span>
+            </div>
+            <div class="row">
+              <span class="label">Produit:</span>
+              <span>${selectedProduct?.nom || "Non défini"}</span>
+            </div>
+          </div>
           
-          <div class="address">06550 LA ROQUETTE-SUR-SIAGNE</div>
-          <div class="phone">Tél : 07 85 99 19 99</div>
-        </div>
-        <div class="document-title">
-          <h2>${documentTitle}</h2>
-          <p>N° ${numeroBonToDisplay}</p>
-          <p>Le ${dateStr} à ${timeStr}</p>
-        </div>
-      </div>
-      
-      <div class="content-columns">
-        <div class="column-left">
-          <div class="row">
-            <span class="label">${clientLabel}:</span>
-            <span>${formData.nomEntreprise}</span>
+          <div class="column-center">
+            ${
+              getTransporteurName()
+                ? `
+            <div class="row">
+              <span class="label">Transporteur:</span>
+              <span>${getTransporteurName()}</span>
+            </div>
+            `
+                : ""
+            }
+            ${
+              chantierToDisplay
+                ? `
+            <div class="row">
+              <span class="label">Chantier:</span>
+              <span>${chantierToDisplay}</span>
+            </div>
+            `
+                : ""
+            }
+            ${
+              formData.reference
+                ? `
+            <div class="row">
+              <span class="label">Référence:</span>
+              <span>${formData.reference}</span>
+            </div>
+            `
+                : ""
+            }
           </div>
-          <div class="row">
-            <span class="label">Plaque:</span>
-            <span>${formData.plaque}</span>
-          </div>
-          <div class="row">
-            <span class="label">Produit:</span>
-            <span>${selectedProduct?.nom || "Non défini"}</span>
-          </div>
-        </div>
-        
-        <div class="column-center">
-          ${
-            getTransporteurName()
-              ? `
-          <div class="row">
-            <span class="label">Transporteur:</span>
-            <span>${getTransporteurName()}</span>
-          </div>
-          `
-              : ""
-          }
-          ${
-            chantierToDisplay
-              ? `
-          <div class="row">
-            <span class="label">Chantier:</span>
-            <span>${chantierToDisplay}</span>
-          </div>
-          `
-              : ""
-          }
-        </div>
-        
-        <div class="column-right">
-          <div class="row">
-            <span class="label">Poids Entrée:</span>
-            <span>${poidsEntree.toFixed(3)} tonnes</span>
-          </div>
-          <div class="row">
-            <span class="label">Poids Sortie:</span>
-            <span>${poidsSortie.toFixed(3)} tonnes</span>
-          </div>
-          <div class="row">
-            <span class="label">Poids Net:</span>
-            <span>${net.toFixed(3)} tonnes</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="signatures-bottom">
-        <div class="signature-section">
-          <div class="signature-bdv">
-            <p class="signature-label">Signature BDV:</p>
-            <div class="signature-area">
-              <svg class="signature-scribble" viewBox="0 0 120 40" width="120" height="40">
-                <path d="M10,25 Q20,10 30,25 T50,25 Q60,15 70,25 T90,25 Q100,20 110,25" 
-                      stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/>
-                <path d="M15,30 Q25,20 35,30 T55,30" 
-                      stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-              </svg>
+          
+          <div class="column-right">
+            <div class="row">
+              <span class="label">Poids Entrée:</span>
+              <span>${poidsEntree.toFixed(3)} tonnes</span>
+            </div>
+            <div class="row">
+              <span class="label">Poids Sortie:</span>
+              <span>${poidsSortie.toFixed(3)} tonnes</span>
+            </div>
+            <div class="row">
+              <span class="label">Poids Net:</span>
+              <span>${net.toFixed(3)} tonnes</span>
             </div>
           </div>
         </div>
         
-        <div class="signature-section">
-          <div class="signature-client">
-            <p class="signature-label">Signature Client:</p>
-            <div class="signature-line"></div>
+        <div class="signatures-bottom">
+          <div class="signature-section">
+            <div class="signature-bdv">
+              <p class="signature-label">Signature BDV:</p>
+              <div class="signature-area">
+                <svg class="signature-scribble" viewBox="0 0 120 40" width="120" height="40">
+                  <path d="M10,25 Q20,10 30,25 T50,25 Q60,15 70,25 T90,25 Q100,20 110,25" 
+                        stroke="#000" stroke-width="2" fill="none" stroke-linecap="round"/>
+                  <path d="M15,30 Q25,20 35,30 T55,30" 
+                        stroke="#000" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
           </div>
+          
+          <div class="signature-section">
+            <div class="signature-client">
+              <p class="signature-label">Signature Client:</p>
+              <div class="signature-line"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mention-legale">
+          <p><strong>Important:</strong> Tous les chauffeurs prenant livraison de matériaux sont tenus de vérifier au passage de la bascule, le poids de leur chargement et de faire le nécessaire en cas de surcharge.</p>
         </div>
       </div>
       
-      <div class="mention-legale">
-        <p><strong>Important:</strong> Tous les chauffeurs prenant livraison de matériaux sont tenus de vérifier au passage de la bascule, le poids de leur chargement et de faire le nécessaire en cas de surcharge.</p>
+      <div class="copy-type">
+        <p>${copyType}</p>
       </div>
-    </div>
-    
-    <div class="copy-type">
-      <p>${copyType}</p>
     </div>
   `;
 
@@ -476,20 +488,22 @@ export const generatePrintContent = async (
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             background: white !important;
+            display: block;
           }
           .print-timestamp {
-            position: relative !important;
-            top: auto !important;
-            right: auto !important;
+            position: absolute !important;
+            top: 5mm !important;
+            right: 5mm !important;
             text-align: right !important;
             font-size: 8px !important;
             color: #666 !important;
-            margin-bottom: 5px !important;
+            margin: 0 !important;
             padding: 0 !important;
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
             page-break-after: avoid !important;
+            z-index: 10000 !important;
           }
           /* Masquer tous les éléments de l'interface */
           [data-lov-id],
@@ -536,17 +550,31 @@ export const generatePrintContent = async (
             max-width: none;
             width: 100%;
             flex-direction: column !important;
-            gap: 1rem !important;
+            gap: 0 !important;
             padding: 0;
             display: flex !important;
             visibility: visible !important;
             opacity: 1 !important;
-            position: static !important;
+            position: relative !important;
             z-index: 9999 !important;
+            justify-content: flex-start;
+            min-height: calc(100vh - 10mm);
+          }
+          /* Conteneur pour chaque bon (bon + copy-type) */
+          .bon-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(50vh - 5mm);
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
           }
           .bon {
             width: 100%;
-            margin-bottom: 1rem !important;
+            margin: 0 auto !important;
             page-break-inside: avoid;
             min-height: 320px;
             max-height: 490px;
@@ -563,11 +591,9 @@ export const generatePrintContent = async (
             opacity: 1 !important;
             position: relative !important;
             z-index: 9999 !important;
-            margin-bottom: 2rem !important;
+            margin: 8mm auto 0 auto !important;
             clear: both !important;
-          }
-          .bon + .bon {
-            margin-top: 2rem;
+            text-align: center !important;
           }
         }
       </style>
@@ -1221,20 +1247,22 @@ const generateCombinedPrintContent = (
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             background: white !important;
+            display: block;
           }
           .print-timestamp {
-            position: relative !important;
-            top: auto !important;
-            right: auto !important;
+            position: absolute !important;
+            top: 5mm !important;
+            right: 5mm !important;
             text-align: right !important;
             font-size: 8px !important;
             color: #666 !important;
-            margin-bottom: 5px !important;
+            margin: 0 !important;
             padding: 0 !important;
             display: block !important;
             visibility: visible !important;
             opacity: 1 !important;
             page-break-after: avoid !important;
+            z-index: 10000 !important;
           }
           .bon-section {
             page-break-after: auto !important;
@@ -1247,6 +1275,42 @@ const generateCombinedPrintContent = (
             opacity: 1 !important;
             position: relative !important;
             z-index: 9999 !important;
+          }
+          /* Conteneur principal pour les bons */
+          .bon-section .print-container {
+            page-break-inside: avoid !important;
+            max-width: none !important;
+            width: 100% !important;
+            flex-direction: column !important;
+            gap: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: static !important;
+            z-index: 9999 !important;
+            justify-content: flex-start !important;
+            min-height: calc(100vh - 10mm) !important;
+          }
+          /* Conteneur pour chaque bon (bon + copy-type) - Centrage vertical */
+          .bon-wrapper {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            min-height: calc(50vh - 5mm) !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+          }
+          /* Premier bon-wrapper : centré dans la première moitié */
+          .bon-section .bon-wrapper:first-of-type {
+            min-height: calc(50vh - 5mm) !important;
+          }
+          /* Deuxième bon-wrapper : centré dans la deuxième moitié */
+          .bon-section .bon-wrapper:last-of-type {
+            min-height: calc(50vh - 5mm) !important;
           }
           .bon-section .print-timestamp {
             position: relative !important;
