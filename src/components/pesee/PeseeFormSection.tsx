@@ -794,7 +794,7 @@ export const PeseeFormSection = ({
                         className="w-full justify-between min-w-0 font-normal"
                         disabled={!currentData?.clientId}
                       >
-                        <span className="truncate flex-1 text-left">
+                        <span className="truncate flex-1 text-left font-bold">
                           {currentData?.plaque?.trim() ||
                             "Sélectionner une plaque..."}
                         </span>
@@ -914,7 +914,7 @@ export const PeseeFormSection = ({
                   }
                 }}
                 className={cn(
-                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap",
+                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-bold",
                   validationErrors.plaque &&
                     "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                 )}
@@ -981,7 +981,7 @@ export const PeseeFormSection = ({
                         )}
                         disabled={!currentData?.clientId}
                       >
-                        <span className="truncate flex-1 text-left">
+                        <span className="truncate flex-1 text-left font-bold">
                           {getChantierInputValue() ||
                             "Sélectionner un chantier..."}
                         </span>
@@ -1095,7 +1095,7 @@ export const PeseeFormSection = ({
                   }
                 }}
                 className={cn(
-                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap",
+                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-bold",
                   validationErrors.chantier &&
                     "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                 )}
@@ -1132,7 +1132,7 @@ export const PeseeFormSection = ({
                         aria-expanded={transporteurSelectorOpen}
                         className="w-full justify-between min-w-0 font-normal"
                       >
-                        <span className="truncate flex-1 text-left">
+                        <span className="truncate flex-1 text-left font-bold">
                           {getTransporteurInputValue() ||
                             "Sélectionner un transporteur..."}
                         </span>
@@ -1358,7 +1358,7 @@ export const PeseeFormSection = ({
                     });
                   }
                 }}
-                className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-bold"
               />
             </div>
           </div>
