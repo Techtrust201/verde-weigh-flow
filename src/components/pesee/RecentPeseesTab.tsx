@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Pesee, Product, Transporteur } from "@/lib/database";
 import { PeseeDetailDialog } from "./PeseeDetailDialog";
+import { formatWeight } from "@/lib/utils";
 
 interface RecentPeseesTabProps {
   pesees: Pesee[];
@@ -120,7 +121,7 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
       header: "Poids Net",
       cell: ({ row }) => {
         const netWeight = row.getValue("net") as number;
-        return netWeight.toFixed(3) + " T";
+        return formatWeight(netWeight) + " T";
       },
     },
     {
@@ -129,10 +130,10 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
       cell: ({ row }) => (
         <Badge
           variant={
-            row.original.moyenPaiement === "ESP" || 
-            row.original.moyenPaiement === "CB" || 
-            row.original.moyenPaiement === "CHQ" 
-              ? "default" 
+            row.original.moyenPaiement === "ESP" ||
+            row.original.moyenPaiement === "CB" ||
+            row.original.moyenPaiement === "CHQ"
+              ? "default"
               : "secondary"
           }
           className="text-xs"
@@ -212,7 +213,7 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="text-sm">
                       {flexRender(
@@ -221,7 +222,7 @@ export const RecentPeseesTab: React.FC<RecentPeseesTabProps> = ({
                       )}
                     </TableCell>
                   ))}
-                  </TableRow>
+                </TableRow>
               ))
             ) : (
               <TableRow>

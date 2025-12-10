@@ -6,6 +6,7 @@ import {
   db,
 } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
+import { formatWeight } from "@/lib/utils";
 
 export const generateInvoiceContent = async (
   formData: PeseeTab["formData"],
@@ -444,7 +445,7 @@ export const generateInvoiceContent = async (
                   }
                 </span>
               </td>
-              <td class="amount">${net.toFixed(3)} T</td>
+              <td class="amount">${formatWeight(net)} T</td>
               <td class="amount">${prixUnitaireHT.toFixed(2)} €</td>
               <td class="amount">${finalTotalHT.toFixed(2)} €</td>
             </tr>

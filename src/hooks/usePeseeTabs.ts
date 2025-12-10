@@ -361,7 +361,7 @@ export const usePeseeTabs = () => {
     try {
       // 1. Chercher DECHETS VERTS
       const dechetsVerts = await db.products
-        .filter((p) => p.nom.toUpperCase() === "DECHETS VERTS")
+        .filter((p) => p.nom.toUpperCase() === "DECHETS VERT")
         .first();
 
       if (dechetsVerts && dechetsVerts.id) {

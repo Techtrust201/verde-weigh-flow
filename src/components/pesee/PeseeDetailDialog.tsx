@@ -23,6 +23,7 @@ import {
   handlePrintBothBonAndInvoice,
   getTransporteurNameForSave,
 } from "@/utils/peseeUtils";
+import { formatWeight } from "@/lib/utils";
 import { PrintPreviewDialog } from "@/components/ui/print-preview-dialog";
 import { TrackDechetDialog } from "@/components/trackdechet/TrackDechetDialog";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
@@ -394,7 +395,7 @@ export const PeseeDetailDialog = ({
                     </label>
                     <div className="flex items-center mt-1">
                       <Weight className="h-4 w-4 mr-1 text-gray-400" />
-                      <span>{pesee.poidsEntree} T</span>
+                      <span>{formatWeight(pesee.poidsEntree)} T</span>
                     </div>
                   </div>
                   <div>
@@ -403,7 +404,7 @@ export const PeseeDetailDialog = ({
                     </label>
                     <div className="flex items-center mt-1">
                       <Weight className="h-4 w-4 mr-1 text-gray-400" />
-                      <span>{pesee.poidsSortie} T</span>
+                      <span>{formatWeight(pesee.poidsSortie)} T</span>
                     </div>
                   </div>
                   <div>
@@ -413,7 +414,7 @@ export const PeseeDetailDialog = ({
                     <div className="flex items-center mt-1">
                       <Weight className="h-4 w-4 mr-1 text-green-600" />
                       <span className="font-semibold text-green-600">
-                        {pesee.net} T
+                        {formatWeight(pesee.net)} T
                       </span>
                     </div>
                   </div>

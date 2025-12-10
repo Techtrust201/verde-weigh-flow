@@ -28,6 +28,7 @@ import {
   db,
 } from "@/lib/database";
 import { generateBSD } from "@/utils/trackdechetApi";
+import { formatWeight } from "@/lib/utils";
 import {
   getTrackDechetToken,
   isTrackDechetReady,
@@ -224,23 +225,39 @@ export function TrackDechetDialog({
       );
     } else if (!product?.trackDechetEnabled) {
       missingRequirements.push("Track Déchet n'est pas activé pour ce produit");
-      guidanceMessage = "Activez Track Déchet dans la gestion des produits (Espace Produits → Modifier le produit → Section Track Déchet)";
+      guidanceMessage =
+        "Activez Track Déchet dans la gestion des produits (Espace Produits → Modifier le produit → Section Track Déchet)";
     } else {
       // Utiliser les erreurs de validation détaillées
       missingRequirements =
         validationErrors.length > 0
           ? validationErrors
           : ["Impossible de valider les données pour Track Déchet"];
-      
+
       // Déterminer le message de guidage selon les erreurs
-      if (validationErrors.some(err => err.includes("SIRET client"))) {
-        guidanceMessage = "Modifiez le client dans l'Espace Clients et ajoutez son SIRET dans les informations principales.";
-      } else if (validationErrors.some(err => err.includes("Adresse client"))) {
-        guidanceMessage = "Modifiez le client dans l'Espace Clients et complétez son adresse.";
-      } else if (validationErrors.some(err => err.includes("Code NAF") || err.includes("Activité") || err.includes("Représentant"))) {
-        guidanceMessage = "Modifiez le client dans l'Espace Clients, puis ouvrez la section 'Informations Track Déchets (optionnel)' en bas du formulaire pour compléter les champs manquants.";
-      } else if (validationErrors.some(err => err.toLowerCase().includes("entreprise"))) {
-        guidanceMessage = "Complétez vos informations d'entreprise dans l'Espace Utilisateur → Paramètres Entreprise.";
+      if (validationErrors.some((err) => err.includes("SIRET client"))) {
+        guidanceMessage =
+          "Modifiez le client dans l'Espace Clients et ajoutez son SIRET dans les informations principales.";
+      } else if (
+        validationErrors.some((err) => err.includes("Adresse client"))
+      ) {
+        guidanceMessage =
+          "Modifiez le client dans l'Espace Clients et complétez son adresse.";
+      } else if (
+        validationErrors.some(
+          (err) =>
+            err.includes("Code NAF") ||
+            err.includes("Activité") ||
+            err.includes("Représentant")
+        )
+      ) {
+        guidanceMessage =
+          "Modifiez le client dans l'Espace Clients, puis ouvrez la section 'Informations Track Déchets (optionnel)' en bas du formulaire pour compléter les champs manquants.";
+      } else if (
+        validationErrors.some((err) => err.toLowerCase().includes("entreprise"))
+      ) {
+        guidanceMessage =
+          "Complétez vos informations d'entreprise dans l'Espace Utilisateur → Paramètres Entreprise.";
       }
     }
 
@@ -276,9 +293,7 @@ export function TrackDechetDialog({
                 <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
                   💡 Comment corriger
                 </h4>
-                <p className="text-sm text-blue-800">
-                  {guidanceMessage}
-                </p>
+                <p className="text-sm text-blue-800">{guidanceMessage}</p>
               </div>
             )}
           </div>
@@ -411,7 +426,7 @@ export function TrackDechetDialog({
             </div>
             <div>
               <Label className="text-sm font-medium">Quantité</Label>
-              <p className="text-sm">{pesee?.net} tonnes</p>
+              <p className="text-sm">{formatWeight(pesee?.net)} tonnes</p>
             </div>
             <div>
               <Label className="text-sm font-medium">Date</Label>

@@ -277,7 +277,7 @@ export default function PeseeSpace({
           // Rechercher DECHETS VERTS
           let defaultProduitId = 0;
           const dechetsVerts = products.find(
-            (p) => p.nom.toUpperCase() === "DECHETS VERTS"
+            (p) => p.nom.toUpperCase() === "DECHETS VERT"
           );
 
           if (dechetsVerts && dechetsVerts.id) {

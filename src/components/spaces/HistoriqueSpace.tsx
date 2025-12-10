@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { db, Pesee, Product, Transporteur, Client } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
+import { formatWeight } from "@/lib/utils";
 import { PeseeDetailDialog } from "@/components/pesee/PeseeDetailDialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
@@ -654,7 +655,7 @@ export default function HistoriqueSpace({ onEditPesee }: HistoriqueSpaceProps) {
                     </div>
                     <div>
                       <Badge variant="outline" className="mb-2">
-                        {pesee.net} T
+                        {formatWeight(pesee.net)} T
                       </Badge>
                       {pesee.exportedAt && pesee.exportedAt.length > 0 && (
                         <Badge variant="secondary" className="mb-2 text-xs">

@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   ChevronDown,
   RefreshCw,
@@ -16,7 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { trackDechetProcessor } from "@/utils/trackdechetSyncProcessor";
-import { cn } from "@/lib/utils";
+import { cn, formatWeight } from "@/lib/utils";
 
 interface TrackDechetHistoryItem {
   id: number;
@@ -37,7 +41,10 @@ interface TrackDechetTimelineItemProps {
   onRefresh: () => void;
 }
 
-export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimelineItemProps) {
+export function TrackDechetTimelineItem({
+  item,
+  onRefresh,
+}: TrackDechetTimelineItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const { toast } = useToast();
@@ -109,7 +116,7 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
 
   const handleSyncStatus = async () => {
     if (!item.bsdId) return;
-    
+
     try {
       await trackDechetProcessor.syncAllBSDStatuses();
       toast({
@@ -140,7 +147,9 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
             {/* Header section */}
             <div className="flex items-start gap-4">
               {/* Status icon */}
-              <div className={cn("p-2 rounded-lg shrink-0", statusConfig.bgColor)}>
+              <div
+                className={cn("p-2 rounded-lg shrink-0", statusConfig.bgColor)}
+              >
                 <StatusIcon className={cn("h-5 w-5", statusConfig.color)} />
               </div>
 
@@ -151,7 +160,9 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
                   <Badge variant={statusConfig.variant} className="shrink-0">
                     {statusConfig.label}
                   </Badge>
-                  <span className="font-semibold text-lg">{item.numeroBon}</span>
+                  <span className="font-semibold text-lg">
+                    {item.numeroBon}
+                  </span>
                 </div>
 
                 {/* Info grid */}
@@ -164,7 +175,7 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
                   )}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Package className="h-4 w-4 shrink-0" />
-                    <span>{item.net}T</span>
+                    <span>{formatWeight(item.net)}T</span>
                   </div>
                   {item.plaque && (
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -276,8 +287,8 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
                       BSD en cours de création
                     </p>
                     <p className="text-sm text-orange-700">
-                      La synchronisation s'effectue automatiquement toutes les 30 secondes.
-                      Vous serez notifié une fois le BSD créé.
+                      La synchronisation s'effectue automatiquement toutes les
+                      30 secondes. Vous serez notifié une fois le BSD créé.
                     </p>
                   </div>
                 </div>
@@ -306,19 +317,22 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
                       <li className="flex items-start gap-2">
                         <span className="text-blue-600 shrink-0">•</span>
                         <span>
-                          Vérifier que le code déchet respecte le format européen à 6 chiffres (XX XX XX)
+                          Vérifier que le code déchet respecte le format
+                          européen à 6 chiffres (XX XX XX)
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-600 shrink-0">•</span>
                         <span>
-                          S'assurer que toutes les informations client sont complètes et valides
+                          S'assurer que toutes les informations client sont
+                          complètes et valides
                         </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-blue-600 shrink-0">•</span>
                         <span>
-                          Vérifier votre connexion internet et la disponibilité de Track Déchet
+                          Vérifier votre connexion internet et la disponibilité
+                          de Track Déchet
                         </span>
                       </li>
                     </ul>
@@ -329,7 +343,10 @@ export function TrackDechetTimelineItem({ item, onRefresh }: TrackDechetTimeline
                       className="w-full mt-2"
                     >
                       <RefreshCw
-                        className={cn("h-4 w-4 mr-2", isRetrying && "animate-spin")}
+                        className={cn(
+                          "h-4 w-4 mr-2",
+                          isRetrying && "animate-spin"
+                        )}
                       />
                       Réessayer maintenant
                     </Button>

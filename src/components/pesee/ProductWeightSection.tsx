@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calculator, Info } from "lucide-react";
 import { Product, Client, db } from "@/lib/database";
 import { PeseeTabFormData } from "@/hooks/usePeseeTabs";
-import { cn } from "@/lib/utils";
+import { cn, formatWeight } from "@/lib/utils";
 
 interface ProductWeightSectionProps {
   currentData: PeseeTabFormData;
@@ -359,14 +359,16 @@ export const ProductWeightSection = ({
                     <div className="text-lg font-semibold text-gray-700 mb-1">
                       Poids net:{" "}
                       <span className="text-lg font-black text-green-600">
-                        {Math.abs(
-                          (parseFloat(
-                            currentData.poidsEntree?.replace(",", ".")
-                          ) || 0) -
+                        {formatWeight(
+                          Math.abs(
                             (parseFloat(
-                              currentData.poidsSortie?.replace(",", ".")
-                            ) || 0)
-                        ).toFixed(3)}{" "}
+                              currentData.poidsEntree?.replace(",", ".")
+                            ) || 0) -
+                              (parseFloat(
+                                currentData.poidsSortie?.replace(",", ".")
+                              ) || 0)
+                          )
+                        )}{" "}
                         tonnes
                       </span>
                     </div>

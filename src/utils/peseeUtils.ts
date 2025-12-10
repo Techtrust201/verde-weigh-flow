@@ -7,6 +7,7 @@ import {
 } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
 import { generateInvoiceContent } from "./invoiceUtils";
+import { formatWeight } from "@/lib/utils";
 
 export const generatePrintContent = async (
   formData: PeseeTab["formData"],
@@ -193,15 +194,15 @@ export const generatePrintContent = async (
           <div class="column-right">
             <div class="row">
               <span class="label">Poids Entrée:</span>
-              <span>${poidsEntree.toFixed(3)} tonnes</span>
+              <span>${formatWeight(poidsEntree)} tonnes</span>
             </div>
             <div class="row">
               <span class="label">Poids Sortie:</span>
-              <span>${poidsSortie.toFixed(3)} tonnes</span>
+              <span>${formatWeight(poidsSortie)} tonnes</span>
             </div>
             <div class="row">
               <span class="label">Poids Net:</span>
-              <span>${net.toFixed(3)} tonnes</span>
+              <span>${formatWeight(net)} tonnes</span>
             </div>
           </div>
         </div>

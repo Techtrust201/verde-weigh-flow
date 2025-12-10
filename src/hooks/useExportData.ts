@@ -805,11 +805,8 @@ export const useExportData = () => {
         documentTypeFilter === "tous" ||
         documentTypeFilter === "bons_uniquement"
       ) {
-        if (
-          (pesee.typeDocument === "bon_livraison" ||
-            pesee.typeDocument === "les_deux") &&
-          pesee.numeroBon
-        ) {
+        // Exclure les pesées "les_deux" : elles n'exportent que la FA vers Sage
+        if (pesee.typeDocument === "bon_livraison" && pesee.numeroBon) {
           generateLines(
             "Bon de livraison",
             pesee.numeroBon,
