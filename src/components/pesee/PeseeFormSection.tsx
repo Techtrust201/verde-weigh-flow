@@ -984,32 +984,6 @@ export const PeseeFormSection = ({
                         <CommandList>
                           <CommandEmpty>Aucun chantier trouvé.</CommandEmpty>
                           <CommandGroup>
-                            {/* Option chantier libre */}
-                            <CommandItem
-                              value="chantier-libre"
-                              onSelect={() => {
-                                // Activer le mode chantier libre
-                                setChantierLibre("");
-                                updateCurrentTab({
-                                  chantier: "",
-                                  chantierLibre: "",
-                                });
-                                setChantierSelectorOpen(false);
-                                // Le champ input s'affichera automatiquement grâce à la condition
-                              }}
-                              className="font-medium"
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  !currentData?.chantier &&
-                                    !currentData?.chantierLibre
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              Chantier libre (saisie manuelle)
-                            </CommandItem>
                             {/* Chantiers filtrés */}
                             {getFilteredChantiers(chantierSearchValue).map(
                               (chantier) => (
@@ -1163,32 +1137,6 @@ export const PeseeFormSection = ({
                             Aucun transporteur trouvé.
                           </CommandEmpty>
                           <CommandGroup>
-                            {/* Option transporteur libre */}
-                            <CommandItem
-                              value="transporteur-libre"
-                              onSelect={() => {
-                                setTransporteurLibre("");
-                                updateCurrentTab({
-                                  transporteurId: 0,
-                                  transporteurLibre: "",
-                                });
-                                setTransporteurSelectorOpen(false);
-                              }}
-                              className="font-medium"
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  (!currentData?.transporteurId ||
-                                    currentData.transporteurId === 0) &&
-                                    !transporteurLibre
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              Transporteur libre (saisie manuelle)
-                            </CommandItem>
-
                             {/* Transporteurs existants */}
                             {transporteurs
                               .filter(
