@@ -21,6 +21,7 @@ interface ComboboxOption {
   value: string;
   label: string;
   keywords?: string; // texte de recherche additionnel non affiché (ex: code article)
+  isFavorite?: boolean; // Indique si l'option est un favori
 }
 
 interface ComboboxProps {
@@ -74,28 +75,67 @@ export function Combobox({
                 </div>
               </div>
             </CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={`${option.label} ${option.value} ${
-                    option.keywords ?? ""
-                  }`}
-                  onSelect={(currentValue) => {
-                    onValueChange(option.value);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {/* Groupe des favoris */}
+            {options.some((opt) => opt.isFavorite) && (
+              <CommandGroup heading="Favoris">
+                {options
+                  .filter((option) => option.isFavorite)
+                  .map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      value={`${option.label} ${option.value} ${
+                        option.keywords ?? ""
+                      }`}
+                      onSelect={(currentValue) => {
+                        onValueChange(option.value);
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === option.value ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <span className="mr-1 text-yellow-500">⭐</span>
+                      {option.label}
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            )}
+            {/* Groupe des autres produits */}
+            {options.some((opt) => !opt.isFavorite) && (
+              <CommandGroup
+                heading={
+                  options.some((opt) => opt.isFavorite)
+                    ? "Autres produits"
+                    : undefined
+                }
+              >
+                {options
+                  .filter((option) => !option.isFavorite)
+                  .map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      value={`${option.label} ${option.value} ${
+                        option.keywords ?? ""
+                      }`}
+                      onSelect={(currentValue) => {
+                        onValueChange(option.value);
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === option.value ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {option.label}
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

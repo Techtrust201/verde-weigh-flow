@@ -356,13 +356,29 @@ export default function PeseeSpace({
     try {
       const client = clients.find((c) => c.id === currentData.clientId);
       if (client) {
+        // Récupérer le client complet depuis la DB pour être sûr d'avoir toutes les données
+        const fullClient = await db.clients.get(client.id!);
+        if (!fullClient) {
+          toast({
+            title: "Erreur",
+            description: "Client introuvable.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         const updatedChantiers = [
-          ...(client.chantiers || []),
+          ...(fullClient.chantiers || []),
           newChantier.trim(),
         ];
-        await db.clients.update(client.id!, {
+
+        // Mettre à jour avec put pour garantir la persistance
+        await db.clients.put({
+          ...fullClient,
           chantiers: updatedChantiers,
+          updatedAt: new Date(),
         });
+
         updateCurrentTab({
           chantier: newChantier.trim(),
         });
@@ -397,10 +413,29 @@ export default function PeseeSpace({
     try {
       const client = clients.find((c) => c.id === currentData.clientId);
       if (client) {
-        const updatedPlaques = [...(client.plaques || []), newPlaque.trim()];
-        await db.clients.update(client.id!, {
+        // Récupérer le client complet depuis la DB pour être sûr d'avoir toutes les données
+        const fullClient = await db.clients.get(client.id!);
+        if (!fullClient) {
+          toast({
+            title: "Erreur",
+            description: "Client introuvable.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const updatedPlaques = [
+          ...(fullClient.plaques || []),
+          newPlaque.trim(),
+        ];
+
+        // Mettre à jour avec put pour garantir la persistance
+        await db.clients.put({
+          ...fullClient,
           plaques: updatedPlaques,
+          updatedAt: new Date(),
         });
+
         updateCurrentTab({
           plaque: newPlaque.trim(),
         });
@@ -526,7 +561,19 @@ export default function PeseeSpace({
         }
       }
 
+      // Récupérer le client complet depuis la DB pour garantir toutes les données
+      const fullClient = await db.clients.get(newClientForm.id);
+      if (!fullClient) {
+        toast({
+          title: "Erreur",
+          description: "Client introuvable.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const clientData = {
+        ...fullClient,
         ...newClientForm,
         raisonSociale: newClientForm.raisonSociale,
         telephone: newClientForm.telephone || "",
@@ -534,10 +581,11 @@ export default function PeseeSpace({
         chantiers: newClientForm.chantiers || [],
         transporteurId: newClientForm.transporteurId || 0,
         tarifsPreferentiels: newClientForm.tarifsPreferentiels || {},
+        id: newClientForm.id,
         updatedAt: new Date(),
       } as Client;
 
-      // Modification d'un client existant
+      // Modification d'un client existant avec put pour garantir la persistance
       await db.clients.put(clientData);
 
       updateCurrentTab({
@@ -1669,7 +1717,10 @@ export default function PeseeSpace({
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant={showRecentTab ? "default" : "outline"}
-                onClick={() => setShowRecentTab(true)}
+                onClick={async () => {
+                  await loadData(); // Attendre le rafraîchissement avant d'afficher
+                  setShowRecentTab(true);
+                }}
                 className="h-10 px-4"
               >
                 📊 Pesées récentes
@@ -1693,8 +1744,9 @@ export default function PeseeSpace({
 
       <Tabs
         value={showRecentTab ? "recentes" : activeTabId}
-        onValueChange={(value) => {
+        onValueChange={async (value) => {
           if (value === "recentes") {
+            await loadData(); // Attendre le rafraîchissement avant d'afficher
             setShowRecentTab(true);
           } else {
             setShowRecentTab(false);
@@ -1791,6 +1843,11 @@ export default function PeseeSpace({
 
         <TabsContent value="recentes">
           <RecentPeseesTab
+            key={
+              pesees.length > 0
+                ? `${pesees.length}-${pesees[0]?.id || Date.now()}`
+                : Date.now()
+            }
             pesees={pesees}
             products={products}
             transporteurs={transporteurs}

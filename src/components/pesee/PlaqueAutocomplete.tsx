@@ -111,7 +111,7 @@ export const PlaqueAutocomplete = ({
                   </div>
                   <div className="text-xs text-gray-500 flex items-center gap-2">
                     {getClientTypeBadge(match.client.typeClient)}
-                    <span className="font-mono bg-gray-100 px-2 py-1 rounded">
+                    <span className="bg-gray-100 px-2 py-1 rounded">
                       {match.plaque}
                     </span>
                   </div>

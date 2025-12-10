@@ -1,23 +1,42 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Truck, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Search, 
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
+  Truck,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
   Filter,
   LayoutGrid,
   LayoutList,
   CheckSquare,
   Square,
-  MoreVertical
-} from 'lucide-react';
+  MoreVertical,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,39 +45,45 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { db, Transporteur } from '@/lib/database';
-import { useToast } from '@/hooks/use-toast';
-import { useTransporteurData } from '@/hooks/useTransporteurData';
+import { db, Transporteur } from "@/lib/database";
+import { useToast } from "@/hooks/use-toast";
+import { useTransporteurData } from "@/hooks/useTransporteurData";
 import { Pagination } from "@/components/ui/pagination";
-import TransporteurForm from '@/components/forms/TransporteurForm';
-import TransporteurStatsCards from './TransporteurStatsCards';
-import TransporteurCardGrid from './TransporteurCardGrid';
-import EmptyTransporteurState from './EmptyTransporteurState';
-import TransporteurQuickFilters from './TransporteurQuickFilters';
+import TransporteurForm from "@/components/forms/TransporteurForm";
+import TransporteurStatsCards from "./TransporteurStatsCards";
+import TransporteurCardGrid from "./TransporteurCardGrid";
+import EmptyTransporteurState from "./EmptyTransporteurState";
+import TransporteurQuickFilters from "./TransporteurQuickFilters";
 
 export default function TransporteursSpace() {
   const { transporteurs, loadTransporteurs } = useTransporteurData();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingTransporteur, setEditingTransporteur] = useState<Transporteur | null>(null);
-  const [selectedTransporteurIds, setSelectedTransporteurIds] = useState<Set<number>>(new Set());
+  const [editingTransporteur, setEditingTransporteur] =
+    useState<Transporteur | null>(null);
+  const [selectedTransporteurIds, setSelectedTransporteurIds] = useState<
+    Set<number>
+  >(new Set());
   const [viewMode, setViewMode] = useState<"cards" | "table">(() => {
-    return (localStorage.getItem("transporteursViewMode") as "cards" | "table") || "cards";
+    return (
+      (localStorage.getItem("transporteursViewMode") as "cards" | "table") ||
+      "cards"
+    );
   });
   const [quickFilter, setQuickFilter] = useState<string>("all");
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [formData, setFormData] = useState<Partial<Transporteur>>({
-    prenom: '',
-    nom: '',
-    siret: '',
-    adresse: '',
-    codePostal: '',
-    ville: '',
-    email: '',
-    telephone: '',
-    plaque: ''
+    prenom: "",
+    nom: "",
+    siret: "",
+    adresse: "",
+    codePostal: "",
+    ville: "",
+    email: "",
+    telephone: "",
+    plaque: "",
   });
 
   const { toast } = useToast();
@@ -91,7 +116,9 @@ export default function TransporteursSpace() {
     } else if (quickFilter === "withEmail") {
       filtered = filtered.filter((t) => t.email && t.email.trim() !== "");
     } else if (quickFilter === "withPhone") {
-      filtered = filtered.filter((t) => t.telephone && t.telephone.trim() !== "");
+      filtered = filtered.filter(
+        (t) => t.telephone && t.telephone.trim() !== ""
+      );
     }
 
     // Recherche
@@ -118,7 +145,10 @@ export default function TransporteursSpace() {
   const totalPages = Math.ceil(displayedTransporteurs.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const paginatedTransporteurs = displayedTransporteurs.slice(startIndex, endIndex);
+  const paginatedTransporteurs = displayedTransporteurs.slice(
+    startIndex,
+    endIndex
+  );
 
   // Reset à la page 1 quand les filtres changent
   useEffect(() => {
@@ -131,12 +161,12 @@ export default function TransporteursSpace() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.prenom || !formData.nom) {
       toast({
         title: "Erreur",
         description: "Le prénom et le nom sont obligatoires.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -146,7 +176,7 @@ export default function TransporteursSpace() {
       toast({
         title: "Erreur",
         description: "Le SIRET est obligatoire.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -156,7 +186,7 @@ export default function TransporteursSpace() {
       toast({
         title: "Erreur",
         description: "L'adresse est obligatoire.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -166,7 +196,7 @@ export default function TransporteursSpace() {
       toast({
         title: "Erreur",
         description: "La ville et le code postal sont obligatoires.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -174,25 +204,25 @@ export default function TransporteursSpace() {
     try {
       const transporteurData = {
         ...formData,
-        telephone: formData.telephone || '',
-        plaque: formData.plaque || '',
-        updatedAt: new Date()
+        telephone: formData.telephone || "",
+        plaque: formData.plaque || "",
+        updatedAt: new Date(),
       };
 
       if (editingTransporteur && editingTransporteur.id) {
         await db.transporteurs.update(editingTransporteur.id, transporteurData);
         toast({
           title: "Transporteur modifié",
-          description: "Le transporteur a été mis à jour avec succès."
+          description: "Le transporteur a été mis à jour avec succès.",
         });
       } else {
         await db.transporteurs.add({
           ...transporteurData,
-          createdAt: new Date()
+          createdAt: new Date(),
         } as Transporteur);
         toast({
           title: "Transporteur ajouté",
-          description: "Le nouveau transporteur a été créé avec succès."
+          description: "Le nouveau transporteur a été créé avec succès.",
         });
       }
 
@@ -201,26 +231,26 @@ export default function TransporteursSpace() {
       resetForm();
       loadTransporteurs();
     } catch (error) {
-      console.error('Error saving transporteur:', error);
+      console.error("Error saving transporteur:", error);
       toast({
         title: "Erreur",
         description: "Impossible d'enregistrer le transporteur.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const resetForm = () => {
     setFormData({
-      prenom: '',
-      nom: '',
-      siret: '',
-      adresse: '',
-      codePostal: '',
-      ville: '',
-      email: '',
-      telephone: '',
-      plaque: ''
+      prenom: "",
+      nom: "",
+      siret: "",
+      adresse: "",
+      codePostal: "",
+      ville: "",
+      email: "",
+      telephone: "",
+      plaque: "",
     });
     setEditingTransporteur(null);
   };
@@ -232,20 +262,22 @@ export default function TransporteursSpace() {
   };
 
   const handleDelete = async (transporteur: Transporteur) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce transporteur ?')) {
+    if (
+      window.confirm("Êtes-vous sûr de vouloir supprimer ce transporteur ?")
+    ) {
       try {
         await db.transporteurs.delete(transporteur.id!);
         toast({
           title: "Transporteur supprimé",
-          description: "Le transporteur a été supprimé avec succès."
+          description: "Le transporteur a été supprimé avec succès.",
         });
         loadTransporteurs();
       } catch (error) {
-        console.error('Error deleting transporteur:', error);
+        console.error("Error deleting transporteur:", error);
         toast({
           title: "Erreur",
           description: "Impossible de supprimer le transporteur.",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
     }
@@ -263,7 +295,9 @@ export default function TransporteursSpace() {
   };
 
   const selectAllTransporteurs = () => {
-    setSelectedTransporteurIds(new Set(paginatedTransporteurs.map((t) => t.id!)));
+    setSelectedTransporteurIds(
+      new Set(paginatedTransporteurs.map((t) => t.id!))
+    );
   };
 
   const deselectAllTransporteurs = () => {
@@ -274,7 +308,8 @@ export default function TransporteursSpace() {
     if (selectedTransporteurIds.size === 0) {
       toast({
         title: "Aucune sélection",
-        description: "Veuillez sélectionner au moins un transporteur à supprimer.",
+        description:
+          "Veuillez sélectionner au moins un transporteur à supprimer.",
         variant: "destructive",
       });
       return;
@@ -329,12 +364,14 @@ export default function TransporteursSpace() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingTransporteur ? 'Modifier le transporteur' : 'Nouveau transporteur'}
+                {editingTransporteur
+                  ? "Modifier le transporteur"
+                  : "Nouveau transporteur"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <TransporteurForm 
-                formData={formData} 
+              <TransporteurForm
+                formData={formData}
                 onFormDataChange={setFormData}
                 isEditing={!!editingTransporteur}
               />
@@ -347,7 +384,7 @@ export default function TransporteursSpace() {
                   Annuler
                 </Button>
                 <Button type="submit">
-                  {editingTransporteur ? 'Modifier' : 'Créer'}
+                  {editingTransporteur ? "Modifier" : "Créer"}
                 </Button>
               </div>
             </form>
@@ -356,7 +393,10 @@ export default function TransporteursSpace() {
       </div>
 
       {/* Statistiques */}
-      <TransporteurStatsCards transporteurs={transporteurs} onStatClick={handleStatClick} />
+      <TransporteurStatsCards
+        transporteurs={transporteurs}
+        onStatClick={handleStatClick}
+      />
 
       {/* Barre de recherche et toggle vue */}
       <Card>
@@ -406,10 +446,12 @@ export default function TransporteursSpace() {
 
       {/* Contenu des transporteurs */}
       {displayedTransporteurs.length === 0 && transporteurs.length === 0 ? (
-        <EmptyTransporteurState onCreateTransporteur={() => {
-          resetForm();
-          setIsAddDialogOpen(true);
-        }} />
+        <EmptyTransporteurState
+          onCreateTransporteur={() => {
+            resetForm();
+            setIsAddDialogOpen(true);
+          }}
+        />
       ) : (
         <>
           {viewMode === "cards" ? (
@@ -418,9 +460,19 @@ export default function TransporteursSpace() {
                 <Card className="border-dashed border-2">
                   <CardContent className="flex flex-col items-center justify-center py-12">
                     <Truck className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Aucun transporteur trouvé</h3>
-                    <p className="text-muted-foreground mb-4">Aucun transporteur ne correspond à vos critères.</p>
-                    <Button variant="outline" onClick={() => { setQuickFilter("all"); setSearchQuery(""); }}>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Aucun transporteur trouvé
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Aucun transporteur ne correspond à vos critères.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setQuickFilter("all");
+                        setSearchQuery("");
+                      }}
+                    >
                       Réinitialiser les filtres
                     </Button>
                   </CardContent>
@@ -438,15 +490,27 @@ export default function TransporteursSpace() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Transporteurs ({displayedTransporteurs.length})</CardTitle>
+                <CardTitle>
+                  Transporteurs ({displayedTransporteurs.length})
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {displayedTransporteurs.length === 0 ? (
                   <div className="text-center py-12">
                     <Truck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Aucun transporteur trouvé</h3>
-                    <p className="text-muted-foreground mb-4">Aucun transporteur ne correspond à vos critères.</p>
-                    <Button variant="outline" onClick={() => { setQuickFilter("all"); setSearchQuery(""); }}>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Aucun transporteur trouvé
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Aucun transporteur ne correspond à vos critères.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setQuickFilter("all");
+                        setSearchQuery("");
+                      }}
+                    >
                       Réinitialiser les filtres
                     </Button>
                   </div>
@@ -454,11 +518,23 @@ export default function TransporteursSpace() {
                   <>
                     <div className="flex justify-between items-center mb-4">
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={selectAllTransporteurs} disabled={paginatedTransporteurs.length === 0}>
-                          <CheckSquare className="h-4 w-4 mr-2" />Tout sélectionner
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={selectAllTransporteurs}
+                          disabled={paginatedTransporteurs.length === 0}
+                        >
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Tout sélectionner
                         </Button>
-                        <Button variant="outline" size="sm" onClick={deselectAllTransporteurs} disabled={selectedTransporteurIds.size === 0}>
-                          <Square className="h-4 w-4 mr-2" />Désélectionner
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={deselectAllTransporteurs}
+                          disabled={selectedTransporteurIds.size === 0}
+                        >
+                          <Square className="h-4 w-4 mr-2" />
+                          Désélectionner
                         </Button>
                       </div>
                     </div>
@@ -467,12 +543,17 @@ export default function TransporteursSpace() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-12">
-                              <Checkbox 
-                                checked={paginatedTransporteurs.length > 0 && paginatedTransporteurs.every((t) => selectedTransporteurIds.has(t.id!))} 
-                                onCheckedChange={(checked) => { 
-                                  if (checked) selectAllTransporteurs(); 
-                                  else deselectAllTransporteurs(); 
-                                }} 
+                              <Checkbox
+                                checked={
+                                  paginatedTransporteurs.length > 0 &&
+                                  paginatedTransporteurs.every((t) =>
+                                    selectedTransporteurIds.has(t.id!)
+                                  )
+                                }
+                                onCheckedChange={(checked) => {
+                                  if (checked) selectAllTransporteurs();
+                                  else deselectAllTransporteurs();
+                                }}
                               />
                             </TableHead>
                             <TableHead>Nom Complet</TableHead>
@@ -488,9 +569,15 @@ export default function TransporteursSpace() {
                           {paginatedTransporteurs.map((transporteur) => (
                             <TableRow key={transporteur.id}>
                               <TableCell>
-                                <Checkbox 
-                                  checked={selectedTransporteurIds.has(transporteur.id!)} 
-                                  onCheckedChange={() => toggleTransporteurSelection(transporteur.id!)} 
+                                <Checkbox
+                                  checked={selectedTransporteurIds.has(
+                                    transporteur.id!
+                                  )}
+                                  onCheckedChange={() =>
+                                    toggleTransporteurSelection(
+                                      transporteur.id!
+                                    )
+                                  }
                                 />
                               </TableCell>
                               <TableCell className="font-medium">
@@ -498,31 +585,58 @@ export default function TransporteursSpace() {
                               </TableCell>
                               <TableCell className="text-sm">
                                 {transporteur.siret ? (
-                                  <span className="font-mono">{transporteur.siret}</span>
+                                  <span className="font-mono">
+                                    {transporteur.siret}
+                                  </span>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-sm max-w-[200px] truncate" title={transporteur.adresse || ""}>
+                              <TableCell
+                                className="text-sm max-w-[200px] truncate"
+                                title={transporteur.adresse || ""}
+                              >
                                 {transporteur.adresse ? (
-                                  <span>{transporteur.adresse}{transporteur.ville ? `, ${transporteur.ville}` : ""}</span>
+                                  <span>
+                                    {transporteur.adresse}
+                                    {transporteur.ville
+                                      ? `, ${transporteur.ville}`
+                                      : ""}
+                                  </span>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
                                 )}
                               </TableCell>
                               <TableCell className="text-sm">
-                                {transporteur.telephone || <span className="text-muted-foreground">-</span>}
+                                {transporteur.telephone || (
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
+                                )}
                               </TableCell>
-                              <TableCell className="text-sm truncate max-w-[150px]" title={transporteur.email || ""}>
-                                {transporteur.email || <span className="text-muted-foreground">-</span>}
+                              <TableCell
+                                className="text-sm truncate max-w-[150px]"
+                                title={transporteur.email || ""}
+                              >
+                                {transporteur.email || (
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
+                                )}
                               </TableCell>
                               <TableCell>
                                 {transporteur.plaque ? (
-                                  <Badge variant="outline" className="font-mono text-xs">
+                                  <Badge variant="outline" className="text-xs">
                                     {transporteur.plaque}
                                   </Badge>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
                                 )}
                               </TableCell>
                               <TableCell>
@@ -533,13 +647,15 @@ export default function TransporteursSpace() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEdit(transporteur)}>
+                                    <DropdownMenuItem
+                                      onClick={() => handleEdit(transporteur)}
+                                    >
                                       <Edit className="h-4 w-4 mr-2" />
                                       Modifier
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDelete(transporteur)} 
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(transporteur)}
                                       className="text-destructive"
                                     >
                                       <Trash2 className="h-4 w-4 mr-2" />

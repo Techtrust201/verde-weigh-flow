@@ -798,7 +798,7 @@ export const PeseeFormSection = ({
                                         : "opacity-0"
                                     )}
                                   />
-                                  <span className="font-mono">{plaque}</span>
+                                  <span>{plaque}</span>
                                 </CommandItem>
                               )
                             )}
@@ -842,7 +842,6 @@ export const PeseeFormSection = ({
                           value={newPlaque}
                           onChange={(e) => setNewPlaque(e.target.value)}
                           placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
-                          className="font-mono"
                         />
                       </div>
                     </div>
@@ -867,7 +866,6 @@ export const PeseeFormSection = ({
                 value={currentData?.plaque || ""}
                 onChange={(e) => updateCurrentTab({ plaque: e.target.value })}
                 className={cn(
-                  "font-mono",
                   validationErrors.plaque &&
                     "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                 )}

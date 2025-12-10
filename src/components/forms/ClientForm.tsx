@@ -39,7 +39,8 @@ export default function ClientForm({
 }: ClientFormProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [localTrackDechetEnabled, setLocalTrackDechetEnabled] = useState<boolean>(trackDechetEnabled ?? false);
+  const [localTrackDechetEnabled, setLocalTrackDechetEnabled] =
+    useState<boolean>(trackDechetEnabled ?? false);
 
   useEffect(() => {
     loadPaymentMethods();
@@ -219,11 +220,15 @@ export default function ClientForm({
         <div className="border rounded-lg p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="trackdechet-toggle" className="text-base font-medium">
+              <Label
+                htmlFor="trackdechet-toggle"
+                className="text-base font-medium"
+              >
                 Informations Track Déchets
               </Label>
               <p className="text-xs text-muted-foreground">
-                Activer uniquement si ce client effectue des pesées avec des déchets nécessitant un suivi Track Déchet
+                Activer uniquement si ce client effectue des pesées avec des
+                déchets nécessitant un suivi Track Déchet
               </p>
             </div>
             <Switch
@@ -299,7 +304,6 @@ export default function ClientForm({
               value={plaque}
               onChange={(e) => updatePlaque(index, e.target.value)}
               placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
-              className="font-mono"
               list={`plaques-datalist-${index}`}
             />
             <datalist id={`plaques-datalist-${index}`}>
@@ -329,7 +333,6 @@ export default function ClientForm({
                 onFormDataChange({ ...formData, plaques: [e.target.value] })
               }
               placeholder="Plaque d'immatriculation (ex: AB-123-CD)"
-              className="font-mono"
             />
             <Button
               type="button"

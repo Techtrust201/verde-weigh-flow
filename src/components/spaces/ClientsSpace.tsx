@@ -86,7 +86,9 @@ export default function ClientsSpace() {
   );
   const [pageSize, setPageSize] = useState(20);
   const [viewMode, setViewMode] = useState<"cards" | "table">(() => {
-    return (localStorage.getItem("clientsViewMode") as "cards" | "table") || "cards";
+    return (
+      (localStorage.getItem("clientsViewMode") as "cards" | "table") || "cards"
+    );
   });
   const [quickFilter, setQuickFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -200,42 +202,50 @@ export default function ClientsSpace() {
         .toArray();
 
       // Corriger les types de clients
-      const correctedClients = clientsData.map((client) => {
-        // Si le type est déjà correct, ne pas le modifier
-        if (
-          client.typeClient === "particulier" ||
-          client.typeClient === "professionnel" ||
-          client.typeClient === "micro-entreprise"
-        ) {
-          return client;
-        }
+      const correctedClients = await Promise.all(
+        clientsData.map(async (client) => {
+          // Si le type est déjà correct, ne pas le modifier
+          if (
+            client.typeClient === "particulier" ||
+            client.typeClient === "professionnel" ||
+            client.typeClient === "micro-entreprise"
+          ) {
+            return client;
+          }
 
-        // Sinon, corriger le type
-        const typeLower = String(client.typeClient || "")
-          .toLowerCase()
-          .trim();
-        let correctedType:
-          | "particulier"
-          | "professionnel"
-          | "micro-entreprise" = "professionnel"; // Par défaut
+          // Sinon, corriger le type
+          const typeLower = String(client.typeClient || "")
+            .toLowerCase()
+            .trim();
+          let correctedType:
+            | "particulier"
+            | "professionnel"
+            | "micro-entreprise" = "professionnel"; // Par défaut
 
-        if (typeLower.includes("particulier")) {
-          correctedType = "particulier";
-        } else if (typeLower.includes("micro")) {
-          correctedType = "micro-entreprise";
-        }
+          if (typeLower.includes("particulier")) {
+            correctedType = "particulier";
+          } else if (typeLower.includes("micro")) {
+            correctedType = "micro-entreprise";
+          }
 
-        // Mettre à jour dans la base de données
-        db.clients.update(client.id!, {
-          typeClient: correctedType,
-        } as Partial<Client>);
+          // Mettre à jour dans la base de données avec put pour garantir la persistance
+          // Récupérer le client complet depuis la DB d'abord
+          const fullClient = await db.clients.get(client.id!);
+          if (fullClient) {
+            await db.clients.put({
+              ...fullClient,
+              typeClient: correctedType,
+              updatedAt: new Date(),
+            });
+          }
 
-        // Retourner le client avec le type corrigé
-        return {
-          ...client,
-          typeClient: correctedType,
-        };
-      });
+          // Retourner le client avec le type corrigé
+          return {
+            ...client,
+            typeClient: correctedType,
+          };
+        })
+      );
 
       setClients(correctedClients);
     } catch (error) {
@@ -357,7 +367,9 @@ export default function ClientsSpace() {
       filtered = filtered.filter((c) => !c.siret || c.siret.trim() === "");
     } else if (quickFilter === "professionals") {
       filtered = filtered.filter(
-        (c) => c.typeClient === "professionnel" || c.typeClient === "micro-entreprise"
+        (c) =>
+          c.typeClient === "professionnel" ||
+          c.typeClient === "micro-entreprise"
       );
     } else if (quickFilter === "particuliers") {
       filtered = filtered.filter((c) => c.typeClient === "particulier");
@@ -366,7 +378,9 @@ export default function ClientsSpace() {
     } else if (quickFilter === "withEmail") {
       filtered = filtered.filter((c) => c.email && c.email.trim() !== "");
     } else if (quickFilter === "withPhone") {
-      filtered = filtered.filter((c) => c.telephone && c.telephone.trim() !== "");
+      filtered = filtered.filter(
+        (c) => c.telephone && c.telephone.trim() !== ""
+      );
     }
 
     // Recherche
@@ -528,7 +542,9 @@ export default function ClientsSpace() {
         if (missingFields.length > 0) {
           toast({
             title: "Erreur",
-            description: `Informations Track Déchets incomplètes: ${missingFields.join(", ")}.`,
+            description: `Informations Track Déchets incomplètes: ${missingFields.join(
+              ", "
+            )}.`,
             variant: "destructive",
           });
           return false;
@@ -568,10 +584,24 @@ export default function ClientsSpace() {
       };
 
       if (selectedClient) {
-        await db.clients.update(selectedClient.id!, {
+        // Récupérer le client complet depuis la DB pour garantir toutes les données
+        const fullClient = await db.clients.get(selectedClient.id!);
+        if (!fullClient) {
+          toast({
+            title: "Erreur",
+            description: "Client introuvable.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Mettre à jour avec put pour garantir la persistance des tableaux et objets complexes
+        await db.clients.put({
+          ...fullClient,
           ...clientData,
+          id: selectedClient.id,
           updatedAt: new Date(),
-        });
+        } as Client);
         toast({
           title: "Succès",
           description: "Client modifié avec succès.",
@@ -759,13 +789,14 @@ export default function ClientsSpace() {
 
   const renderPlaques = (client: Client) => {
     const plaques = client.plaques || [];
-    if (plaques.length === 0) return <span className="text-muted-foreground text-sm">-</span>;
+    if (plaques.length === 0)
+      return <span className="text-muted-foreground text-sm">-</span>;
 
     const [firstPlaque, ...otherPlaques] = plaques.sort();
 
     return (
       <div className="flex items-center gap-2">
-        <span className="text-sm font-mono bg-muted px-2 py-1 rounded">
+        <span className="text-sm bg-muted px-2 py-1 rounded">
           {firstPlaque}
         </span>
         {otherPlaques.length > 0 && (
@@ -782,28 +813,39 @@ export default function ClientsSpace() {
       const fullName = `${client.prenom || ""} ${client.nom || ""}`.trim();
       if (fullName) return fullName;
     }
-    
+
     if (client.raisonSociale) return client.raisonSociale;
-    
+
     return "-";
   };
 
   const getRIBDisplay = (client: Client) => {
     if (client.codeBanque && client.codeGuichet && client.numeroCompte) {
-      return `${client.codeBanque}${client.codeGuichet}${client.numeroCompte}`.substring(0, 10) + "...";
+      return (
+        `${client.codeBanque}${client.codeGuichet}${client.numeroCompte}`.substring(
+          0,
+          10
+        ) + "..."
+      );
     }
     return null;
   };
 
   const getTransporteurName = (transporteurId?: number) => {
-    if (!transporteurId) return <span className="text-muted-foreground text-sm">-</span>;
+    if (!transporteurId)
+      return <span className="text-muted-foreground text-sm">-</span>;
     const transporteur = transporteurs.find((t) => t.id === transporteurId);
-    return transporteur ? `${transporteur.prenom} ${transporteur.nom}` : <span className="text-muted-foreground text-sm">-</span>;
+    return transporteur ? (
+      `${transporteur.prenom} ${transporteur.nom}`
+    ) : (
+      <span className="text-muted-foreground text-sm">-</span>
+    );
   };
 
   const renderTarifsPreferentiels = (client: Client) => {
     const count = Object.keys(client.tarifsPreferentiels || {}).length;
-    if (count === 0) return <span className="text-muted-foreground text-sm">-</span>;
+    if (count === 0)
+      return <span className="text-muted-foreground text-sm">-</span>;
     return (
       <Badge variant="secondary" className="text-xs">
         {count} produit{count > 1 ? "s" : ""}
@@ -933,10 +975,12 @@ export default function ClientsSpace() {
 
       {/* Contenu des clients */}
       {displayedClients.length === 0 && clients.length === 0 ? (
-        <EmptyClientState onCreateClient={() => {
-          resetForm();
-          setIsCreateDialogOpen(true);
-        }} />
+        <EmptyClientState
+          onCreateClient={() => {
+            resetForm();
+            setIsCreateDialogOpen(true);
+          }}
+        />
       ) : (
         <>
           {viewMode === "cards" ? (
@@ -945,9 +989,20 @@ export default function ClientsSpace() {
                 <Card className="border-dashed border-2">
                   <CardContent className="flex flex-col items-center justify-center py-12">
                     <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Aucun client trouvé</h3>
-                    <p className="text-muted-foreground mb-4">Aucun client ne correspond à vos critères.</p>
-                    <Button variant="outline" onClick={() => { setQuickFilter("all"); setSearchQuery(""); setFilters({}); }}>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Aucun client trouvé
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Aucun client ne correspond à vos critères.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setQuickFilter("all");
+                        setSearchQuery("");
+                        setFilters({});
+                      }}
+                    >
                       Réinitialiser les filtres
                     </Button>
                   </CardContent>
@@ -972,9 +1027,20 @@ export default function ClientsSpace() {
                 {displayedClients.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Aucun client trouvé</h3>
-                    <p className="text-muted-foreground mb-4">Aucun client ne correspond à vos critères.</p>
-                    <Button variant="outline" onClick={() => { setQuickFilter("all"); setSearchQuery(""); setFilters({}); }}>
+                    <h3 className="text-lg font-semibold mb-2">
+                      Aucun client trouvé
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Aucun client ne correspond à vos critères.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setQuickFilter("all");
+                        setSearchQuery("");
+                        setFilters({});
+                      }}
+                    >
                       Réinitialiser les filtres
                     </Button>
                   </div>
@@ -982,11 +1048,23 @@ export default function ClientsSpace() {
                   <>
                     <div className="flex justify-between items-center mb-4">
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={selectAllClients} disabled={paginatedClients.length === 0}>
-                          <CheckSquare className="h-4 w-4 mr-2" />Tout sélectionner
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={selectAllClients}
+                          disabled={paginatedClients.length === 0}
+                        >
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Tout sélectionner
                         </Button>
-                        <Button variant="outline" size="sm" onClick={deselectAllClients} disabled={selectedClientIds.size === 0}>
-                          <Square className="h-4 w-4 mr-2" />Désélectionner
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={deselectAllClients}
+                          disabled={selectedClientIds.size === 0}
+                        >
+                          <Square className="h-4 w-4 mr-2" />
+                          Désélectionner
                         </Button>
                       </div>
                     </div>
@@ -995,12 +1073,17 @@ export default function ClientsSpace() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-12">
-                              <Checkbox 
-                                checked={paginatedClients.length > 0 && paginatedClients.every((c) => selectedClientIds.has(c.id!))} 
-                                onCheckedChange={(checked) => { 
-                                  if (checked) selectAllClients(); 
-                                  else deselectAllClients(); 
-                                }} 
+                              <Checkbox
+                                checked={
+                                  paginatedClients.length > 0 &&
+                                  paginatedClients.every((c) =>
+                                    selectedClientIds.has(c.id!)
+                                  )
+                                }
+                                onCheckedChange={(checked) => {
+                                  if (checked) selectAllClients();
+                                  else deselectAllClients();
+                                }}
                               />
                             </TableHead>
                             <TableHead>Code</TableHead>
@@ -1022,51 +1105,89 @@ export default function ClientsSpace() {
                           {paginatedClients.map((client) => (
                             <TableRow key={client.id}>
                               <TableCell>
-                                <Checkbox 
-                                  checked={selectedClientIds.has(client.id!)} 
-                                  onCheckedChange={() => toggleClientSelection(client.id!)} 
+                                <Checkbox
+                                  checked={selectedClientIds.has(client.id!)}
+                                  onCheckedChange={() =>
+                                    toggleClientSelection(client.id!)
+                                  }
                                 />
                               </TableCell>
-                              <TableCell className="font-mono text-xs">{client.codeClient}</TableCell>
-                              <TableCell>{getClientTypeBadge(client.typeClient)}</TableCell>
-                              <TableCell className="font-medium">{getClientDisplayName(client)}</TableCell>
+                              <TableCell className="font-mono text-xs">
+                                {client.codeClient}
+                              </TableCell>
+                              <TableCell>
+                                {getClientTypeBadge(client.typeClient)}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {getClientDisplayName(client)}
+                              </TableCell>
                               <TableCell className="text-sm">
                                 {client.siret ? (
-                                  <span className="font-mono">{client.siret}</span>
+                                  <span className="font-mono">
+                                    {client.siret}
+                                  </span>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
                                 )}
                               </TableCell>
                               <TableCell className="text-sm">
-                                {client.tvaIntracom || <span className="text-muted-foreground">-</span>}
+                                {client.tvaIntracom || (
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
+                                )}
                               </TableCell>
                               <TableCell className="text-sm">
                                 {getRIBDisplay(client) ? (
-                                  <span className="font-mono text-xs">{getRIBDisplay(client)}</span>
+                                  <span className="font-mono text-xs">
+                                    {getRIBDisplay(client)}
+                                  </span>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
                                 )}
                               </TableCell>
                               <TableCell className="text-sm">
-                                {client.telephone || <span className="text-muted-foreground">-</span>}
+                                {client.telephone || (
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
+                                )}
                               </TableCell>
-                              <TableCell className="text-sm max-w-[200px] truncate" title={client.adresse || ""}>
+                              <TableCell
+                                className="text-sm max-w-[200px] truncate"
+                                title={client.adresse || ""}
+                              >
                                 {client.adresse ? (
-                                  <span>{client.adresse}{client.ville ? `, ${client.ville}` : ""}</span>
+                                  <span>
+                                    {client.adresse}
+                                    {client.ville ? `, ${client.ville}` : ""}
+                                  </span>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
                                 )}
                               </TableCell>
                               <TableCell>{renderPlaques(client)}</TableCell>
-                              <TableCell className="text-sm">{getTransporteurName(client.transporteurId)}</TableCell>
-                              <TableCell>{renderTarifsPreferentiels(client)}</TableCell>
+                              <TableCell className="text-sm">
+                                {getTransporteurName(client.transporteurId)}
+                              </TableCell>
+                              <TableCell>
+                                {renderTarifsPreferentiels(client)}
+                              </TableCell>
                               <TableCell className="text-sm">
                                 {client.modePaiementPreferentiel ? (
                                   <Badge variant="outline" className="text-xs">
                                     {client.modePaiementPreferentiel}
                                   </Badge>
                                 ) : (
-                                  <span className="text-muted-foreground">-</span>
+                                  <span className="text-muted-foreground">
+                                    -
+                                  </span>
                                 )}
                               </TableCell>
                               <TableCell>
@@ -1077,13 +1198,15 @@ export default function ClientsSpace() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEdit(client)}>
+                                    <DropdownMenuItem
+                                      onClick={() => handleEdit(client)}
+                                    >
                                       <Edit className="h-4 w-4 mr-2" />
                                       Modifier
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDelete(client)} 
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(client)}
                                       className="text-destructive"
                                     >
                                       <Trash2 className="h-4 w-4 mr-2" />
@@ -1108,12 +1231,23 @@ export default function ClientsSpace() {
       {displayedClients.length > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={goToPage} totalItems={displayedClients.length} pageSize={pageSize} />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              totalItems={displayedClients.length}
+              pageSize={pageSize}
+            />
           </CardContent>
         </Card>
       )}
 
-      <BulkActionsBar selectedCount={selectedClientIds.size} onDelete={deleteSelectedClients} onMarkFavorites={() => {}} onClear={() => setSelectedClientIds(new Set())} />
+      <BulkActionsBar
+        selectedCount={selectedClientIds.size}
+        onDelete={deleteSelectedClients}
+        onMarkFavorites={() => {}}
+        onClear={() => setSelectedClientIds(new Set())}
+      />
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

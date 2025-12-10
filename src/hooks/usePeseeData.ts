@@ -8,17 +8,22 @@ export const usePeseeData = () => {
 
   const loadData = async () => {
     try {
-      const [peseesData, clientsData, productsData] = await Promise.all([
-        db.pesees.limit(50).toArray(),
-        db.clients.toArray(),
-        db.products.toArray(),
-      ]);
+      // Charger toutes les pesées d'abord
+      const allPesees = await db.pesees.toArray();
 
       // Trier par date décroissante (plus récent en premier)
-      peseesData.sort(
+      allPesees.sort(
         (a, b) =>
           new Date(b.dateHeure).getTime() - new Date(a.dateHeure).getTime()
       );
+
+      // Limiter aux 30 plus récentes
+      const peseesData = allPesees.slice(0, 30);
+
+      const [clientsData, productsData] = await Promise.all([
+        db.clients.toArray(),
+        db.products.toArray(),
+      ]);
 
       setPesees(peseesData);
       setClients(clientsData);

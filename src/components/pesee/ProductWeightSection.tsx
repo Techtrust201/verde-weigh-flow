@@ -223,11 +223,20 @@ export const ProductWeightSection = ({
                 )}
               </Label>
               <Combobox
-                options={products.map((product) => ({
-                  value: String(product.id!),
-                  label: product.nom,
-                  keywords: product.codeProduct,
-                }))}
+                options={products
+                  .sort((a, b) => {
+                    // Favoris en premier
+                    if (a.isFavorite && !b.isFavorite) return -1;
+                    if (!a.isFavorite && b.isFavorite) return 1;
+                    // Sinon, ordre alphabétique
+                    return a.nom.localeCompare(b.nom);
+                  })
+                  .map((product) => ({
+                    value: String(product.id!),
+                    label: product.nom,
+                    keywords: product.codeProduct,
+                    isFavorite: product.isFavorite,
+                  }))}
                 value={currentData?.produitId?.toString() || ""}
                 onValueChange={(value) => {
                   const id = parseInt(value);
@@ -302,101 +311,107 @@ export const ProductWeightSection = ({
             </div>
           </div>
 
-          {/* Calcul du coût en temps réel - VERSION OPTIMISÉE */}
-          {calculatedCost && (
-            <Card className="border-2 border-green-600 bg-white shadow-md">
-              <CardContent className="pt-4 pb-4">
-                <div className="text-center mb-3">
-                  <h3 className="text-lg font-bold text-green-700 mb-1.5">
-                    COÛT CALCULÉ
-                  </h3>
-                  <div className="text-2xl font-semibold text-gray-700 mb-1">
-                    Poids net:{" "}
-                    <span className="text-2xl font-black text-green-600 mb-2">
-                      {/* <div className=""> */}
-                      {Math.abs(
-                        (parseFloat(
-                          currentData.poidsEntree?.replace(",", ".")
-                        ) || 0) -
+          {/* Calcul du coût en temps réel - Toujours réserver l'espace pour éviter le redimensionnement */}
+          <div className="min-h-[240px]">
+            {calculatedCost ? (
+              <Card className="border-2 border-green-600 bg-white shadow-md">
+                <CardContent className="pt-3 pb-3">
+                  <div className="text-center mb-2">
+                    <h3 className="text-base font-bold text-green-700 mb-1">
+                      COÛT CALCULÉ
+                    </h3>
+                    <div className="text-lg font-semibold text-gray-700 mb-1">
+                      Poids net:{" "}
+                      <span className="text-lg font-black text-green-600">
+                        {Math.abs(
                           (parseFloat(
-                            currentData.poidsSortie?.replace(",", ".")
-                          ) || 0)
-                      ).toFixed(3)}{" "}
-                      tonnes
-                    </span>
-                  </div>
-                  {hasPrefPricing && (
-                    <div className="text-base font-medium text-blue-700 mb-2">
-                      🏢 Client: {client?.raisonSociale}
+                            currentData.poidsEntree?.replace(",", ".")
+                          ) || 0) -
+                            (parseFloat(
+                              currentData.poidsSortie?.replace(",", ".")
+                            ) || 0)
+                        ).toFixed(3)}{" "}
+                        tonnes
+                      </span>
                     </div>
-                  )}
-                </div>
-
-                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
-                  <div className="text-center">
-                    <div className="text-xl font-black text-green-800 mb-2">
-                      {calculatedCost.ht.toFixed(2)}€ HT
-                    </div>
-                    <div className="text-2xl font-bold text-green-600">
-                      {calculatedCost.ttc.toFixed(2)}€ TTC
-                    </div>
-                  </div>
-
-                  {/* Détails des taxes */}
-                  {calculatedCost.taxesDetails &&
-                    calculatedCost.taxesDetails.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-green-300">
-                        <div className="text-sm font-semibold text-green-700 mb-2">
-                          Détail des taxes :
-                        </div>
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span>TVA produit ({calculatedCost.tauxTVA}%)</span>
-                            <span className="font-semibold">
-                              {calculatedCost.montantTVA?.toFixed(2)}€
-                            </span>
-                          </div>
-                          {calculatedCost.taxesDetails.map((tax, index) => {
-                            const tvaTaxe =
-                              tax.montant * ((tax.tvaAppliquee ?? 20) / 100);
-                            return (
-                              <div key={index} className="flex flex-col">
-                                <div className="flex justify-between">
-                                  <span>
-                                    {tax.nom} ({tax.taux}%)
-                                  </span>
-                                  <span className="font-semibold">
-                                    {tax.montant.toFixed(2)}€
-                                  </span>
-                                </div>
-                                <div className="flex justify-between text-muted-foreground">
-                                  <span className="pl-4">
-                                    TVA sur {tax.nom} ({tax.tvaAppliquee ?? 20}
-                                    %)
-                                  </span>
-                                  <span>{tvaTaxe.toFixed(2)}€</span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                    {hasPrefPricing && (
+                      <div className="text-sm font-medium text-blue-700 mb-1">
+                        🏢 Client: {client?.raisonSociale}
                       </div>
                     )}
-                </div>
-
-                {hasPrefPricing && (
-                  <div className="mt-4 text-center">
-                    <Badge
-                      variant="outline"
-                      className="text-green-700 border-green-400 bg-green-50 font-semibold px-4 py-2"
-                    >
-                      ⭐ Tarif préférentiel exclusif à ce client
-                    </Badge>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                    <div className="text-center">
+                      <div className="text-lg font-black text-green-800 mb-1">
+                        {calculatedCost.ht.toFixed(2)}€ HT
+                      </div>
+                      <div className="text-xl font-bold text-green-600">
+                        {calculatedCost.ttc.toFixed(2)}€ TTC
+                      </div>
+                    </div>
+
+                    {/* Détails des taxes */}
+                    {calculatedCost.taxesDetails &&
+                      calculatedCost.taxesDetails.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-green-300">
+                          <div className="text-xs font-semibold text-green-700 mb-1.5">
+                            Détail des taxes :
+                          </div>
+                          <div className="space-y-0.5 text-xs">
+                            <div className="flex justify-between">
+                              <span>
+                                TVA produit ({calculatedCost.tauxTVA}%)
+                              </span>
+                              <span className="font-semibold">
+                                {calculatedCost.montantTVA?.toFixed(2)}€
+                              </span>
+                            </div>
+                            {calculatedCost.taxesDetails.map((tax, index) => {
+                              const tvaTaxe =
+                                tax.montant * ((tax.tvaAppliquee ?? 20) / 100);
+                              return (
+                                <div key={index} className="flex flex-col">
+                                  <div className="flex justify-between">
+                                    <span>
+                                      {tax.nom} ({tax.taux}%)
+                                    </span>
+                                    <span className="font-semibold">
+                                      {tax.montant.toFixed(2)}€
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between text-muted-foreground">
+                                    <span className="pl-4">
+                                      TVA sur {tax.nom} (
+                                      {tax.tvaAppliquee ?? 20}
+                                      %)
+                                    </span>
+                                    <span>{tvaTaxe.toFixed(2)}€</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                  {hasPrefPricing && (
+                    <div className="mt-3 text-center">
+                      <Badge
+                        variant="outline"
+                        className="text-green-700 border-green-400 bg-green-50 font-semibold px-3 py-1 text-xs"
+                      >
+                        ⭐ Tarif préférentiel exclusif à ce client
+                      </Badge>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="h-[240px]" aria-hidden="true" />
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

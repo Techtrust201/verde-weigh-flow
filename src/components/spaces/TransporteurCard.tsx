@@ -1,4 +1,13 @@
-import { Truck, Edit, Trash2, MoreVertical, MapPin, Phone, Mail, FileText } from "lucide-react";
+import {
+  Truck,
+  Edit,
+  Trash2,
+  MoreVertical,
+  MapPin,
+  Phone,
+  Mail,
+  FileText,
+} from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,7 +58,7 @@ export default function TransporteurCard({
               </h3>
             </div>
             {transporteur.plaque && (
-              <p className="text-sm font-mono bg-muted px-2 py-1 rounded inline-block">
+              <p className="text-sm bg-muted px-2 py-1 rounded inline-block">
                 {transporteur.plaque}
               </p>
             )}
