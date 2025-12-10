@@ -118,6 +118,7 @@ export const PeseeFormSection = ({
   // États locaux pour les champs libres
   const [transporteurLibre, setTransporteurLibre] = useState("");
   const [chantierLibre, setChantierLibre] = useState("");
+  const [plaqueLibre, setPlaqueLibre] = useState("");
 
   // États pour les modes de paiement
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -146,6 +147,22 @@ export const PeseeFormSection = ({
   useEffect(() => {
     setTransporteurLibre(currentData?.transporteurLibre || "");
   }, [currentData?.transporteurLibre]);
+
+  useEffect(() => {
+    // Ne synchroniser que si plaque n'est pas dans la liste des plaques du client
+    // (c'est-à-dire si c'est une saisie libre)
+    if (currentData?.plaque) {
+      const client = clients.find((c) => c.id === currentData?.clientId);
+      const isPlaqueFromClient = client?.plaques?.includes(currentData.plaque);
+      if (!isPlaqueFromClient) {
+        setPlaqueLibre(currentData.plaque);
+      } else {
+        setPlaqueLibre("");
+      }
+    } else {
+      setPlaqueLibre("");
+    }
+  }, [currentData?.plaque, currentData?.clientId, clients]);
 
   // Helpers
   const selectedClient = useMemo(
@@ -786,6 +803,7 @@ export const PeseeFormSection = ({
                                   key={plaque}
                                   value={plaque}
                                   onSelect={() => {
+                                    setPlaqueLibre(""); // Vider l'input libre quand on sélectionne depuis le dropdown
                                     updateCurrentTab({ plaque });
                                     setPlaqueSelectorOpen(false);
                                     setPlaqueSearchValue("");
@@ -865,20 +883,34 @@ export const PeseeFormSection = ({
               {/* Champ pour plaque libre - en dessous */}
               <Input
                 placeholder="Ou saisir une plaque libre..."
-                value={currentData?.plaque || ""}
-                onChange={(e) => updateCurrentTab({ plaque: e.target.value })}
+                value={plaqueLibre}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setPlaqueLibre(value);
+                  // Si on saisit dans le champ libre, on écrase la plaque sélectionnée
+                  if (value.trim()) {
+                    updateCurrentTab({
+                      plaque: value,
+                    });
+                  } else {
+                    // Si on vide le champ libre, on garde la plaque sélectionnée s'il y en a une
+                    updateCurrentTab({
+                      plaque: "",
+                    });
+                  }
+                }}
                 className={cn(
                   "max-w-full overflow-hidden text-ellipsis whitespace-nowrap",
                   validationErrors.plaque &&
                     "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                 )}
               />
+              {validationErrors.plaque && (
+                <p className="text-red-600 text-sm mt-1">
+                  Ce champ est obligatoire
+                </p>
+              )}
             </div>
-            {validationErrors.plaque && (
-              <p className="text-red-600 text-sm mt-1">
-                Ce champ est obligatoire
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -916,175 +948,175 @@ export const PeseeFormSection = ({
                   })()
                 : null}
             </div>
-            <div className="flex gap-2 flex-1 min-w-0">
-              <div className="flex-1 flex flex-col min-w-0">
-                <Popover
-                  open={chantierSelectorOpen}
-                  onOpenChange={setChantierSelectorOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={chantierSelectorOpen}
-                      className={cn(
-                        "w-full justify-between min-w-0",
-                        validationErrors.chantier &&
-                          "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
-                      )}
-                      disabled={!currentData?.clientId}
-                    >
-                      <span className="truncate flex-1 text-left">
-                        {getChantierInputValue() ||
-                          "Sélectionner un chantier..."}
-                      </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput
-                        placeholder="Rechercher un chantier..."
-                        value={chantierSearchValue}
-                        onValueChange={setChantierSearchValue}
-                      />
-                      <CommandList>
-                        <CommandEmpty>Aucun chantier trouvé.</CommandEmpty>
-                        <CommandGroup>
-                          {/* Option chantier libre */}
-                          <CommandItem
-                            value="chantier-libre"
-                            onSelect={() => {
-                              // Activer le mode chantier libre
-                              setChantierLibre("");
-                              updateCurrentTab({
-                                chantier: "",
-                                chantierLibre: "",
-                              });
-                              setChantierSelectorOpen(false);
-                              // Le champ input s'affichera automatiquement grâce à la condition
-                            }}
-                            className="font-medium"
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                !currentData?.chantier &&
-                                  !currentData?.chantierLibre
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            Chantier libre (saisie manuelle)
-                          </CommandItem>
-                          {/* Chantiers filtrés */}
-                          {getFilteredChantiers(chantierSearchValue).map(
-                            (chantier) => (
-                              <CommandItem
-                                key={chantier}
-                                value={chantier}
-                                onSelect={() => {
-                                  setChantierLibre("");
-                                  updateCurrentTab({
-                                    chantier: chantier,
-                                    chantierLibre: "",
-                                  });
-                                  setChantierSelectorOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    currentData?.chantier === chantier &&
-                                      !currentData?.chantierLibre
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {chantier}
-                              </CommandItem>
-                            )
-                          )}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                {/* Champ pour chantier libre - toujours affiché comme pour transporteur */}
-                <div className="mt-2 flex-1 flex flex-col min-w-0">
-                  <Input
-                    placeholder="Ou saisir un chantier libre (optionnel)"
-                    value={chantierLibre}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setChantierLibre(value);
-                      // Si on saisit dans le champ libre, on écrase le chantier sélectionné
-                      if (value.trim()) {
-                        updateCurrentTab({
-                          chantierLibre: value,
-                          chantier: "", // Vider chantier si on saisit dans libre
-                        });
-                      } else {
-                        // Si on vide le champ libre, on garde le chantier sélectionné s'il existe
-                        updateCurrentTab({
-                          chantierLibre: "",
-                        });
-                      }
-                    }}
-                    className={cn(
-                      "min-w-0",
-                      validationErrors.chantier &&
-                        "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
-                    )}
-                  />
-                </div>
-                {!!validationErrors.chantier && (
-                  <p className="text-red-600 text-sm mt-1">
-                    Ce champ est obligatoire
-                  </p>
-                )}
-              </div>
-              <Dialog
-                open={isAddChantierDialogOpen}
-                onOpenChange={setIsAddChantierDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-0 self-start shrink-0"
-                    disabled={!currentData?.clientId}
-                    title="Ajouter un nouveau chantier"
+            <div className="space-y-1.5">
+              <div className="flex gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <Popover
+                    open={chantierSelectorOpen}
+                    onOpenChange={setChantierSelectorOpen}
                   >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Ajouter un nouveau chantier</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Nom du chantier</Label>
-                      <Input
-                        value={newChantier}
-                        onChange={(e) => setNewChantier(e.target.value)}
-                        placeholder="Nom du nouveau chantier"
-                        className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2">
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={chantierSelectorOpen}
+                        className={cn(
+                          "w-full justify-between min-w-0",
+                          validationErrors.chantier &&
+                            "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+                        )}
+                        disabled={!currentData?.clientId}
+                      >
+                        <span className="truncate flex-1 text-left">
+                          {getChantierInputValue() ||
+                            "Sélectionner un chantier..."}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Rechercher un chantier..."
+                          value={chantierSearchValue}
+                          onValueChange={setChantierSearchValue}
+                        />
+                        <CommandList>
+                          <CommandEmpty>Aucun chantier trouvé.</CommandEmpty>
+                          <CommandGroup>
+                            {/* Option chantier libre */}
+                            <CommandItem
+                              value="chantier-libre"
+                              onSelect={() => {
+                                // Activer le mode chantier libre
+                                setChantierLibre("");
+                                updateCurrentTab({
+                                  chantier: "",
+                                  chantierLibre: "",
+                                });
+                                setChantierSelectorOpen(false);
+                                // Le champ input s'affichera automatiquement grâce à la condition
+                              }}
+                              className="font-medium"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  !currentData?.chantier &&
+                                    !currentData?.chantierLibre
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              Chantier libre (saisie manuelle)
+                            </CommandItem>
+                            {/* Chantiers filtrés */}
+                            {getFilteredChantiers(chantierSearchValue).map(
+                              (chantier) => (
+                                <CommandItem
+                                  key={chantier}
+                                  value={chantier}
+                                  onSelect={() => {
+                                    setChantierLibre("");
+                                    updateCurrentTab({
+                                      chantier: chantier,
+                                      chantierLibre: "",
+                                    });
+                                    setChantierSelectorOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      currentData?.chantier === chantier &&
+                                        !currentData?.chantierLibre
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {chantier}
+                                </CommandItem>
+                              )
+                            )}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Dialog
+                  open={isAddChantierDialogOpen}
+                  onOpenChange={setIsAddChantierDialogOpen}
+                >
+                  <DialogTrigger asChild>
                     <Button
                       variant="outline"
-                      onClick={() => setIsAddChantierDialogOpen(false)}
+                      size="sm"
+                      className="shrink-0"
+                      disabled={!currentData?.clientId}
+                      title="Ajouter un nouveau chantier"
                     >
-                      Annuler
+                      <Plus className="h-4 w-4" />
                     </Button>
-                    <Button onClick={handleAddChantier}>Ajouter</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Ajouter un nouveau chantier</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Nom du chantier</Label>
+                        <Input
+                          value={newChantier}
+                          onChange={(e) => setNewChantier(e.target.value)}
+                          placeholder="Nom du nouveau chantier"
+                          className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAddChantierDialogOpen(false)}
+                      >
+                        Annuler
+                      </Button>
+                      <Button onClick={handleAddChantier}>Ajouter</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              {/* Champ pour chantier libre - toujours affiché comme pour transporteur */}
+              <Input
+                placeholder="Ou saisir un chantier libre (optionnel)"
+                value={chantierLibre}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setChantierLibre(value);
+                  // Si on saisit dans le champ libre, on écrase le chantier sélectionné
+                  if (value.trim()) {
+                    updateCurrentTab({
+                      chantierLibre: value,
+                      chantier: "", // Vider chantier si on saisit dans libre
+                    });
+                  } else {
+                    // Si on vide le champ libre, on garde le chantier sélectionné s'il existe
+                    updateCurrentTab({
+                      chantierLibre: "",
+                    });
+                  }
+                }}
+                className={cn(
+                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap",
+                  validationErrors.chantier &&
+                    "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
+                )}
+              />
+              {!!validationErrors.chantier && (
+                <p className="text-red-600 text-sm mt-1">
+                  Ce champ est obligatoire
+                </p>
+              )}
             </div>
           </div>
 
@@ -1098,349 +1130,351 @@ export const PeseeFormSection = ({
                 </p>
               )}
             </div>
-            <div className="flex gap-2 flex-1 min-w-0">
-              <div className="flex-1 flex flex-col min-w-0">
-                <Popover
-                  open={transporteurSelectorOpen}
-                  onOpenChange={setTransporteurSelectorOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={transporteurSelectorOpen}
-                      className="w-full justify-between min-w-0"
-                    >
-                      <span className="truncate flex-1 text-left">
-                        {getTransporteurInputValue() ||
-                          "Sélectionner un transporteur..."}
-                      </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput
-                        placeholder="Rechercher un transporteur..."
-                        value={transporteurSearchValue}
-                        onValueChange={setTransporteurSearchValue}
-                      />
-                      <CommandList>
-                        <CommandEmpty>Aucun transporteur trouvé.</CommandEmpty>
-                        <CommandGroup>
-                          {/* Option transporteur libre */}
-                          <CommandItem
-                            value="transporteur-libre"
-                            onSelect={() => {
-                              setTransporteurLibre("");
-                              updateCurrentTab({
-                                transporteurId: 0,
-                                transporteurLibre: "",
-                              });
-                              setTransporteurSelectorOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                (!currentData?.transporteurId ||
-                                  currentData.transporteurId === 0) &&
-                                  !transporteurLibre
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                            Transporteur libre (saisie manuelle)
-                          </CommandItem>
-
-                          {/* Transporteurs existants */}
-                          {transporteurs
-                            .filter(
-                              (transporteur) =>
-                                transporteur.prenom
-                                  .toLowerCase()
-                                  .includes(
-                                    transporteurSearchValue.toLowerCase()
-                                  ) ||
-                                transporteur.nom
-                                  .toLowerCase()
-                                  .includes(
-                                    transporteurSearchValue.toLowerCase()
-                                  )
-                            )
-                            .map((transporteur) => (
-                              <CommandItem
-                                key={transporteur.id}
-                                value={`${transporteur.prenom} ${transporteur.nom}`}
-                                onSelect={() => {
-                                  updateCurrentTab({
-                                    transporteurId: transporteur.id!,
-                                  });
-                                  setTransporteurLibre("");
-                                  setTransporteurSelectorOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    currentData?.transporteurId ===
-                                      transporteur.id
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {transporteur.prenom} {transporteur.nom}
-                                {transporteur.siret && (
-                                  <Badge variant="secondary" className="ml-2">
-                                    {transporteur.siret}
-                                  </Badge>
-                                )}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-
-                {/* Champ pour transporteur libre - toujours affiché */}
-                <div className="mt-2 flex-1 flex flex-col min-w-0">
-                  <Input
-                    placeholder="Nom du transporteur libre (optionnel)"
-                    value={transporteurLibre}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setTransporteurLibre(value);
-                      // Si on saisit dans le champ libre, on écrase le transporteur sélectionné
-                      if (value.trim()) {
-                        updateCurrentTab({
-                          transporteurLibre: value,
-                          transporteurId: 0, // Vider transporteurId si on saisit dans libre
-                        });
-                      } else {
-                        // Si on vide le champ libre, on garde le transporteur sélectionné s'il existe
-                        updateCurrentTab({
-                          transporteurLibre: "",
-                        });
-                      }
-                    }}
-                    className="min-w-0"
-                  />
-                </div>
-              </div>
-              <Dialog
-                open={isAddTransporteurDialogOpen}
-                onOpenChange={setIsAddTransporteurDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-0 self-start shrink-0"
-                    title="Ajouter un nouveau transporteur"
+            <div className="space-y-1.5">
+              <div className="flex gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <Popover
+                    open={transporteurSelectorOpen}
+                    onOpenChange={setTransporteurSelectorOpen}
                   >
-                    <UserPlus className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Nouveau Transporteur</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>Prénom *</Label>
-                        <Input
-                          value={newTransporteurForm.prenom || ""}
-                          onChange={(e) =>
-                            setNewTransporteurForm({
-                              ...newTransporteurForm,
-                              prenom: e.target.value,
-                            })
-                          }
-                          placeholder="Prénom du transporteur"
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={transporteurSelectorOpen}
+                        className="w-full justify-between min-w-0"
+                      >
+                        <span className="truncate flex-1 text-left">
+                          {getTransporteurInputValue() ||
+                            "Sélectionner un transporteur..."}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Rechercher un transporteur..."
+                          value={transporteurSearchValue}
+                          onValueChange={setTransporteurSearchValue}
                         />
-                      </div>
-                      <div>
-                        <Label>Nom *</Label>
-                        <Input
-                          value={newTransporteurForm.nom || ""}
-                          onChange={(e) =>
-                            setNewTransporteurForm({
-                              ...newTransporteurForm,
-                              nom: e.target.value,
-                            })
-                          }
-                          placeholder="Nom du transporteur"
-                          className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>SIRET</Label>
-                      <Input
-                        value={newTransporteurForm.siret || ""}
-                        onChange={(e) =>
-                          setNewTransporteurForm({
-                            ...newTransporteurForm,
-                            siret: e.target.value,
-                          })
-                        }
-                        placeholder="SIRET (optionnel)"
-                      />
-                    </div>
-                    <div>
-                      <Label>Adresse</Label>
-                      <Input
-                        value={newTransporteurForm.adresse || ""}
-                        onChange={(e) =>
-                          setNewTransporteurForm({
-                            ...newTransporteurForm,
-                            adresse: e.target.value,
-                          })
-                        }
-                        placeholder="Adresse"
-                        className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Code postal</Label>
-                        <Input
-                          value={newTransporteurForm.codePostal || ""}
-                          onChange={(e) =>
-                            setNewTransporteurForm({
-                              ...newTransporteurForm,
-                              codePostal: e.target.value,
-                            })
-                          }
-                          placeholder="Code postal"
-                          className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
-                        />
-                      </div>
-                      <div>
-                        <Label>Ville</Label>
-                        <Input
-                          value={newTransporteurForm.ville || ""}
-                          onChange={(e) =>
-                            setNewTransporteurForm({
-                              ...newTransporteurForm,
-                              ville: e.target.value,
-                            })
-                          }
-                          placeholder="Ville"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={newTransporteurForm.email || ""}
-                        onChange={(e) =>
-                          setNewTransporteurForm({
-                            ...newTransporteurForm,
-                            email: e.target.value,
-                          })
-                        }
-                        placeholder="Email"
-                        className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2">
+                        <CommandList>
+                          <CommandEmpty>
+                            Aucun transporteur trouvé.
+                          </CommandEmpty>
+                          <CommandGroup>
+                            {/* Option transporteur libre */}
+                            <CommandItem
+                              value="transporteur-libre"
+                              onSelect={() => {
+                                setTransporteurLibre("");
+                                updateCurrentTab({
+                                  transporteurId: 0,
+                                  transporteurLibre: "",
+                                });
+                                setTransporteurSelectorOpen(false);
+                              }}
+                              className="font-medium"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  (!currentData?.transporteurId ||
+                                    currentData.transporteurId === 0) &&
+                                    !transporteurLibre
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              Transporteur libre (saisie manuelle)
+                            </CommandItem>
+
+                            {/* Transporteurs existants */}
+                            {transporteurs
+                              .filter(
+                                (transporteur) =>
+                                  transporteur.prenom
+                                    .toLowerCase()
+                                    .includes(
+                                      transporteurSearchValue.toLowerCase()
+                                    ) ||
+                                  transporteur.nom
+                                    .toLowerCase()
+                                    .includes(
+                                      transporteurSearchValue.toLowerCase()
+                                    )
+                              )
+                              .map((transporteur) => (
+                                <CommandItem
+                                  key={transporteur.id}
+                                  value={`${transporteur.prenom} ${transporteur.nom}`}
+                                  onSelect={() => {
+                                    updateCurrentTab({
+                                      transporteurId: transporteur.id!,
+                                    });
+                                    setTransporteurLibre("");
+                                    setTransporteurSelectorOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      currentData?.transporteurId ===
+                                        transporteur.id
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {transporteur.prenom} {transporteur.nom}
+                                  {transporteur.siret && (
+                                    <Badge variant="secondary" className="ml-2">
+                                      {transporteur.siret}
+                                    </Badge>
+                                  )}
+                                </CommandItem>
+                              ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Dialog
+                  open={isAddTransporteurDialogOpen}
+                  onOpenChange={setIsAddTransporteurDialogOpen}
+                >
+                  <DialogTrigger asChild>
                     <Button
                       variant="outline"
-                      onClick={() => setIsAddTransporteurDialogOpen(false)}
+                      size="sm"
+                      className="shrink-0"
+                      title="Ajouter un nouveau transporteur"
                     >
-                      Annuler
+                      <UserPlus className="h-4 w-4" />
                     </Button>
-                    <Button
-                      onClick={handleAddNewTransporteur}
-                      disabled={!validateNewTransporteur()}
-                    >
-                      Créer et sélectionner
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Nouveau Transporteur</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>Prénom *</Label>
+                          <Input
+                            value={newTransporteurForm.prenom || ""}
+                            onChange={(e) =>
+                              setNewTransporteurForm({
+                                ...newTransporteurForm,
+                                prenom: e.target.value,
+                              })
+                            }
+                            placeholder="Prénom du transporteur"
+                          />
+                        </div>
+                        <div>
+                          <Label>Nom *</Label>
+                          <Input
+                            value={newTransporteurForm.nom || ""}
+                            onChange={(e) =>
+                              setNewTransporteurForm({
+                                ...newTransporteurForm,
+                                nom: e.target.value,
+                              })
+                            }
+                            placeholder="Nom du transporteur"
+                            className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>SIRET</Label>
+                        <Input
+                          value={newTransporteurForm.siret || ""}
+                          onChange={(e) =>
+                            setNewTransporteurForm({
+                              ...newTransporteurForm,
+                              siret: e.target.value,
+                            })
+                          }
+                          placeholder="SIRET (optionnel)"
+                        />
+                      </div>
+                      <div>
+                        <Label>Adresse</Label>
+                        <Input
+                          value={newTransporteurForm.adresse || ""}
+                          onChange={(e) =>
+                            setNewTransporteurForm({
+                              ...newTransporteurForm,
+                              adresse: e.target.value,
+                            })
+                          }
+                          placeholder="Adresse"
+                          className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Code postal</Label>
+                          <Input
+                            value={newTransporteurForm.codePostal || ""}
+                            onChange={(e) =>
+                              setNewTransporteurForm({
+                                ...newTransporteurForm,
+                                codePostal: e.target.value,
+                              })
+                            }
+                            placeholder="Code postal"
+                            className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                          />
+                        </div>
+                        <div>
+                          <Label>Ville</Label>
+                          <Input
+                            value={newTransporteurForm.ville || ""}
+                            onChange={(e) =>
+                              setNewTransporteurForm({
+                                ...newTransporteurForm,
+                                ville: e.target.value,
+                              })
+                            }
+                            placeholder="Ville"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          value={newTransporteurForm.email || ""}
+                          onChange={(e) =>
+                            setNewTransporteurForm({
+                              ...newTransporteurForm,
+                              email: e.target.value,
+                            })
+                          }
+                          placeholder="Email"
+                          className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAddTransporteurDialogOpen(false)}
+                      >
+                        Annuler
+                      </Button>
+                      <Button
+                        onClick={handleAddNewTransporteur}
+                        disabled={!validateNewTransporteur()}
+                      >
+                        Créer et sélectionner
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              {/* Champ pour transporteur libre - toujours affiché */}
+              <Input
+                placeholder="Nom du transporteur libre (optionnel)"
+                value={transporteurLibre}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setTransporteurLibre(value);
+                  // Si on saisit dans le champ libre, on écrase le transporteur sélectionné
+                  if (value.trim()) {
+                    updateCurrentTab({
+                      transporteurLibre: value,
+                      transporteurId: 0, // Vider transporteurId si on saisit dans libre
+                    });
+                  } else {
+                    // Si on vide le champ libre, on garde le transporteur sélectionné s'il existe
+                    updateCurrentTab({
+                      transporteurLibre: "",
+                    });
+                  }
+                }}
+                className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+              />
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="flex justify-center pt-4 mt-auto">
-          <Dialog
-            open={isAddClientDialogOpen}
-            onOpenChange={setIsAddClientDialogOpen}
-          >
-            <DialogTrigger asChild>
+      <div className="flex justify-center pt-4 mt-auto">
+        <Dialog
+          open={isAddClientDialogOpen}
+          onOpenChange={setIsAddClientDialogOpen}
+        >
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (selectedClient) {
+                  // Si un client est sélectionné, pré-remplir le formulaire avec ses données
+                  setNewClientForm({
+                    id: selectedClient.id,
+                    codeClient: selectedClient.codeClient,
+                    raisonSociale: selectedClient.raisonSociale,
+                    typeClient: selectedClient.typeClient,
+                    siret: selectedClient.siret,
+                    adresse: selectedClient.adresse,
+                    codePostal: selectedClient.codePostal,
+                    ville: selectedClient.ville,
+                    telephone: selectedClient.telephone,
+                    email: selectedClient.email,
+                    plaques: selectedClient.plaques,
+                    chantiers: selectedClient.chantiers,
+                    transporteurId: selectedClient.transporteurId,
+                    modePaiementPreferentiel:
+                      selectedClient.modePaiementPreferentiel,
+                    tarifsPreferentiels: selectedClient.tarifsPreferentiels,
+                  });
+                } else {
+                  onAddClient();
+                }
+                setIsAddClientDialogOpen(true);
+              }}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              {selectedClient
+                ? "Modifier les informations du client"
+                : "Ajouter nouveau client"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedClient ? "Modifier le client" : "Nouveau Client"}
+              </DialogTitle>
+            </DialogHeader>
+            <ClientForm
+              formData={newClientForm}
+              onFormDataChange={setNewClientForm}
+              transporteurs={transporteurs}
+            />
+            <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"
-                onClick={() => {
-                  if (selectedClient) {
-                    // Si un client est sélectionné, pré-remplir le formulaire avec ses données
-                    setNewClientForm({
-                      id: selectedClient.id,
-                      codeClient: selectedClient.codeClient,
-                      raisonSociale: selectedClient.raisonSociale,
-                      typeClient: selectedClient.typeClient,
-                      siret: selectedClient.siret,
-                      adresse: selectedClient.adresse,
-                      codePostal: selectedClient.codePostal,
-                      ville: selectedClient.ville,
-                      telephone: selectedClient.telephone,
-                      email: selectedClient.email,
-                      plaques: selectedClient.plaques,
-                      chantiers: selectedClient.chantiers,
-                      transporteurId: selectedClient.transporteurId,
-                      modePaiementPreferentiel:
-                        selectedClient.modePaiementPreferentiel,
-                      tarifsPreferentiels: selectedClient.tarifsPreferentiels,
-                    });
-                  } else {
-                    onAddClient();
-                  }
-                  setIsAddClientDialogOpen(true);
-                }}
+                onClick={() => setIsAddClientDialogOpen(false)}
               >
-                <UserPlus className="h-4 w-4 mr-2" />
-                {selectedClient
-                  ? "Modifier les informations du client"
-                  : "Ajouter nouveau client"}
+                Annuler
               </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedClient ? "Modifier le client" : "Nouveau Client"}
-                </DialogTitle>
-              </DialogHeader>
-              <ClientForm
-                formData={newClientForm}
-                onFormDataChange={setNewClientForm}
-                transporteurs={transporteurs}
-              />
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsAddClientDialogOpen(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={
-                    selectedClient ? handleUpdateClient : handleAddNewClient
-                  }
-                  disabled={!validateNewClient()}
-                >
-                  {selectedClient
-                    ? "Enregistrer les modifications"
-                    : "Créer et sélectionner"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+              <Button
+                onClick={
+                  selectedClient ? handleUpdateClient : handleAddNewClient
+                }
+                disabled={!validateNewClient()}
+              >
+                {selectedClient
+                  ? "Enregistrer les modifications"
+                  : "Créer et sélectionner"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
