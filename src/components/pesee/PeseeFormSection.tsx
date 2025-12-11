@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -122,7 +122,7 @@ export const PeseeFormSection = ({
   const [plaqueLibre, setPlaqueLibre] = useState("");
 
   // Références pour le scroll des listes de recherche
-  const clientListRef = useRef<HTMLDivElement>(null);
+  const clientListRef = useScrollToTop(clientSearchValue);
 
   // États pour les modes de paiement
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -470,7 +470,7 @@ export const PeseeFormSection = ({
                       </div>
                       <CommandList
                         ref={clientListRef}
-                        className="max-h-[400px]"
+                        className="max-h-[250px]"
                       >
                         <CommandEmpty className="py-6 text-left px-4">
                           <div className="flex items-center gap-3">
@@ -633,7 +633,7 @@ export const PeseeFormSection = ({
                       </div>
                       <CommandList
                         ref={clientListRef}
-                        className="max-h-[400px]"
+                        className="max-h-[250px]"
                       >
                         <CommandEmpty className="py-6 text-left px-4">
                           <div className="flex items-center gap-3">
@@ -794,7 +794,7 @@ export const PeseeFormSection = ({
                         className="w-full justify-between min-w-0 font-normal"
                         disabled={!currentData?.clientId}
                       >
-                        <span className="truncate flex-1 text-left font-bold">
+                        <span className="truncate flex-1 text-left font-medium">
                           {currentData?.plaque?.trim() ||
                             "Sélectionner une plaque..."}
                         </span>
@@ -914,7 +914,7 @@ export const PeseeFormSection = ({
                   }
                 }}
                 className={cn(
-                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-bold",
+                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-medium",
                   validationErrors.plaque &&
                     "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                 )}
@@ -981,7 +981,7 @@ export const PeseeFormSection = ({
                         )}
                         disabled={!currentData?.clientId}
                       >
-                        <span className="truncate flex-1 text-left font-bold">
+                        <span className="truncate flex-1 text-left font-medium">
                           {getChantierInputValue() ||
                             "Sélectionner un chantier..."}
                         </span>
@@ -1076,7 +1076,7 @@ export const PeseeFormSection = ({
               </div>
               {/* Champ pour chantier libre - toujours affiché comme pour transporteur */}
               <Input
-                placeholder="Ou saisir un chantier libre (optionnel)"
+                placeholder="Ou saisir un chantier libre..."
                 value={chantierLibre}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -1095,7 +1095,7 @@ export const PeseeFormSection = ({
                   }
                 }}
                 className={cn(
-                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-bold",
+                  "max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-medium",
                   validationErrors.chantier &&
                     "border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500"
                 )}
@@ -1132,7 +1132,7 @@ export const PeseeFormSection = ({
                         aria-expanded={transporteurSelectorOpen}
                         className="w-full justify-between min-w-0 font-normal"
                       >
-                        <span className="truncate flex-1 text-left font-bold">
+                        <span className="truncate flex-1 text-left font-medium">
                           {getTransporteurInputValue() ||
                             "Sélectionner un transporteur..."}
                         </span>
@@ -1340,7 +1340,7 @@ export const PeseeFormSection = ({
               </div>
               {/* Champ pour transporteur libre - toujours affiché */}
               <Input
-                placeholder="Nom du transporteur libre (optionnel)"
+                placeholder="Nom du transporteur libre..."
                 value={transporteurLibre}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -1358,7 +1358,7 @@ export const PeseeFormSection = ({
                     });
                   }
                 }}
-                className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-bold"
+                className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-medium"
               />
             </div>
           </div>

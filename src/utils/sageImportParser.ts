@@ -130,6 +130,10 @@ export interface SageDocument {
   modePaiement?: string;
   dateEcheance?: string;
   remarques?: string;
+  portSansTVA?: number;
+  portSoumisTVA?: number;
+  tauxTVAPortSoumis?: number;
+  tvaPortNonPercue?: number;
 }
 
 /**
@@ -340,16 +344,16 @@ function parseSageLine(columns: string[], values: string[]): SageExportLine {
         line.pasRetourStock = value === "Oui";
         break;
       case "Port Sans TVA":
-        line.portSansTVA = parseFloat(value) || 0;
+        line.portSansTVA = parseFloat(value.replace(",", ".")) || 0;
         break;
       case "Port Soumis TVA":
-        line.portSoumisTVA = parseFloat(value) || 0;
+        line.portSoumisTVA = parseFloat(value.replace(",", ".")) || 0;
         break;
       case "Taux TVA Port Soumis":
-        line.tauxTVAPortSoumis = parseFloat(value) || 0;
+        line.tauxTVAPortSoumis = parseFloat(value.replace(",", ".")) || 0;
         break;
       case "TVA Port Non Perçue":
-        line.tvaPortNonPercue = parseFloat(value) || 0;
+        line.tvaPortNonPercue = parseFloat(value.replace(",", ".")) || 0;
         break;
       case "Mt total TTC":
         line.mtTotalTTC = parseFloat(value) || 0;
@@ -525,6 +529,10 @@ function createDocumentFromEnTete(enTete: SageExportLine): SageDocument {
     modePaiement: enTete.codeModePaiement,
     dateEcheance: enTete.dateEcheance,
     remarques: enTete.remarque,
+    portSansTVA: enTete.portSansTVA,
+    portSoumisTVA: enTete.portSoumisTVA,
+    tauxTVAPortSoumis: enTete.tauxTVAPortSoumis,
+    tvaPortNonPercue: enTete.tvaPortNonPercue,
   };
 }
 
@@ -590,5 +598,3 @@ export function validateSageDocument(doc: SageDocument): string[] {
 
   return errors;
 }
-
-

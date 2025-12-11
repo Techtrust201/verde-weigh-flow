@@ -113,7 +113,7 @@ export const useExportData = () => {
       const activeTaxes = (taxes as any[])
         .filter((t) => t && t.active)
         .map((t) => ({ nom: t.nom, taux: t.taux, tauxTVA: t.tauxTVA }));
-      return generateSageBLCompletFormat(
+      return await generateSageBLCompletFormat(
         pesees,
         productMap,
         clientMap,
@@ -333,7 +333,7 @@ export const useExportData = () => {
     ].join("\n");
   };
 
-  const generateSageBLCompletFormat = (
+  const generateSageBLCompletFormat = async (
     pesees: Pesee[],
     productMap: Map<number, Product>,
     clientMap: Map<number, Client>,
@@ -343,9 +343,9 @@ export const useExportData = () => {
       | "bons_uniquement"
       | "factures_uniquement" = "tous",
     activeTaxes: { nom: string; taux: number; tauxTVA?: number }[] = []
-  ): string => {
+  ): Promise<string> => {
     // Format Sage 50 complet basé sur import_BL_auto_number.txt
-    // Toutes les 87 colonnes du format Sage 50
+    // Format Sage 50 (83 colonnes après suppression des frais de port gérés par Sage)
     const headers = [
       "Type de Ligne",
       "Type de pièce",
@@ -523,10 +523,6 @@ export const useExportData = () => {
         "", // Statut devis
         "", // Ref. commande
         "", // Pas de retour stock
-        "", // Port Sans TVA
-        "", // Port Soumis TVA
-        "", // Taux TVA Port Soumis
-        "", // TVA Port Non Perçue
         pesee.prixTTC.toFixed(2), // Mt total TTC
         "", // Code article (vide pour ligne E)
         "", // Quantité (vide pour ligne E)
@@ -727,10 +723,6 @@ export const useExportData = () => {
             "", // Statut devis
             "", // Ref. commande
             "", // Pas de retour stock
-            "", // Port Sans TVA
-            "", // Port Soumis TVA
-            "", // Taux TVA Port Soumis
-            "", // TVA Port Non Perçue
             "", // Mt total TTC (vide pour ligne L)
             "ARTDIVERS", // Code article pour ligne taxe
             "1.000", // Quantité

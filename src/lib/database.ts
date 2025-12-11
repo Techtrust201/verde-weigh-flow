@@ -583,6 +583,56 @@ class AppDatabase extends Dexie {
       taxes: "++id, nom, taux, tauxTVA, active, createdAt, updatedAt",
       paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
     });
+
+    // Version 14 - Ajout des champs de frais de port dans UserSettings (dépréciée)
+    this.version(14).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, codeClient, tvaIntracom, modePaiementPreferentiel, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, numeroFacture, typeDocument, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, reference, synchronized, version, exportedAt, numeroBonExported, numeroFactureExported, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, portSansTVA, portSoumisTVA, tauxTVAPort, tvaPortNonPercue, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      exportFormats:
+        "++id, formatId, displayName, isDefault, createdAt, updatedAt",
+      taxes: "++id, nom, taux, tauxTVA, active, createdAt, updatedAt",
+      paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
+    });
+
+    // Version 15 - Retrait des champs de frais de port (gérés maintenant par Sage)
+    this.version(15).stores({
+      clients:
+        "++id, typeClient, raisonSociale, siret, email, ville, codeClient, tvaIntracom, modePaiementPreferentiel, createdAt, updatedAt",
+      transporteurs: "++id, prenom, nom, siret, ville, createdAt, updatedAt",
+      products:
+        "++id, nom, prixHT, prixTTC, unite, codeProduct, isFavorite, createdAt, updatedAt",
+      pesees:
+        "++id, numeroBon, numeroFacture, typeDocument, dateHeure, plaque, nomEntreprise, produitId, clientId, transporteurId, transporteurLibre, reference, synchronized, version, exportedAt, numeroBonExported, numeroFactureExported, createdAt, updatedAt",
+      users: "++id, nom, prenom, email, role, createdAt, updatedAt",
+      userSettings:
+        "++id, nomEntreprise, adresse, codePostal, ville, email, telephone, siret, codeAPE, logo, cleAPISage, representantLegal, createdAt, updatedAt",
+      bsds: "++id, peseeId, bsdId, status, createdAt, updatedAt",
+      config: "++id, key, createdAt, updatedAt",
+      syncLogs: "++id, type, status, synchronized, createdAt",
+      conflictLogs:
+        "++id, peseeId, localVersion, serverVersion, resolution, createdAt",
+      exportLogs: "++id, fileName, startDate, endDate, exportType, createdAt",
+      sageTemplates: "++id, name, isActive, createdAt, updatedAt",
+      exportFormats:
+        "++id, formatId, displayName, isDefault, createdAt, updatedAt",
+      taxes: "++id, nom, taux, tauxTVA, active, createdAt, updatedAt",
+      paymentMethods: "++id, code, libelle, active, createdAt, updatedAt",
+    });
   }
 }
 

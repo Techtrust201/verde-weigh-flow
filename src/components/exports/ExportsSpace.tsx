@@ -62,13 +62,11 @@ import SageClientImportDialog from "@/components/import/SageClientImportDialog";
 import SageArticleImportDialog from "@/components/import/SageArticleImportDialog";
 
 export default function ExportsSpace() {
-  // Fonction helper pour obtenir les dates par défaut (hier et aujourd'hui)
+  // Fonction helper pour obtenir les dates par défaut (aujourd'hui pour les deux)
   const getDefaultDates = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
     const today = new Date();
     return {
-      dateDebut: yesterday.toISOString().split("T")[0],
+      dateDebut: today.toISOString().split("T")[0],
       dateFin: today.toISOString().split("T")[0],
     };
   };

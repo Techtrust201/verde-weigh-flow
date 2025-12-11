@@ -133,26 +133,26 @@ export function Combobox({
                 {options
                   .filter((option) => !option.isFavorite)
                   .map((option) => (
-                    <CommandItem
-                      key={option.value}
-                      value={`${option.label} ${option.value} ${
-                        option.keywords ?? ""
-                      }`}
-                      onSelect={(currentValue) => {
-                        onValueChange(option.value);
-                        setOpen(false);
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value === option.value ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {option.label}
-                    </CommandItem>
-                  ))}
-              </CommandGroup>
+                <CommandItem
+                  key={option.value}
+                  value={`${option.label} ${option.value} ${
+                    option.keywords ?? ""
+                  }`}
+                  onSelect={(currentValue) => {
+                    onValueChange(option.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === option.value ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option.label}
+                </CommandItem>
+              ))}
+            </CommandGroup>
             )}
           </CommandList>
         </Command>
