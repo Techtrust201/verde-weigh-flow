@@ -361,12 +361,12 @@ export const ProductWeightSection = ({
                       <span className="text-lg font-black text-green-600">
                         {formatWeight(
                           Math.abs(
+                          (parseFloat(
+                            currentData.poidsEntree?.replace(",", ".")
+                          ) || 0) -
                             (parseFloat(
-                              currentData.poidsEntree?.replace(",", ".")
-                            ) || 0) -
-                              (parseFloat(
-                                currentData.poidsSortie?.replace(",", ".")
-                              ) || 0)
+                              currentData.poidsSortie?.replace(",", ".")
+                            ) || 0)
                           )
                         )}{" "}
                         tonnes
