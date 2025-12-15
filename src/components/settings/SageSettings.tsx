@@ -134,9 +134,9 @@ export default function SageSettings({
             {/* Statut de la configuration */}
             <div
               className={`p-3 rounded-lg border ${
-                hasApiKey
-                  ? "bg-green-50 border-green-200 text-green-700"
-                  : "bg-orange-50 border-orange-200 text-orange-700"
+              hasApiKey 
+                ? "bg-green-50 border-green-200 text-green-700" 
+                : "bg-orange-50 border-orange-200 text-orange-700"
               }`}
             >
               <div className="flex items-center gap-2 text-sm font-medium mb-1">
@@ -153,7 +153,7 @@ export default function SageSettings({
                 )}
               </div>
               <p className="text-xs">
-                {hasApiKey
+                {hasApiKey 
                   ? "L'export vers Sage est disponible. Vous pouvez synchroniser vos données comptables."
                   : "Configurez votre clé API pour activer l'export automatique vers Sage."}
               </p>

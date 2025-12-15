@@ -51,7 +51,17 @@ export default function ClientForm({
       const methods = await db.paymentMethods
         .filter((pm) => pm.active)
         .toArray();
-      setPaymentMethods(methods);
+
+      // Dédupliquer par code unique (au cas où il y aurait des doublons en base)
+      const uniqueMethods = methods.reduce((acc, method) => {
+        const existing = acc.find((m) => m.code === method.code);
+        if (!existing) {
+          acc.push(method);
+        }
+        return acc;
+      }, [] as PaymentMethod[]);
+
+      setPaymentMethods(uniqueMethods);
     } catch (error) {
       console.error("Erreur chargement modes de paiement:", error);
     }

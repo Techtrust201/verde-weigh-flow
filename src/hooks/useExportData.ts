@@ -345,7 +345,7 @@ export const useExportData = () => {
     activeTaxes: { nom: string; taux: number; tauxTVA?: number }[] = []
   ): Promise<string> => {
     // Format Sage 50 complet basé sur import_BL_auto_number.txt
-    // Format Sage 50 (83 colonnes après suppression des frais de port gérés par Sage)
+    // Format Sage 50 (87 colonnes - les colonnes de frais de port sont présentes mais vides, gérées par Sage)
     const headers = [
       "Type de Ligne",
       "Type de pièce",
@@ -523,6 +523,10 @@ export const useExportData = () => {
         "", // Statut devis
         "", // Ref. commande
         "", // Pas de retour stock
+        "", // Port Sans TVA
+        "", // Port Soumis TVA
+        "", // Taux TVA Port Soumis
+        "", // TVA Port Non Perçue
         pesee.prixTTC.toFixed(2), // Mt total TTC
         "", // Code article (vide pour ligne E)
         "", // Quantité (vide pour ligne E)
@@ -723,6 +727,10 @@ export const useExportData = () => {
             "", // Statut devis
             "", // Ref. commande
             "", // Pas de retour stock
+            "", // Port Sans TVA
+            "", // Port Soumis TVA
+            "", // Taux TVA Port Soumis
+            "", // TVA Port Non Perçue
             "", // Mt total TTC (vide pour ligne L)
             "ARTDIVERS", // Code article pour ligne taxe
             "1.000", // Quantité

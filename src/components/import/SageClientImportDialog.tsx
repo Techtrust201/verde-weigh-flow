@@ -31,6 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { db, Client } from "@/lib/database";
 import { normalizeClientCode, matchClientCodes } from "@/utils/clientCodeUtils";
+import { cleanupDuplicateClients } from "@/utils/clientCleanup";
 
 interface ParsedClient {
   codeClient: string;
@@ -580,20 +581,54 @@ export default function SageClientImportDialog() {
 
     setIsImporting(true);
     try {
+      // Nettoyer les doublons existants avant l'import
+      const cleanupResult = await cleanupDuplicateClients();
+
+      if (cleanupResult.duplicatesRemoved > 0) {
+        toast({
+          title: "Nettoyage des doublons",
+          description: `${cleanupResult.duplicatesRemoved} client(s) en double supprimé(s). ${cleanupResult.keptClients.length} client(s) conservé(s).`,
+          variant: "default",
+        });
+      }
+
       let imported = 0;
       let updated = 0;
       let newPaymentMethods = 0;
 
       for (const parsedClient of importResult.clients) {
-        // Chercher le client existant par codeClient (priorité), raisonSociale ou SIRET
-        const existingClient = await db.clients
-          .filter(
-            (c) =>
-              c.codeClient === parsedClient.codeClient ||
-              c.raisonSociale === parsedClient.nomClient ||
-              (parsedClient.siret && c.siret === parsedClient.siret)
-          )
-          .first();
+        // Chercher le client existant de manière stricte pour éviter les doublons
+        // Priorité 1 : codeClient (le plus fiable)
+        // Priorité 2 : SIRET (si présent dans le fichier)
+        // Priorité 3 : raisonSociale (seulement si codeClient n'est pas dans le fichier)
+        let existingClient = null;
+
+        // 1. Chercher par codeClient d'abord (le plus fiable)
+        if (parsedClient.codeClient) {
+          existingClient = await db.clients
+            .filter((c) => c.codeClient === parsedClient.codeClient)
+            .first();
+        }
+
+        // 2. Si pas trouvé et que SIRET existe, chercher par SIRET
+        if (!existingClient && parsedClient.siret) {
+          existingClient = await db.clients
+            .filter((c) => c.siret === parsedClient.siret)
+            .first();
+        }
+
+        // 3. Si pas trouvé et que codeClient n'existe pas dans le fichier, chercher par raisonSociale
+        // (on évite de chercher par nom si codeClient existe pour éviter les faux positifs)
+        if (!existingClient && !parsedClient.codeClient) {
+          const raisonSociale =
+            fixEncoding(parsedClient.societe) ||
+            fixEncoding(parsedClient.nomClient);
+          if (raisonSociale) {
+            existingClient = await db.clients
+              .filter((c) => c.raisonSociale === raisonSociale)
+              .first();
+          }
+        }
 
         if (existingClient?.id) {
           // Mettre à jour le client existant avec TOUTES les nouvelles données
@@ -605,20 +640,27 @@ export default function SageClientImportDialog() {
 
         // Créer le mode de paiement si nécessaire
         if (parsedClient.modePaiement && parsedClient.modePaiementLibelle) {
-          const existingMethod = await db.paymentMethods
-            .filter((pm) => pm.code === parsedClient.modePaiement)
-            .first();
+          // Vérification plus robuste : chercher tous les modes avec ce code
+          const existingMethods = await db.paymentMethods
+            .filter(
+              (pm) =>
+                pm.code.toUpperCase() ===
+                parsedClient.modePaiement.toUpperCase()
+            )
+            .toArray();
 
-          if (!existingMethod) {
+          // Si aucun n'existe, créer le mode de paiement
+          if (existingMethods.length === 0) {
             await db.paymentMethods.add({
-              code: parsedClient.modePaiement,
-              libelle: parsedClient.modePaiementLibelle,
+              code: parsedClient.modePaiement.toUpperCase().trim(),
+              libelle: parsedClient.modePaiementLibelle.trim(),
               active: true,
               createdAt: new Date(),
               updatedAt: new Date(),
             });
             newPaymentMethods++;
           }
+          // Si des doublons existent déjà, on ne fait rien (ils seront nettoyés manuellement)
         }
 
         // Créer le nouveau client en utilisant la fonction helper

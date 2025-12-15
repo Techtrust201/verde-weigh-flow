@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { db, PaymentMethod } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, CreditCard } from "lucide-react";
+import { Plus, Pencil, Trash2, CreditCard, Trash } from "lucide-react";
 
 export function PaymentMethodsManager() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -49,6 +49,71 @@ export function PaymentMethodsManager() {
       toast({
         title: "Erreur",
         description: "Impossible de charger les modes de paiement.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCleanDuplicates = async () => {
+    if (
+      !window.confirm(
+        "Cette action va supprimer les doublons de modes de paiement. Seul le premier enregistrement de chaque code sera conservé. Continuer ?"
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const allMethods = await db.paymentMethods.toArray();
+
+      // Grouper par code et identifier les doublons
+      const methodsByCode = new Map<string, PaymentMethod[]>();
+      allMethods.forEach((method) => {
+        const code = method.code.toUpperCase();
+        if (!methodsByCode.has(code)) {
+          methodsByCode.set(code, []);
+        }
+        methodsByCode.get(code)!.push(method);
+      });
+
+      // Pour chaque code avec doublons, garder le plus ancien et supprimer les autres
+      let deletedCount = 0;
+      for (const [code, methods] of methodsByCode.entries()) {
+        if (methods.length > 1) {
+          // Trier par date de création (le plus ancien en premier)
+          methods.sort((a, b) => {
+            const dateA = a.createdAt?.getTime() || 0;
+            const dateB = b.createdAt?.getTime() || 0;
+            return dateA - dateB;
+          });
+
+          // Garder le premier, supprimer les autres
+          const toDelete = methods.slice(1);
+          for (const method of toDelete) {
+            await db.paymentMethods.delete(method.id!);
+            deletedCount++;
+          }
+        }
+      }
+
+      await loadPaymentMethods();
+
+      if (deletedCount > 0) {
+        toast({
+          title: "Nettoyage terminé",
+          description: `${deletedCount} doublon(s) supprimé(s).`,
+        });
+      } else {
+        toast({
+          title: "Aucun doublon",
+          description: "Aucun doublon trouvé dans les modes de paiement.",
+        });
+      }
+    } catch (error) {
+      console.error("Erreur lors du nettoyage:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de nettoyer les doublons.",
         variant: "destructive",
       });
     }
@@ -211,10 +276,20 @@ export function PaymentMethodsManager() {
               <CreditCard className="h-5 w-5" />
               Gestion des modes de paiement
             </CardTitle>
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nouveau mode
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCleanDuplicates}
+                className="text-orange-600 hover:text-orange-700"
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Nettoyer les doublons
+              </Button>
+              <Button onClick={() => handleOpenDialog()}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouveau mode
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
