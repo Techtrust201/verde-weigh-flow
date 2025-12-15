@@ -1793,7 +1793,7 @@ export default function PeseeSpace({
                   setShowRecentTab(false);
                   handleCreateNewTab();
                 }}
-                className="h-10 px-4 border-dashed bg-green-600 hover:bg-green-700 text-white"
+                className="h-10 px-4 border-white bg-green-600 hover:bg-green-700 text-white"
               >
                 + Nouveau
               </Button>

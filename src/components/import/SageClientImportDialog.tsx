@@ -32,6 +32,11 @@ import { useToast } from "@/hooks/use-toast";
 import { db, Client } from "@/lib/database";
 import { normalizeClientCode, matchClientCodes } from "@/utils/clientCodeUtils";
 import { cleanupDuplicateClients } from "@/utils/clientCleanup";
+import {
+  validateAndFixMissingFields,
+  type MissingFieldsResult,
+} from "@/utils/validateMissingFields";
+import { MissingFieldsDialog } from "./MissingFieldsDialog";
 
 interface ParsedClient {
   codeClient: string;
@@ -168,6 +173,10 @@ export default function SageClientImportDialog() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [missingFields, setMissingFields] =
+    useState<MissingFieldsResult | null>(null);
+  const [isMissingFieldsDialogOpen, setIsMissingFieldsDialogOpen] =
+    useState(false);
   const { toast } = useToast();
 
   const handleFileSelect = useCallback(
@@ -581,8 +590,76 @@ export default function SageClientImportDialog() {
 
     setIsImporting(true);
     try {
+      // Hypothèse B : Vérifier les champs obligatoires avant le nettoyage
+      const missingFieldsResult = await validateAndFixMissingFields();
+      if (
+        missingFieldsResult.clients.length > 0 ||
+        missingFieldsResult.products.length > 0
+      ) {
+        setMissingFields(missingFieldsResult);
+        setIsMissingFieldsDialogOpen(true);
+        setIsImporting(false);
+        return; // Attendre la correction avant de continuer
+      }
+
+      // #region agent log
+      const cleanupStartTime = Date.now();
+      fetch(
+        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "SageClientImportDialog.tsx:584",
+            message: "Starting cleanup before import",
+            data: { clientsToImport: importResult.clients.length },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "D",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       // Nettoyer les doublons existants avant l'import
-      const cleanupResult = await cleanupDuplicateClients();
+      // Hypothèse D : Gérer les erreurs de nettoyage
+      let cleanupResult;
+      try {
+        cleanupResult = await cleanupDuplicateClients();
+      } catch (error) {
+        toast({
+          title: "Erreur de nettoyage",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Impossible de nettoyer les doublons",
+          variant: "destructive",
+        });
+        setIsImporting(false);
+        return; // Ne pas continuer l'import si le nettoyage échoue
+      }
+      // #region agent log
+      const cleanupDuration = Date.now() - cleanupStartTime;
+      fetch(
+        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "SageClientImportDialog.tsx:586",
+            message: "Cleanup completed",
+            data: {
+              duration: cleanupDuration,
+              duplicatesRemoved: cleanupResult.duplicatesRemoved,
+            },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "D",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
 
       if (cleanupResult.duplicatesRemoved > 0) {
         toast({
@@ -631,9 +708,85 @@ export default function SageClientImportDialog() {
         }
 
         if (existingClient?.id) {
-          // Mettre à jour le client existant avec TOUTES les nouvelles données
+          // Récupérer le client complet depuis la DB pour préserver toutes les données
+          const fullClient = await db.clients.get(existingClient.id);
+          if (!fullClient) {
+            updated++;
+            continue;
+          }
+
+          // Créer les updates en préservant les données existantes
+          // createUpdateFromParsed ne touche pas aux plaques, chantiers, etc.
+          // qui ne sont pas dans le fichier Sage, donc ils seront préservés
           const updates = createUpdateFromParsed(parsedClient);
-          await db.clients.update(existingClient.id, updates);
+          // #region agent log
+          fetch(
+            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                location: "SageClientImportDialog.tsx:641",
+                message: "Before update - checking preserved fields",
+                data: {
+                  clientId: existingClient.id,
+                  updatesKeys: Object.keys(updates),
+                  hasPlaquesBefore: !!fullClient.plaques,
+                  plaquesBefore: fullClient.plaques,
+                  hasChantiersBefore: !!fullClient.chantiers,
+                  chantiersBefore: fullClient.chantiers,
+                },
+                timestamp: Date.now(),
+                sessionId: "debug-session",
+                runId: "run1",
+                hypothesisId: "C",
+              }),
+            }
+          ).catch(() => {});
+          // #endregion
+
+          // Utiliser put() avec merge explicite pour garantir la préservation de tous les champs
+          // Pattern cohérent avec ClientsSpace.tsx et PeseeSpace.tsx
+          const mergedClient = {
+            ...fullClient, // Toutes les données existantes (plaques, chantiers, tarifs, etc.)
+            ...updates, // Les nouvelles données du fichier Sage
+            id: existingClient.id,
+            updatedAt: new Date(),
+          } as Client;
+          await db.clients.put(mergedClient);
+          // #region agent log
+          const afterUpdate = await db.clients.get(existingClient.id);
+          fetch(
+            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                location: "SageClientImportDialog.tsx:648",
+                message: "After update - verifying preserved fields",
+                data: {
+                  clientId: existingClient.id,
+                  hasPlaquesAfter: !!afterUpdate?.plaques,
+                  plaquesAfter: afterUpdate?.plaques,
+                  hasChantiersAfter: !!afterUpdate?.chantiers,
+                  chantiersAfter: afterUpdate?.chantiers,
+                  fieldsPreserved: JSON.stringify({
+                    plaques:
+                      afterUpdate?.plaques?.length ===
+                      fullClient.plaques?.length,
+                    chantiers:
+                      afterUpdate?.chantiers?.length ===
+                      fullClient.chantiers?.length,
+                  }),
+                },
+                timestamp: Date.now(),
+                sessionId: "debug-session",
+                runId: "run1",
+                hypothesisId: "C",
+              }),
+            }
+          ).catch(() => {});
+          // #endregion
           updated++;
           continue;
         }
@@ -1095,6 +1248,20 @@ export default function SageClientImportDialog() {
           )}
         </div>
       </DialogContent>
+
+      {/* Dialog pour corriger les champs obligatoires manquants */}
+      {missingFields && (
+        <MissingFieldsDialog
+          open={isMissingFieldsDialogOpen}
+          onOpenChange={setIsMissingFieldsDialogOpen}
+          missingFields={missingFields}
+          onFixed={async () => {
+            // Relancer l'import après correction
+            setMissingFields(null);
+            await handleImport();
+          }}
+        />
+      )}
     </Dialog>
   );
 }

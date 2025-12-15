@@ -1385,7 +1385,25 @@ export const PeseeFormSection = ({
               variant="outline"
               onClick={() => {
                 if (selectedClient) {
+                  // Fusionner les plaques : client + pesée actuelle
+                  const plaques = new Set<string>(selectedClient.plaques || []);
+                  if (currentData?.plaque?.trim()) {
+                    plaques.add(currentData.plaque.trim());
+                  }
+
+                  // Fusionner les chantiers : client + pesée actuelle
+                  const chantiers = new Set<string>(
+                    selectedClient.chantiers || []
+                  );
+                  if (currentData?.chantier?.trim()) {
+                    chantiers.add(currentData.chantier.trim());
+                  }
+                  if (currentData?.chantierLibre?.trim()) {
+                    chantiers.add(currentData.chantierLibre.trim());
+                  }
+
                   // Si un client est sélectionné, pré-remplir le formulaire avec ses données
+                  // fusionnées avec les données de la pesée actuelle
                   setNewClientForm({
                     id: selectedClient.id,
                     codeClient: selectedClient.codeClient,
@@ -1397,8 +1415,8 @@ export const PeseeFormSection = ({
                     ville: selectedClient.ville,
                     telephone: selectedClient.telephone,
                     email: selectedClient.email,
-                    plaques: selectedClient.plaques,
-                    chantiers: selectedClient.chantiers,
+                    plaques: Array.from(plaques), // Fusionné avec la pesée
+                    chantiers: Array.from(chantiers), // Fusionné avec la pesée
                     transporteurId: selectedClient.transporteurId,
                     modePaiementPreferentiel:
                       selectedClient.modePaiementPreferentiel,
