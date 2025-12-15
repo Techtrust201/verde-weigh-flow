@@ -74,8 +74,7 @@ export default function UtilisateurSpace() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <User className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Paramètres & Utilisateur</h1>
+        <h2 className="text-3xl font-bold">Paramètres & Utilisateur</h2>
       </div>
 
       <Tabs defaultValue="company" className="w-full">

@@ -334,9 +334,9 @@ export const PeseeFormSection = ({
   };
 
   return (
-    <div className="space-y-3 flex-1 flex flex-col h-full">
-      <div className="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="space-y-2 flex-1 flex flex-col h-full">
+      <div className="border border-gray-200 rounded-lg p-2 bg-gray-50/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <div>
             <Label htmlFor="numeroBon">Numéro de bon</Label>
             <Input
@@ -396,8 +396,8 @@ export const PeseeFormSection = ({
       </div>
 
       {/* Si pas de client sélectionné, afficher le sélecteur de type */}
-      <div className="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3">
+      <div className="border border-gray-200 rounded-lg p-2 bg-gray-50/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
           {!currentData?.clientId ? (
             <>
               <div>
@@ -433,7 +433,7 @@ export const PeseeFormSection = ({
                       variant="outline"
                       role="combobox"
                       aria-expanded={clientSelectorOpen}
-                      className="w-full justify-between  px-4 py-3 bg-white border-2 border-gray-200 transition-colors duration-200 rounded-lg"
+                      className="w-full justify-between  px-4 py-2 bg-white border-2 border-gray-200 transition-colors duration-200 rounded-lg"
                     >
                       {selectedClient ? (
                         <div className="flex items-center gap-3 w-full">
@@ -470,7 +470,7 @@ export const PeseeFormSection = ({
                     sideOffset={4}
                   >
                     <Command className="bg-white">
-                      <div className="flex items-center border-b border-gray-100 px-4 py-3 bg-gray-50">
+                      <div className="flex items-center border-b border-gray-100 px-4 py-2 bg-gray-50">
                         <CommandInput
                           placeholder="Rechercher par nom, SIRET, contact, adresse, plaque..."
                           value={clientSearchValue}
@@ -514,7 +514,7 @@ export const PeseeFormSection = ({
                                   client.plaques?.join(" ") || ""
                                 }`}
                                 onSelect={() => handleClientSelect(client)}
-                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+                                className="px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
                               >
                                 <Check
                                   className={cn(
@@ -596,7 +596,7 @@ export const PeseeFormSection = ({
                       variant="outline"
                       role="combobox"
                       aria-expanded={clientSelectorOpen}
-                      className="w-full justify-between px-4 py-3 bg-white border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors duration-200 rounded-lg"
+                      className="w-full justify-between px-4 py-2 bg-white border-2 border-gray-200 hover:border-blue-300 focus:border-blue-500 transition-colors duration-200 rounded-lg"
                     >
                       {selectedClient ? (
                         <div className="flex items-center gap-3 w-full">
@@ -633,7 +633,7 @@ export const PeseeFormSection = ({
                     sideOffset={4}
                   >
                     <Command className="bg-white">
-                      <div className="flex items-center border-b border-gray-100 px-4 py-3 bg-gray-50">
+                      <div className="flex items-center border-b border-gray-100 px-4 py-2 bg-gray-50">
                         <CommandInput
                           placeholder="Rechercher par nom, SIRET, contact, adresse, plaque..."
                           value={clientSearchValue}
@@ -677,7 +677,7 @@ export const PeseeFormSection = ({
                                   client.plaques?.join(" ") || ""
                                 }`}
                                 onSelect={() => handleClientSelect(client)}
-                                className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+                                className="px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
                               >
                                 <Check
                                   className={cn(
@@ -741,8 +741,8 @@ export const PeseeFormSection = ({
         </div>
       </div>
 
-      <div className="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-3 items-stretch">
+      <div className="border border-gray-200 rounded-lg p-2 bg-gray-50/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 items-stretch">
           <div>
             <Label
               htmlFor="nomEntreprise"
@@ -769,13 +769,13 @@ export const PeseeFormSection = ({
               }
             />
             {validationErrors.nomEntreprise && (
-              <p className="text-red-600 text-sm mt-1">
+              <p className="text-red-600 text-sm mt-0.5">
                 Ce champ est obligatoire
               </p>
             )}
           </div>
           <div>
-            <div className="mb-1.5">
+            <div className="mb-1">
               <Label
                 htmlFor="plaque"
                 className={cn(
@@ -789,7 +789,7 @@ export const PeseeFormSection = ({
                 )}
               </Label>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
                   <Popover
@@ -878,7 +878,7 @@ export const PeseeFormSection = ({
                     <DialogHeader>
                       <DialogTitle>Ajouter une nouvelle plaque</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <div>
                         <Label>Plaque d'immatriculation</Label>
                         <Input
@@ -930,7 +930,7 @@ export const PeseeFormSection = ({
                 )}
               />
               {validationErrors.plaque && (
-                <p className="text-red-600 text-sm mt-1">
+                <p className="text-red-600 text-sm mt-0.5">
                   Ce champ est obligatoire
                 </p>
               )}
@@ -939,8 +939,8 @@ export const PeseeFormSection = ({
         </div>
       </div>
 
-      <div className="border border-gray-200 rounded-lg p-3 bg-gray-50/50">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-stretch">
+      <div className="border border-gray-200 rounded-lg p-2 bg-gray-50/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-stretch">
           <div className="flex flex-col h-full">
             <div>
               <Label
@@ -960,7 +960,7 @@ export const PeseeFormSection = ({
                     if (client && isClientAddressComplete(client)) {
                       const defaultChantier = `${client.adresse}, ${client.codePostal} ${client.ville}`;
                       return (
-                        <p className="text-xs text-muted-foreground my-2">
+                        <p className="text-xs text-muted-foreground my-1">
                           💡 Par défaut :{" "}
                           <span className="font-medium">
                             (adresse du client)
@@ -972,7 +972,7 @@ export const PeseeFormSection = ({
                   })()
                 : null}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
                   <Popover
@@ -1061,7 +1061,7 @@ export const PeseeFormSection = ({
                     <DialogHeader>
                       <DialogTitle>Ajouter un nouveau chantier</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       <div>
                         <Label>Nom du chantier</Label>
                         <Input
@@ -1111,7 +1111,7 @@ export const PeseeFormSection = ({
                 )}
               />
               {!!validationErrors.chantier && (
-                <p className="text-red-600 text-sm mt-1">
+                <p className="text-red-600 text-sm mt-0.5">
                   Ce champ est obligatoire
                 </p>
               )}
@@ -1122,13 +1122,13 @@ export const PeseeFormSection = ({
             <div>
               <Label htmlFor="transporteur">Transporteur</Label>
               {currentData?.nomEntreprise && (
-                <p className="text-xs text-muted-foreground my-2">
+                <p className="text-xs text-muted-foreground my-1">
                   💡 Par défaut :{" "}
                   <span className="font-medium">(le client)</span>
                 </p>
               )}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
                   <Popover
@@ -1229,8 +1229,8 @@ export const PeseeFormSection = ({
                     <DialogHeader>
                       <DialogTitle>Nouveau Transporteur</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label>Prénom *</Label>
                           <Input

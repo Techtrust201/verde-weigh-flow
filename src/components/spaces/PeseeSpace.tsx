@@ -1740,7 +1740,7 @@ export default function PeseeSpace({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div
         className="fixed top-0 right-0 bg-white z-10 shadow-lg transition-all duration-300"
         style={{
@@ -1748,14 +1748,7 @@ export default function PeseeSpace({
           marginLeft: "auto",
         }}
       >
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold flex items-center text-gray-800">
-            <Scale className="h-6 w-6 mr-3 text-black" />
-            Station de Pesée
-          </h1>
-        </div>
-
-        <div className="px-6 py-3 bg-white">
+        <div className="px-6 py-2 bg-white">
           <div className="flex items-center gap-3">
             {/* Zone des onglets - prend l'espace disponible */}
             <div className="flex-1 min-w-0 overflow-hidden">
@@ -1783,7 +1776,7 @@ export default function PeseeSpace({
                   await loadData(); // Attendre le rafraîchissement avant d'afficher
                   setShowRecentTab(true);
                 }}
-                className="h-10 px-4"
+                className="h-9 px-4"
               >
                 📊 Pesées récentes
               </Button>
@@ -1793,7 +1786,7 @@ export default function PeseeSpace({
                   setShowRecentTab(false);
                   handleCreateNewTab();
                 }}
-                className="h-10 px-4 border-white bg-green-600 hover:bg-green-700 text-white"
+                className="h-9 px-4 border-white bg-green-600 hover:bg-green-700 text-white"
               >
                 + Nouveau
               </Button>
@@ -1802,7 +1795,7 @@ export default function PeseeSpace({
         </div>
       </div>
 
-      <div className="h-20 bg-transparent"></div>
+      <div className="h-[88px] bg-transparent"></div>
 
       <Tabs
         value={showRecentTab ? "recentes" : activeTabId}
@@ -1819,10 +1812,10 @@ export default function PeseeSpace({
         {tabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id}>
             <Card className="shadow-lg border-2">
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="grid grid-cols-1 lg:grid-cols-[50%_50%] items-stretch">
                   {/* Colonne gauche : Champs contextuels */}
-                  <div className="space-y-3 lg:border-r lg:border-gray-200 lg:pr-4 flex flex-col h-full">
+                  <div className="space-y-2 lg:border-r lg:border-gray-200 lg:pr-4 flex flex-col h-full">
                     <PeseeFormSection
                       currentData={tab.formData}
                       clients={clients}
@@ -1859,7 +1852,7 @@ export default function PeseeSpace({
                   </div>
 
                   {/* Colonne droite : Champs critiques + Actions */}
-                  <div className="space-y-3 lg:pl-4 flex flex-col h-full">
+                  <div className="space-y-2 lg:pl-4 flex flex-col h-full">
                     <ProductWeightSection
                       currentData={tab.formData}
                       products={products}
@@ -1867,7 +1860,7 @@ export default function PeseeSpace({
                       validationErrors={validationErrors}
                     />
 
-                    <div className="flex justify-center space-x-3 pt-3 mt-auto">
+                    <div className="flex justify-center space-x-3 pt-2 mt-auto">
                       <Button
                         variant="outline"
                         onClick={async () => {

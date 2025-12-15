@@ -204,29 +204,29 @@ export default function ClientsSpace() {
       // Corriger les types de clients
       const correctedClients = await Promise.all(
         clientsData.map(async (client) => {
-        // Si le type est déjà correct, ne pas le modifier
-        if (
-          client.typeClient === "particulier" ||
-          client.typeClient === "professionnel" ||
-          client.typeClient === "micro-entreprise"
-        ) {
-          return client;
-        }
+          // Si le type est déjà correct, ne pas le modifier
+          if (
+            client.typeClient === "particulier" ||
+            client.typeClient === "professionnel" ||
+            client.typeClient === "micro-entreprise"
+          ) {
+            return client;
+          }
 
-        // Sinon, corriger le type
-        const typeLower = String(client.typeClient || "")
-          .toLowerCase()
-          .trim();
-        let correctedType:
-          | "particulier"
-          | "professionnel"
-          | "micro-entreprise" = "professionnel"; // Par défaut
+          // Sinon, corriger le type
+          const typeLower = String(client.typeClient || "")
+            .toLowerCase()
+            .trim();
+          let correctedType:
+            | "particulier"
+            | "professionnel"
+            | "micro-entreprise" = "professionnel"; // Par défaut
 
-        if (typeLower.includes("particulier")) {
-          correctedType = "particulier";
-        } else if (typeLower.includes("micro")) {
-          correctedType = "micro-entreprise";
-        }
+          if (typeLower.includes("particulier")) {
+            correctedType = "particulier";
+          } else if (typeLower.includes("micro")) {
+            correctedType = "micro-entreprise";
+          }
 
           // Mettre à jour dans la base de données avec put pour garantir la persistance
           // Récupérer le client complet depuis la DB d'abord
@@ -234,16 +234,16 @@ export default function ClientsSpace() {
           if (fullClient) {
             await db.clients.put({
               ...fullClient,
-          typeClient: correctedType,
+              typeClient: correctedType,
               updatedAt: new Date(),
             });
           }
 
-        // Retourner le client avec le type corrigé
-        return {
-          ...client,
-          typeClient: correctedType,
-        };
+          // Retourner le client avec le type corrigé
+          return {
+            ...client,
+            typeClient: correctedType,
+          };
         })
       );
 
@@ -813,9 +813,9 @@ export default function ClientsSpace() {
       const fullName = `${client.prenom || ""} ${client.nom || ""}`.trim();
       if (fullName) return fullName;
     }
-    
+
     if (client.raisonSociale) return client.raisonSociale;
-    
+
     return "-";
   };
 
@@ -856,6 +856,7 @@ export default function ClientsSpace() {
   return (
     <div className="space-y-6">
       {/* Header avec titre et bouton */}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">
@@ -977,8 +978,8 @@ export default function ClientsSpace() {
       {displayedClients.length === 0 && clients.length === 0 ? (
         <EmptyClientState
           onCreateClient={() => {
-          resetForm();
-          setIsCreateDialogOpen(true);
+            resetForm();
+            setIsCreateDialogOpen(true);
           }}
         />
       ) : (
@@ -1073,17 +1074,17 @@ export default function ClientsSpace() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="w-12">
-                              <Checkbox 
+                              <Checkbox
                                 checked={
                                   paginatedClients.length > 0 &&
                                   paginatedClients.every((c) =>
                                     selectedClientIds.has(c.id!)
                                   )
                                 }
-                                onCheckedChange={(checked) => { 
-                                  if (checked) selectAllClients(); 
-                                  else deselectAllClients(); 
-                                }} 
+                                onCheckedChange={(checked) => {
+                                  if (checked) selectAllClients();
+                                  else deselectAllClients();
+                                }}
                               />
                             </TableHead>
                             <TableHead>Code</TableHead>
@@ -1105,8 +1106,8 @@ export default function ClientsSpace() {
                           {paginatedClients.map((client) => (
                             <TableRow key={client.id}>
                               <TableCell>
-                                <Checkbox 
-                                  checked={selectedClientIds.has(client.id!)} 
+                                <Checkbox
+                                  checked={selectedClientIds.has(client.id!)}
                                   onCheckedChange={() =>
                                     toggleClientSelection(client.id!)
                                   }
@@ -1205,8 +1206,8 @@ export default function ClientsSpace() {
                                       Modifier
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      onClick={() => handleDelete(client)} 
+                                    <DropdownMenuItem
+                                      onClick={() => handleDelete(client)}
                                       className="text-destructive"
                                     >
                                       <Trash2 className="h-4 w-4 mr-2" />
