@@ -67,6 +67,100 @@ interface ImportResult {
   warnings: string[];
 }
 
+// Mapping des colonnes avec leurs mots-clés de recherche
+const COLUMN_MAPPINGS = {
+  societe: [["société"], ["societe"]],
+  formeJuridique: [["forme", "juridique"]],
+  telephone: [["téléphone"], ["telephone"]],
+  siret: [["siret"]],
+  representant: [["représentant"], ["representant"]],
+  nomRepresentant: [
+    ["nom", "représentant"],
+    ["nom", "representant"],
+  ],
+  modePaiementLibelle: [
+    ["libellé", "mode", "paiement"],
+    ["libelle", "mode", "paiement"],
+  ],
+  tvaIntracom: [["tva", "intra"]],
+  nomBanque: [["nom", "banque"]],
+  codeBanque: [["code", "banque"]],
+  codeGuichet: [["code", "guichet"]],
+  numeroCompte: [
+    ["numero", "compte"],
+    ["numéro", "compte"],
+  ],
+} as const;
+
+// Fonction pour corriger l'encodage des caractères spéciaux
+const fixEncoding = (text: string | undefined): string => {
+  if (!text) return "";
+
+  return text
+    .replace(/�/g, "é") // Corriger les é mal encodés
+    .replace(/�/g, "è") // Corriger les è mal encodés
+    .replace(/�/g, "à") // Corriger les à mal encodés
+    .replace(/�/g, "ç") // Corriger les ç mal encodés
+    .replace(/�/g, "ù") // Corriger les ù mal encodés
+    .replace(/�/g, "ê") // Corriger les ê mal encodés
+    .replace(/�/g, "î") // Corriger les î mal encodés
+    .replace(/�/g, "ô") // Corriger les ô mal encodés
+    .replace(/�/g, "û") // Corriger les û mal encodés
+    .replace(/�/g, "â") // Corriger les â mal encodés
+    .replace(/�/g, "É") // Corriger les É mal encodés
+    .replace(/�/g, "È") // Corriger les È mal encodés
+    .replace(/�/g, "À") // Corriger les À mal encodés
+    .replace(/�/g, "Ç") // Corriger les Ç mal encodés
+    .replace(/�/g, "Ù") // Corriger les Ù mal encodés
+    .replace(/�/g, "Ê") // Corriger les Ê mal encodés
+    .replace(/�/g, "Î") // Corriger les Î mal encodés
+    .replace(/�/g, "Ô") // Corriger les Ô mal encodés
+    .replace(/�/g, "Û") // Corriger les Û mal encodés
+    .replace(/�/g, "Â") // Corriger les Â mal encodés
+    .replace(/�/g, "°") // Corriger les ° mal encodés (pour "N° TVA intracom")
+    .replace(/�/g, "°"); // Autre variante du symbole degré
+};
+
+// Fonction helper pour trouver une valeur de colonne avec fallback
+const findColumnValue = (
+  rowData: Record<string, string>,
+  columns: string[],
+  keywords: readonly (readonly string[])[],
+  fallback?: string
+): string | undefined => {
+  const findColumnByKeywords = (
+    keywords: readonly string[]
+  ): string | undefined => {
+    const normalize = (str: string): string =>
+      str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "")
+        .replace(/[°'"]/g, "");
+
+    for (const colName of columns) {
+      const normalizedCol = normalize(colName);
+      if (
+        keywords.every((keyword) =>
+          normalizedCol.includes(normalize(keyword))
+        ) &&
+        rowData[colName] &&
+        rowData[colName] !== ""
+      ) {
+        return rowData[colName];
+      }
+    }
+    return undefined;
+  };
+
+  for (const keywordSet of keywords) {
+    const value = findColumnByKeywords(keywordSet);
+    if (value) return value;
+  }
+  return fallback;
+};
+
 export default function SageClientImportDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -74,35 +168,6 @@ export default function SageClientImportDialog() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
-
-  // Fonction pour corriger l'encodage des caractères spéciaux
-  const fixEncoding = (text: string | undefined): string => {
-    if (!text) return "";
-
-    return text
-      .replace(/�/g, "é") // Corriger les é mal encodés
-      .replace(/�/g, "è") // Corriger les è mal encodés
-      .replace(/�/g, "à") // Corriger les à mal encodés
-      .replace(/�/g, "ç") // Corriger les ç mal encodés
-      .replace(/�/g, "ù") // Corriger les ù mal encodés
-      .replace(/�/g, "ê") // Corriger les ê mal encodés
-      .replace(/�/g, "î") // Corriger les î mal encodés
-      .replace(/�/g, "ô") // Corriger les ô mal encodés
-      .replace(/�/g, "û") // Corriger les û mal encodés
-      .replace(/�/g, "â") // Corriger les â mal encodés
-      .replace(/�/g, "É") // Corriger les É mal encodés
-      .replace(/�/g, "È") // Corriger les È mal encodés
-      .replace(/�/g, "À") // Corriger les À mal encodés
-      .replace(/�/g, "Ç") // Corriger les Ç mal encodés
-      .replace(/�/g, "Ù") // Corriger les Ù mal encodés
-      .replace(/�/g, "Ê") // Corriger les Ê mal encodés
-      .replace(/�/g, "Î") // Corriger les Î mal encodés
-      .replace(/�/g, "Ô") // Corriger les Ô mal encodés
-      .replace(/�/g, "Û") // Corriger les Û mal encodés
-      .replace(/�/g, "Â") // Corriger les Â mal encodés
-      .replace(/�/g, "°") // Corriger les ° mal encodés (pour "N° TVA intracom")
-      .replace(/�/g, "°"); // Autre variante du symbole degré
-  };
 
   const handleFileSelect = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,90 +194,60 @@ export default function SageClientImportDialog() {
       (col) => col.trim() === "Type de client"
     );
 
-    // Fonction pour trouver une colonne par mots-clés (insensible à la casse et aux accents)
-    const findColumnByKeywords = (
-      rowData: Record<string, string>,
-      keywords: string[]
-    ): string | undefined => {
-      // Normaliser une chaîne pour la comparaison (enlever accents, espaces, casse)
-      const normalize = (str: string): string => {
-        return str
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "") // Enlever accents
-          .replace(/\s+/g, "") // Enlever espaces
-          .replace(/[°'"]/g, ""); // Enlever symboles
-      };
-
-      // Chercher une colonne qui contient tous les mots-clés
-      for (const colName of columns) {
-        const normalizedCol = normalize(colName);
-        const allKeywordsMatch = keywords.every((keyword) =>
-          normalizedCol.includes(normalize(keyword))
-        );
-
-        if (
-          allKeywordsMatch &&
-          rowData[colName] !== undefined &&
-          rowData[colName] !== ""
-        ) {
-          return rowData[colName];
-        }
-      }
-
-      return undefined;
-    };
-
-    // Debug : Afficher toutes les colonnes disponibles
-    console.log("=== DEBUG IMPORT CLIENTS SAGE ===");
-    console.log("Nombre de colonnes:", columns.length);
-    console.log("Colonnes trouvées:", columns);
-    console.log("\n=== RECHERCHE COLONNES IMPORTANTES ===");
-    console.log(
-      "SIRET:",
-      columns.find((c) => c.toLowerCase().includes("siret"))
-    );
-    console.log(
-      "TVA Intracom:",
-      columns.find(
-        (c) =>
-          c.toLowerCase().includes("tva") && c.toLowerCase().includes("intra")
-      )
-    );
-    console.log(
-      "Nom Banque:",
-      columns.find(
-        (c) =>
-          c.toLowerCase().includes("nom") && c.toLowerCase().includes("banque")
-      )
-    );
-    console.log(
-      "Code Banque:",
-      columns.find(
-        (c) =>
-          c.toLowerCase().includes("code") && c.toLowerCase().includes("banque")
-      )
-    );
-    console.log(
-      "Code Guichet:",
-      columns.find((c) => c.toLowerCase().includes("guichet"))
-    );
-    console.log(
-      "Numéro Compte:",
-      columns.find(
-        (c) =>
-          c.toLowerCase().includes("compte") &&
-          !c.toLowerCase().includes("comptable")
-      )
-    );
-    console.log(
-      "Clé RIB:",
-      columns.find(
-        (c) =>
-          c.toLowerCase().includes("rib") || c.toLowerCase().includes("cle")
-      )
-    );
-    console.log("===========================================");
+    // Debug : Afficher toutes les colonnes disponibles (seulement en mode développement)
+    if (process.env.NODE_ENV === "development") {
+      console.log("=== DEBUG IMPORT CLIENTS SAGE ===");
+      console.log("Nombre de colonnes:", columns.length);
+      console.log("Colonnes trouvées:", columns);
+      console.log("\n=== RECHERCHE COLONNES IMPORTANTES ===");
+      console.log(
+        "SIRET:",
+        columns.find((c) => c.toLowerCase().includes("siret"))
+      );
+      console.log(
+        "TVA Intracom:",
+        columns.find(
+          (c) =>
+            c.toLowerCase().includes("tva") && c.toLowerCase().includes("intra")
+        )
+      );
+      console.log(
+        "Nom Banque:",
+        columns.find(
+          (c) =>
+            c.toLowerCase().includes("nom") &&
+            c.toLowerCase().includes("banque")
+        )
+      );
+      console.log(
+        "Code Banque:",
+        columns.find(
+          (c) =>
+            c.toLowerCase().includes("code") &&
+            c.toLowerCase().includes("banque")
+        )
+      );
+      console.log(
+        "Code Guichet:",
+        columns.find((c) => c.toLowerCase().includes("guichet"))
+      );
+      console.log(
+        "Numéro Compte:",
+        columns.find(
+          (c) =>
+            c.toLowerCase().includes("compte") &&
+            !c.toLowerCase().includes("comptable")
+        )
+      );
+      console.log(
+        "Clé RIB:",
+        columns.find(
+          (c) =>
+            c.toLowerCase().includes("rib") || c.toLowerCase().includes("cle")
+        )
+      );
+      console.log("===========================================");
+    }
 
     const clients: ParsedClient[] = [];
 
@@ -231,14 +266,12 @@ export default function SageClientImportDialog() {
       // Si on trouve "Code" et "Nom" comme colonnes, c'est un export clients
       if (rowData["Code"] && rowData["Nom"]) {
         const client: ParsedClient = {
-          codeClient: normalizeClientCode(rowData["Code"]), // Normaliser le code client
+          codeClient: normalizeClientCode(rowData["Code"]),
           nomClient: rowData["Nom"] || "",
           societe:
-            findColumnByKeywords(rowData, ["société"]) ||
-            findColumnByKeywords(rowData, ["societe"]) ||
-            "",
+            findColumnValue(rowData, columns, COLUMN_MAPPINGS.societe) || "",
           formeJuridique:
-            findColumnByKeywords(rowData, ["forme", "juridique"]) ||
+            findColumnValue(rowData, columns, COLUMN_MAPPINGS.formeJuridique) ||
             rowData["Forme juridique"],
           adresse1: rowData["Adresse 1"],
           adresse2: rowData["Adresse 2"],
@@ -247,41 +280,57 @@ export default function SageClientImportDialog() {
           ville: rowData["Ville"],
           pays: rowData["Pays"],
           telephone:
-            findColumnByKeywords(rowData, ["téléphone"]) ||
-            findColumnByKeywords(rowData, ["telephone"]) ||
+            findColumnValue(rowData, columns, COLUMN_MAPPINGS.telephone) ||
             rowData["Téléphone"],
           portable: rowData["Portable"],
           email: rowData["E-mail"],
-          siret: findColumnByKeywords(rowData, ["siret"]) || undefined,
-          representant:
-            findColumnByKeywords(rowData, ["représentant"]) ||
-            findColumnByKeywords(rowData, ["representant"]) ||
-            undefined,
-          nomRepresentant:
-            findColumnByKeywords(rowData, ["nom", "représentant"]) ||
-            findColumnByKeywords(rowData, ["nom", "representant"]) ||
-            undefined,
-          modePaiement: rowData["Mode de paiement"], // ESP, VIR, PRVT, CB, CHQ
+          siret: findColumnValue(rowData, columns, COLUMN_MAPPINGS.siret),
+          representant: findColumnValue(
+            rowData,
+            columns,
+            COLUMN_MAPPINGS.representant
+          ),
+          nomRepresentant: findColumnValue(
+            rowData,
+            columns,
+            COLUMN_MAPPINGS.nomRepresentant
+          ),
+          modePaiement: rowData["Mode de paiement"],
           modePaiementLibelle:
-            findColumnByKeywords(rowData, ["libellé", "mode", "paiement"]) ||
-            findColumnByKeywords(rowData, ["libelle", "mode", "paiement"]) ||
-            rowData["Libellé mode de paiement"],
+            findColumnValue(
+              rowData,
+              columns,
+              COLUMN_MAPPINGS.modePaiementLibelle
+            ) || rowData["Libellé mode de paiement"],
           typeClient:
             (typeClientIndex >= 0 ? values[typeClientIndex] || "" : "")
               .replace(/^["']|["']$/g, "")
               .trim() || "",
-          tvaIntracom:
-            findColumnByKeywords(rowData, ["tva", "intra"]) || undefined,
-          nomBanque:
-            findColumnByKeywords(rowData, ["nom", "banque"]) || undefined,
-          codeBanque:
-            findColumnByKeywords(rowData, ["code", "banque"]) || undefined,
-          codeGuichet:
-            findColumnByKeywords(rowData, ["code", "guichet"]) || undefined,
-          numeroCompte:
-            findColumnByKeywords(rowData, ["numero", "compte"]) ||
-            findColumnByKeywords(rowData, ["numéro", "compte"]) ||
-            undefined,
+          tvaIntracom: findColumnValue(
+            rowData,
+            columns,
+            COLUMN_MAPPINGS.tvaIntracom
+          ),
+          nomBanque: findColumnValue(
+            rowData,
+            columns,
+            COLUMN_MAPPINGS.nomBanque
+          ),
+          codeBanque: findColumnValue(
+            rowData,
+            columns,
+            COLUMN_MAPPINGS.codeBanque
+          ),
+          codeGuichet: findColumnValue(
+            rowData,
+            columns,
+            COLUMN_MAPPINGS.codeGuichet
+          ),
+          numeroCompte: findColumnValue(
+            rowData,
+            columns,
+            COLUMN_MAPPINGS.numeroCompte
+          ),
         };
 
         // Ajouter le client si les données minimales sont présentes
@@ -318,6 +367,142 @@ export default function SageClientImportDialog() {
 
     return clients;
   };
+
+  // Fonction helper pour déterminer le type de client
+  const determineClientType = useCallback(
+    (
+      typeClient?: string
+    ): "particulier" | "professionnel" | "micro-entreprise" => {
+      if (!typeClient) return "professionnel";
+      const typeLower = typeClient.toLowerCase().trim();
+      if (typeLower.includes("particulier")) return "particulier";
+      if (typeLower.includes("micro")) return "micro-entreprise";
+      return "professionnel";
+    },
+    []
+  );
+
+  // Fonction helper pour construire l'adresse complète
+  const buildAdresseComplete = useCallback(
+    (adresse1?: string, adresse2?: string, adresse3?: string): string => {
+      return [adresse1, adresse2, adresse3]
+        .map((addr) => fixEncoding(addr))
+        .filter(Boolean)
+        .join(", ");
+    },
+    []
+  );
+
+  // Fonction helper pour créer un objet Client à partir d'un ParsedClient
+  const createClientFromParsed = useCallback(
+    (
+      parsedClient: ParsedClient
+    ): Omit<Client, "id" | "createdAt" | "updatedAt"> => {
+      return {
+        typeClient: determineClientType(parsedClient.typeClient),
+        raisonSociale:
+          fixEncoding(parsedClient.societe) ||
+          fixEncoding(parsedClient.nomClient),
+        prenom: fixEncoding(parsedClient.representant) || undefined,
+        nom: fixEncoding(parsedClient.nomRepresentant) || undefined,
+        siret: parsedClient.siret || undefined,
+        adresse: buildAdresseComplete(
+          parsedClient.adresse1,
+          parsedClient.adresse2,
+          parsedClient.adresse3
+        ),
+        codePostal: fixEncoding(parsedClient.codePostal) || "",
+        ville: fixEncoding(parsedClient.ville) || "",
+        email: fixEncoding(parsedClient.email) || undefined,
+        telephone:
+          fixEncoding(parsedClient.telephone) ||
+          fixEncoding(parsedClient.portable) ||
+          undefined,
+        modePaiementPreferentiel: parsedClient.modePaiement,
+        plaques: [],
+        chantiers: [],
+        codeClient: parsedClient.codeClient,
+        tvaIntracom: parsedClient.tvaIntracom || undefined,
+        nomBanque: fixEncoding(parsedClient.nomBanque) || undefined,
+        codeBanque: parsedClient.codeBanque || undefined,
+        codeGuichet: parsedClient.codeGuichet || undefined,
+        numeroCompte: parsedClient.numeroCompte || undefined,
+        codeNAF: undefined,
+        activite: undefined,
+        representantLegal: undefined,
+      };
+    },
+    [determineClientType, buildAdresseComplete]
+  );
+
+  // Fonction helper pour créer un objet de mise à jour (TOUS les champs disponibles)
+  // IMPORTANT : Met à jour TOUS les champs présents dans le fichier pour garantir une synchronisation complète
+  const createUpdateFromParsed = useCallback(
+    (parsedClient: ParsedClient): Partial<Client> => {
+      const updates: Partial<Client> = { updatedAt: new Date() };
+
+      // Helper pour ajouter un champ - met à jour même si vide (pour synchroniser avec le fichier)
+      // Mais on évite de mettre undefined explicitement
+      const setField = <K extends keyof Client>(
+        key: K,
+        value: Client[K] | undefined | null | ""
+      ) => {
+        // Si la valeur est undefined ou null, on ne met pas à jour (préserve les données existantes)
+        // Si la valeur est une chaîne vide "", on met à jour avec "" (synchronise avec le fichier)
+        if (value !== undefined && value !== null) {
+          updates[key] = value as Client[K];
+        }
+      };
+
+      // TOUS les champs doivent être mis à jour pour garantir la synchronisation complète
+
+      // Champs obligatoires - toujours mis à jour
+      updates.typeClient = determineClientType(parsedClient.typeClient);
+      updates.raisonSociale =
+        fixEncoding(parsedClient.societe) ||
+        fixEncoding(parsedClient.nomClient) ||
+        "";
+
+      // Champs optionnels - mis à jour s'ils existent dans le fichier
+      setField("codeClient", parsedClient.codeClient);
+      setField("prenom", fixEncoding(parsedClient.representant));
+      setField("nom", fixEncoding(parsedClient.nomRepresentant));
+      setField("siret", parsedClient.siret);
+
+      // Adresse - toujours construite même si vide
+      const adresseComplete = buildAdresseComplete(
+        parsedClient.adresse1,
+        parsedClient.adresse2,
+        parsedClient.adresse3
+      );
+      setField("adresse", adresseComplete);
+
+      setField("codePostal", fixEncoding(parsedClient.codePostal));
+      setField("ville", fixEncoding(parsedClient.ville));
+      setField("email", fixEncoding(parsedClient.email));
+
+      // Téléphone - priorité au téléphone fixe, sinon portable
+      const telephone =
+        fixEncoding(parsedClient.telephone) ||
+        fixEncoding(parsedClient.portable);
+      setField("telephone", telephone);
+
+      setField("modePaiementPreferentiel", parsedClient.modePaiement);
+
+      // Champs bancaires et TVA - TOUS doivent être mis à jour
+      setField("tvaIntracom", parsedClient.tvaIntracom);
+      setField("nomBanque", fixEncoding(parsedClient.nomBanque));
+      setField("codeBanque", parsedClient.codeBanque);
+      setField("codeGuichet", parsedClient.codeGuichet);
+      setField("numeroCompte", parsedClient.numeroCompte);
+
+      // Note : plaques, chantiers, codeNAF, activite, representantLegal ne sont PAS mis à jour
+      // car ils sont gérés manuellement dans l'application
+
+      return updates;
+    },
+    [determineClientType, buildAdresseComplete]
+  );
 
   const processFile = useCallback(async () => {
     if (!file) return;
@@ -396,32 +581,35 @@ export default function SageClientImportDialog() {
     setIsImporting(true);
     try {
       let imported = 0;
-      let skipped = 0;
+      let updated = 0;
       let newPaymentMethods = 0;
 
       for (const parsedClient of importResult.clients) {
-        // Vérifier si le client existe déjà (par code client ou nom)
+        // Chercher le client existant par codeClient (priorité), raisonSociale ou SIRET
         const existingClient = await db.clients
           .filter(
             (c) =>
+              c.codeClient === parsedClient.codeClient ||
               c.raisonSociale === parsedClient.nomClient ||
-              c.siret === parsedClient.codeClient
+              (parsedClient.siret && c.siret === parsedClient.siret)
           )
           .first();
 
-        if (existingClient) {
-          skipped++;
+        if (existingClient?.id) {
+          // Mettre à jour le client existant avec TOUTES les nouvelles données
+          const updates = createUpdateFromParsed(parsedClient);
+          await db.clients.update(existingClient.id, updates);
+          updated++;
           continue;
         }
 
-        // Si un mode de paiement est présent, vérifier s'il existe dans la table
+        // Créer le mode de paiement si nécessaire
         if (parsedClient.modePaiement && parsedClient.modePaiementLibelle) {
           const existingMethod = await db.paymentMethods
             .filter((pm) => pm.code === parsedClient.modePaiement)
             .first();
 
           if (!existingMethod) {
-            // Créer le nouveau mode de paiement
             await db.paymentMethods.add({
               code: parsedClient.modePaiement,
               libelle: parsedClient.modePaiementLibelle,
@@ -433,63 +621,9 @@ export default function SageClientImportDialog() {
           }
         }
 
-        // Déterminer le type de client
-        let typeClient: "particulier" | "professionnel" | "micro-entreprise" =
-          "professionnel";
-        if (parsedClient.typeClient) {
-          const typeLower = parsedClient.typeClient.toLowerCase().trim();
-          if (typeLower.includes("particulier")) {
-            typeClient = "particulier";
-          } else if (typeLower.includes("micro")) {
-            typeClient = "micro-entreprise";
-          }
-        }
-
-        // Construire l'adresse complète avec correction d'encodage
-        let adresseComplete = fixEncoding(parsedClient.adresse1) || "";
-        if (parsedClient.adresse2) {
-          adresseComplete +=
-            (adresseComplete ? ", " : "") + fixEncoding(parsedClient.adresse2);
-        }
-        if (parsedClient.adresse3) {
-          adresseComplete +=
-            (adresseComplete ? ", " : "") + fixEncoding(parsedClient.adresse3);
-        }
-
-        // Créer le client avec toutes les données extraites et corrigées
+        // Créer le nouveau client en utilisant la fonction helper
         const newClient: Client = {
-          typeClient: typeClient,
-          raisonSociale:
-            fixEncoding(parsedClient.societe) ||
-            fixEncoding(parsedClient.nomClient),
-          prenom: fixEncoding(parsedClient.representant) || undefined,
-          nom: fixEncoding(parsedClient.nomRepresentant) || undefined,
-          siret: parsedClient.siret || undefined,
-          adresse: adresseComplete,
-          codePostal: fixEncoding(parsedClient.codePostal) || "",
-          ville: fixEncoding(parsedClient.ville) || "",
-          email: fixEncoding(parsedClient.email) || undefined,
-          telephone:
-            fixEncoding(parsedClient.telephone) ||
-            fixEncoding(parsedClient.portable) ||
-            undefined,
-          modePaiementPreferentiel: parsedClient.modePaiement, // Mode de paiement importé
-          plaques: [], // Vide par défaut - sera rempli manuellement
-          chantiers: [], // Vide par défaut - sera rempli manuellement
-
-          // Nouveaux champs importés depuis Sage
-          codeClient: parsedClient.codeClient,
-          tvaIntracom: parsedClient.tvaIntracom || undefined,
-          nomBanque: fixEncoding(parsedClient.nomBanque) || undefined,
-          codeBanque: parsedClient.codeBanque || undefined,
-          codeGuichet: parsedClient.codeGuichet || undefined,
-          numeroCompte: parsedClient.numeroCompte || undefined,
-
-          // Champs pour Track Déchet
-          codeNAF: undefined, // Sera rempli manuellement si nécessaire
-          activite: undefined, // Sera rempli manuellement si nécessaire
-          representantLegal: undefined, // Sera rempli manuellement si nécessaire
-
+          ...createClientFromParsed(parsedClient),
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -500,7 +634,7 @@ export default function SageClientImportDialog() {
 
       toast({
         title: "Import terminé",
-        description: `${imported} client(s) importé(s), ${skipped} déjà existant(s)${
+        description: `${imported} client(s) importé(s), ${updated} client(s) mis à jour${
           newPaymentMethods > 0
             ? `, ${newPaymentMethods} mode(s) de paiement créé(s)`
             : ""
@@ -520,7 +654,7 @@ export default function SageClientImportDialog() {
     } finally {
       setIsImporting(false);
     }
-  }, [importResult, toast]);
+  }, [importResult, toast, createClientFromParsed, createUpdateFromParsed]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
