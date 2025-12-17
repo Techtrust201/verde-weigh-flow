@@ -234,6 +234,28 @@ export const cleanupDuplicateClients =
 
       // Utiliser une transaction Dexie pour garantir l'atomicité de l'opération
       // Si une erreur survient, toutes les modifications sont annulées
+      // #region agent log
+      const transactionStartTime = Date.now();
+      fetch(
+        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "clientCleanup.ts:237",
+            message: "Transaction started",
+            data: {
+              duplicatesToProcess: duplicateInfos.length,
+              peseeTransfersCount: peseeTransfers.size,
+            },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "D",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
       await db
         .transaction("rw", db.clients, db.pesees, async () => {
           // ÉTAPE 1 : Vérifier que tous les clients conservés existent toujours
