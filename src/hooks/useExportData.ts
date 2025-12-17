@@ -10,6 +10,8 @@ import {
 } from "@/lib/database";
 import { useToast } from "@/hooks/use-toast";
 import { exportWithSageTemplate } from "@/utils/sageTemplateExporter";
+import { RegistreSuiviDechetsExporter } from "@/utils/registreSuiviDechetsExporter";
+import { getGlobalSettings } from "@/lib/globalSettings";
 
 export interface ExportStats {
   totalPesees: number;
@@ -23,7 +25,8 @@ export type ExportFormat =
   | "sage-articles"
   | "sage-ventes"
   | "sage-bl-complet"
-  | "sage-template";
+  | "sage-template"
+  | "registre-suivi-dechets";
 
 export const useExportData = () => {
   const [exportLogs, setExportLogs] = useState<ExportLog[]>([]);
@@ -80,8 +83,9 @@ export const useExportData = () => {
     documentTypeFilter:
       | "tous"
       | "bons_uniquement"
-      | "factures_uniquement" = "tous"
-  ): Promise<string> => {
+      | "factures_uniquement" = "tous",
+    outputFormat?: "excel" | "pdf"
+  ): Promise<string | Blob> => {
     // Si c'est un export avec template Sage, utiliser la logique spéciale
     if (format === "sage-template" && template) {
       return await exportWithSageTemplate(template, pesees);
@@ -110,7 +114,14 @@ export const useExportData = () => {
         transporteurMap
       );
     } else if (format === "sage-bl-complet") {
-      const activeTaxes = (taxes as any[])
+      const activeTaxes = (
+        taxes as Array<{
+          nom: string;
+          taux: number;
+          tauxTVA?: number;
+          active?: boolean;
+        }>
+      )
         .filter((t) => t && t.active)
         .map((t) => ({ nom: t.nom, taux: t.taux, tauxTVA: t.tauxTVA }));
       return await generateSageBLCompletFormat(
@@ -861,7 +872,9 @@ export const useExportData = () => {
     documentTypeFilter:
       | "tous"
       | "bons_uniquement"
-      | "factures_uniquement" = "tous"
+      | "factures_uniquement" = "tous",
+    productId?: number,
+    outputFormat?: "excel" | "pdf"
   ): Promise<void> => {
     setIsLoading(true);
     try {
@@ -872,7 +885,7 @@ export const useExportData = () => {
         peseesToExport = selectedPesees;
       } else {
         // Sinon, récupérer les pesées selon le type d'export
-        let query = db.pesees.filter(
+        const query = db.pesees.filter(
           (pesee) => pesee.dateHeure >= startDate && pesee.dateHeure <= endDate
         );
 
@@ -894,10 +907,19 @@ export const useExportData = () => {
         }
       }
 
+      // Filtrer par produit si spécifié
+      if (productId) {
+        peseesToExport = peseesToExport.filter(
+          (p) => p.produitId === productId
+        );
+      }
+
       if (peseesToExport.length === 0) {
         toast({
           title: "Aucune donnée à exporter",
-          description: "Aucune pesée trouvée pour la période sélectionnée.",
+          description: productId
+            ? "Aucune pesée trouvée pour la période et le produit sélectionnés."
+            : "Aucune pesée trouvée pour la période sélectionnée.",
           variant: "destructive",
         });
         return;
@@ -909,33 +931,63 @@ export const useExportData = () => {
         exportType,
         format,
         template,
-        documentTypeFilter
+        documentTypeFilter,
+        outputFormat
       );
 
       // Créer le nom de fichier selon le format
       const now = new Date();
-      const formatPrefix =
-        format === "sage-articles"
-          ? "sage_articles"
-          : format === "sage-ventes"
-          ? "sage_ventes"
-          : format === "sage-bl-complet"
-          ? "sage_bl_complet"
-          : format === "sage-template"
-          ? `sage_template_${template?.name.replace(/[^a-zA-Z0-9]/g, "_")}`
-          : format === "csv-txt"
-          ? "export"
-          : "export";
-      const extension =
-        format.startsWith("sage-") || format === "csv-txt" ? "txt" : "csv";
+      let formatPrefix: string;
+      let extension: string;
+
+      if (format === "registre-suivi-dechets") {
+        formatPrefix = "registre_suivi_dechets";
+        extension = outputFormat === "pdf" ? "pdf" : "xlsx";
+      } else if (format === "sage-articles") {
+        formatPrefix = "sage_articles";
+        extension = "txt";
+      } else if (format === "sage-ventes") {
+        formatPrefix = "sage_ventes";
+        extension = "txt";
+      } else if (format === "sage-bl-complet") {
+        formatPrefix = "sage_bl_complet";
+        extension = "txt";
+      } else if (format === "sage-template") {
+        formatPrefix = `sage_template_${template?.name.replace(
+          /[^a-zA-Z0-9]/g,
+          "_"
+        )}`;
+        extension = "txt";
+      } else if (format === "csv-txt") {
+        formatPrefix = "export";
+        extension = "txt";
+      } else {
+        formatPrefix = "export";
+        extension = "csv";
+      }
+
+      // Ajouter le produit au nom de fichier si spécifié
+      let productSuffix = "";
+      if (productId && format === "registre-suivi-dechets") {
+        const product = await db.products.get(productId);
+        if (product) {
+          productSuffix = `_${product.nom.replace(/[^a-zA-Z0-9]/g, "_")}`;
+        }
+      }
+
       const fileName = `${formatPrefix}_${exportType}_${
         startDate.toISOString().split("T")[0]
-      }_${endDate.toISOString().split("T")[0]}_${now.getTime()}.${extension}`;
+      }_${
+        endDate.toISOString().split("T")[0]
+      }${productSuffix}_${now.getTime()}.${extension}`;
 
       // Télécharger le fichier avec l'encodage approprié
       let blob: Blob;
 
-      if (format.startsWith("sage-")) {
+      // Format binaire (Excel/PDF)
+      if (format === "registre-suivi-dechets" && content instanceof Blob) {
+        blob = content;
+      } else if (typeof content === "string" && format.startsWith("sage-")) {
         // Encodage Windows-1252 (ANSI) pour Sage 50
         // Convertir le contenu UTF-8 en Windows-1252
         const encoder = new TextEncoder();
@@ -944,9 +996,10 @@ export const useExportData = () => {
         // Créer un tableau pour Windows-1252
         const win1252Array = new Uint8Array(utf8Array.length);
         let outputIndex = 0;
+        const contentStr = content as string;
 
-        for (let i = 0; i < content.length; i++) {
-          const charCode = content.charCodeAt(i);
+        for (let i = 0; i < contentStr.length; i++) {
+          const charCode = contentStr.charCodeAt(i);
 
           // Caractères ASCII standards (0-127) - passage direct
           if (charCode < 128) {
@@ -1011,30 +1064,59 @@ export const useExportData = () => {
       link.click();
       document.body.removeChild(link);
 
-      // Générer le hash du fichier
-      const fileHash = await generateFileHash(content);
+      // Générer le hash du fichier et enregistrer l'export log
+      // Pour les formats binaires, on ne stocke pas le contenu complet
+      if (format === "registre-suivi-dechets" && content instanceof Blob) {
+        // Pour les formats binaires, on ne stocke pas le contenu dans la base
+        // On peut stocker une référence ou un hash
+        const arrayBuffer = await content.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const binaryString = Array.from(uint8Array)
+          .map((b) => String.fromCharCode(b))
+          .join("");
+        const fileHash = await generateFileHash(binaryString);
 
-      // Enregistrer l'export log
-      const exportLog: ExportLog = {
-        fileName,
-        startDate,
-        endDate,
-        totalRecords:
-          format === "sage-articles"
-            ? await db.products.count()
-            : peseesToExport.length,
-        fileHash,
-        fileContent: content,
-        exportType: `${format}-${exportType}` as any,
-        peseeIds:
-          format === "sage-articles" ? [] : peseesToExport.map((p) => p.id!),
-        createdAt: now,
-      };
+        const exportLog: ExportLog = {
+          fileName,
+          startDate,
+          endDate,
+          totalRecords: peseesToExport.length,
+          fileHash,
+          fileContent: `[Fichier binaire ${outputFormat?.toUpperCase()}]`,
+          exportType:
+            `registre-suivi-dechets-${outputFormat}-${exportType}` as ExportLog["exportType"],
+          peseeIds: peseesToExport.map((p) => p.id!),
+          createdAt: now,
+        };
 
-      await db.exportLogs.add(exportLog);
+        await db.exportLogs.add(exportLog);
+      } else {
+        // Pour les formats texte, on stocke le contenu
+        const contentStr = typeof content === "string" ? content : "";
+        const fileHash = await generateFileHash(contentStr);
 
-      // Marquer les pesées comme exportées (pour tous les types sauf sage-articles)
-      if (format !== "sage-articles") {
+        const exportLog: ExportLog = {
+          fileName,
+          startDate,
+          endDate,
+          totalRecords:
+            format === "sage-articles"
+              ? await db.products.count()
+              : peseesToExport.length,
+          fileHash,
+          fileContent: contentStr,
+          exportType: `${format}-${exportType}` as ExportLog["exportType"],
+          peseeIds:
+            format === "sage-articles" ? [] : peseesToExport.map((p) => p.id!),
+          createdAt: now,
+        };
+
+        await db.exportLogs.add(exportLog);
+      }
+
+      // Marquer les pesées comme exportées (pour tous les types sauf sage-articles et registre-suivi-dechets)
+      // Le registre suivi déchets est un format de consultation, on ne marque pas comme exporté
+      if (format !== "sage-articles" && format !== "registre-suivi-dechets") {
         await Promise.all(
           peseesToExport.map(async (pesee) => {
             const currentExports = pesee.exportedAt || [];

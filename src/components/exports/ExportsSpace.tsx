@@ -101,6 +101,10 @@ export default function ExportsSpace() {
   const [documentTypeFilter, setDocumentTypeFilter] = useState<
     "tous" | "bons_uniquement" | "factures_uniquement"
   >("tous");
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(
+    null
+  );
+  const [outputFormat, setOutputFormat] = useState<"excel" | "pdf">("excel");
 
   const {
     exportLogs,
@@ -376,7 +380,11 @@ export default function ExportsSpace() {
       selectedPesees,
       selectedFormat,
       selectedTemplate || undefined,
-      selectedFormat === "sage-bl-complet" ? documentTypeFilter : "tous"
+      selectedFormat === "sage-bl-complet" ? documentTypeFilter : "tous",
+      selectedFormat === "registre-suivi-dechets"
+        ? selectedProductId || undefined
+        : undefined,
+      selectedFormat === "registre-suivi-dechets" ? outputFormat : undefined
     );
 
     // Recharger les données après l'export pour mettre à jour les statuts
@@ -536,9 +544,68 @@ export default function ExportsSpace() {
                         {formatNames["sage-template"] ||
                           "Sage 50 - Template personnalisé (.txt)"}
                       </SelectItem>
+                      <SelectItem value="registre-suivi-dechets">
+                        {formatNames["registre-suivi-dechets"] ||
+                          "Registre suivi déchets"}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Filtre Produit - uniquement pour registre-suivi-dechets */}
+                {selectedFormat === "registre-suivi-dechets" && (
+                  <div>
+                    <Label htmlFor="product-select">Produit</Label>
+                    <Select
+                      value={selectedProductId?.toString() || "tous"}
+                      onValueChange={(value) => {
+                        if (value === "tous") {
+                          setSelectedProductId(null);
+                        } else {
+                          setSelectedProductId(parseInt(value, 10));
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="product-select" className="mt-2">
+                        <SelectValue placeholder="Sélectionner un produit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tous">Tous les produits</SelectItem>
+                        {products.map((product) => (
+                          <SelectItem
+                            key={product.id}
+                            value={product.id!.toString()}
+                          >
+                            {product.nom}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Choix du format de sortie - uniquement pour registre-suivi-dechets */}
+                {selectedFormat === "registre-suivi-dechets" && (
+                  <div>
+                    <Label htmlFor="output-format-select">
+                      Format de sortie
+                    </Label>
+                    <Select
+                      value={outputFormat}
+                      onValueChange={(value) =>
+                        setOutputFormat(value as "excel" | "pdf")
+                      }
+                    >
+                      <SelectTrigger id="output-format-select" className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                        <SelectItem value="pdf">PDF (.pdf)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* Sélecteur de template pour sage-template */}
                 {selectedFormat === "sage-template" && (

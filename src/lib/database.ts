@@ -73,6 +73,9 @@ export interface Product {
   onuCode?: string;
   cap?: string;
   conditionnementType?: "BENNE" | "CITERNE" | "FUT" | "GRV" | "";
+  // Champs pour registre suivi déchets
+  codeTraitement?: string; // Code traitement (ex: "R13", "R12")
+  isPOP?: boolean; // Déchet POP (Polluant Organique Persistant)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -273,6 +276,7 @@ export const DEFAULT_EXPORT_FORMAT_NAMES: Record<string, string> = {
   "sage-ventes": "Sage 50 - Import Ventes (.txt)",
   "sage-bl-complet": "Sage 50 - Bons de livraison et Factures complets (.txt)",
   "sage-template": "Sage 50 - Template personnalisé (.txt)",
+  "registre-suivi-dechets": "Registre suivi déchets",
 };
 
 class AppDatabase extends Dexie {
