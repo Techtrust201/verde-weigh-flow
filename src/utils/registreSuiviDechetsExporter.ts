@@ -1,16 +1,15 @@
 /**
  * Exporteur pour le format "Registre suivi déchets"
- * Génère des fichiers Excel ou PDF avec exactement 44 colonnes
+ * Génère des fichiers CSV ou PDF avec exactement 45 colonnes (44 + DPT)
  */
 
-import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Pesee, Product, Client, Transporteur } from "@/lib/database";
 import { parseAddress } from "./addressParser";
 import { getGlobalSettings } from "@/lib/globalSettings";
 
-export type OutputFormat = "excel" | "pdf";
+export type OutputFormat = "csv" | "pdf";
 
 export interface RegistreRow {
   // Bloc PESEE / DECHET
@@ -56,6 +55,147 @@ export interface RegistreRow {
   complementChantier: string; // AP
   villeChantier: string; // AQ
   codeINSEE: string; // AR
+  dpt: string; // AS (nouvelle colonne)
+}
+
+/**
+ * Extrait le code département depuis le code postal
+ */
+function extractDPT(codePostal: string | undefined | null): string {
+  if (!codePostal || typeof codePostal !== "string") {
+    return "";
+  }
+  const trimmed = codePostal.trim();
+  // Extraire les 2 premiers chiffres
+  const match = trimmed.match(/^(\d{2})/);
+  return match ? match[1] : "";
+}
+
+/**
+ * Extrait la ville et le code postal depuis une adresse complète
+ * Format attendu : "adresse, CODE_POSTAL VILLE" ou "VILLE CODE_POSTAL" ou juste "VILLE"
+ */
+function extractVilleEtCodePostal(adresse: string | undefined | null): {
+  ville: string;
+  codePostal: string;
+} {
+  if (!adresse || typeof adresse !== "string") {
+    return { ville: "", codePostal: "" };
+  }
+
+  const trimmed = adresse.trim();
+  if (!trimmed) {
+    return { ville: "", codePostal: "" };
+  }
+
+  // Pattern pour détecter "CODE_POSTAL VILLE" à la fin
+  // Exemples : "06550 La Roquette-sur-Siagne", "MANDELIEU 06210"
+  const patternFin = /(\d{5})\s+([A-Za-zÀ-ÿ\s-]+)$/i;
+  const matchFin = trimmed.match(patternFin);
+  if (matchFin) {
+    return {
+      codePostal: matchFin[1],
+      ville: matchFin[2].trim(),
+    };
+  }
+
+  // Pattern pour détecter "VILLE CODE_POSTAL"
+  const patternDebut = /^([A-Za-zÀ-ÿ\s-]+)\s+(\d{5})$/i;
+  const matchDebut = trimmed.match(patternDebut);
+  if (matchDebut) {
+    return {
+      ville: matchDebut[1].trim(),
+      codePostal: matchDebut[2],
+    };
+  }
+
+  // Si on trouve un code postal quelque part, extraire la ville après
+  const codePostalMatch = trimmed.match(/\b(\d{5})\b/);
+  if (codePostalMatch) {
+    const codePostal = codePostalMatch[1];
+    const index = trimmed.indexOf(codePostal);
+    const partieApres = trimmed.substring(index + codePostal.length).trim();
+    // Prendre les mots après le code postal comme ville
+    const villeMatch = partieApres.match(/^([A-Za-zÀ-ÿ\s-]+)/i);
+    if (villeMatch) {
+      return {
+        codePostal,
+        ville: villeMatch[1].trim(),
+      };
+    }
+    // Sinon, chercher avant le code postal
+    const partieAvant = trimmed.substring(0, index).trim();
+    const mots = partieAvant.split(/\s+/);
+    if (mots.length > 0) {
+      // Prendre le dernier mot comme ville potentielle
+      const derniersMots = mots.slice(-2).join(" ");
+      return {
+        codePostal,
+        ville: derniersMots,
+      };
+    }
+    return { codePostal, ville: "" };
+  }
+
+  // Si pas de code postal trouvé, essayer de prendre le dernier mot comme ville
+  const mots = trimmed.split(/\s*,\s*/);
+  if (mots.length > 1) {
+    // Si format "adresse, VILLE"
+    const dernierePartie = mots[mots.length - 1].trim();
+    return { ville: dernierePartie, codePostal: "" };
+  }
+
+  // Sinon, retourner tout comme ville potentielle
+  return { ville: trimmed, codePostal: "" };
+}
+
+/**
+ * Formate une valeur numérique pour Excel afin de préserver les zéros de tête
+ * Utilise un caractère de tabulation (\t) au début pour forcer l'interprétation comme texte
+ * Excel interprète automatiquement les valeurs commençant par une tabulation comme du texte,
+ * ce qui préserve les zéros de tête sans afficher de caractères visibles
+ */
+function formatForExcel(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+  const str = String(value).trim();
+  // Si c'est une valeur numérique (code postal, SIRET, département), ajouter une tabulation
+  if (/^\d+$/.test(str)) {
+    return `\t${str}`;
+  }
+  return str;
+}
+
+/**
+ * Échappe une valeur pour le CSV
+ * - Entoure de guillemets doubles
+ * - Échappe les guillemets doubles internes en ""
+ * - Retourne "" pour les valeurs vides si quoteEmpty est true, sinon ""
+ */
+function escapeCSVValue(
+  value: string | number | null | undefined,
+  quoteEmpty: boolean = true
+): string {
+  if (value === null || value === undefined || value === "") {
+    return quoteEmpty ? '""' : "";
+  }
+  const str = String(value);
+  // Échapper les guillemets doubles : " devient ""
+  const escaped = str.replace(/"/g, '""');
+  return `"${escaped}"`;
+}
+
+/**
+ * Génère une ligne CSV à partir d'un tableau de valeurs
+ * @param values Tableau de valeurs à convertir en ligne CSV
+ * @param quoteEmpty Si true, les valeurs vides seront entourées de guillemets (""), sinon elles seront vides ()
+ */
+function generateCSVLine(
+  values: (string | number | null | undefined)[],
+  quoteEmpty: boolean = true
+): string {
+  return values.map((val) => escapeCSVValue(val, quoteEmpty)).join(",");
 }
 
 /**
@@ -70,24 +210,21 @@ function mapPeseeToRegistreRow(
 ): RegistreRow {
   const dateHeure = new Date(pesee.dateHeure);
 
-  // Format date dd/mm/yyyy
-  const date = dateHeure.toLocaleDateString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  // Format date M/D/YYYY (ex: "6/1/2025")
+  const month = dateHeure.getMonth() + 1;
+  const day = dateHeure.getDate();
+  const year = dateHeure.getFullYear();
+  const date = `${month}/${day}/${year}`;
 
-  // Format heure HH:mm
-  const heure = dateHeure.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  // Format heure H:MM (ex: "6:57")
+  const hours = dateHeure.getHours();
+  const minutes = dateHeure.getMinutes();
+  const heure = `${hours}:${minutes.toString().padStart(2, "0")}`;
 
   // Conversion poids : tonnes -> kg
-  const poidsNetKg = pesee.net ? (pesee.net * 1000).toFixed(2) : "";
+  const poidsNetKg = pesee.net ? Math.round(pesee.net * 1000).toString() : "";
   const poidsBrutKg = pesee.poidsEntree
-    ? (pesee.poidsEntree * 1000).toFixed(2)
+    ? Math.round(pesee.poidsEntree * 1000).toString()
     : "";
 
   // Parsing adresse client
@@ -112,8 +249,15 @@ function mapPeseeToRegistreRow(
   // Parsing adresse chantier (si le chantier contient une adresse)
   const adresseChantierParsed = parseAddress(chantier);
 
-  // Code INSEE : utiliser code postal si code INSEE non disponible
-  const codeINSEE = client?.codePostal || "";
+  // Extraire ville et code postal du chantier
+  const { ville: villeChantier, codePostal: codePostalChantier } =
+    extractVilleEtCodePostal(chantier);
+
+  // Code INSEE : utiliser le code postal de la ville du chantier (selon instructions)
+  const codeINSEE = codePostalChantier || "";
+
+  // Code département : extraire depuis le code postal du chantier
+  const dpt = extractDPT(codePostalChantier);
 
   return {
     // Bloc PESEE / DECHET
@@ -129,21 +273,29 @@ function mapPeseeToRegistreRow(
 
     // Bloc CLIENT
     client: client?.raisonSociale || pesee.nomEntreprise || "",
-    siretClient: client?.siret || "",
+    siretClient: formatForExcel(client?.siret || ""),
     numeroVoieClient: adresseClientParsed.numeroVoie || "",
     voieClient: adresseClientParsed.voie || "",
     complementClient: adresseClientParsed.complement || "",
-    cpClient: client?.codePostal || "",
+    cpClient: formatForExcel(client?.codePostal || ""),
     villeClient: client?.ville || "",
 
     // Bloc TRANSPORTEUR
-    transporteur: nomTransporteur,
-    siretTransporteur: transporteur?.siret || "",
-    numeroVoieTransporteur: adresseTransporteurParsed.numeroVoie || "",
-    voieTransporteur: adresseTransporteurParsed.voie || "",
-    complementTransporteur: adresseTransporteurParsed.complement || "",
-    cpTransporteur: transporteur?.codePostal || "",
-    villeTransporteur: transporteur?.ville || "",
+    // Mettre "#N/A" si vraiment rien n'est disponible, sinon utiliser les vraies données
+    transporteur: nomTransporteur || "#N/A",
+    siretTransporteur: formatForExcel(
+      transporteur?.siret || (nomTransporteur ? "" : "#N/A")
+    ),
+    numeroVoieTransporteur:
+      adresseTransporteurParsed.numeroVoie || (nomTransporteur ? "" : "#N/A"),
+    voieTransporteur:
+      adresseTransporteurParsed.voie || (nomTransporteur ? "" : "#N/A"),
+    complementTransporteur:
+      adresseTransporteurParsed.complement || (nomTransporteur ? "" : "#N/A"),
+    cpTransporteur: formatForExcel(
+      transporteur?.codePostal || (nomTransporteur ? "" : "#N/A")
+    ),
+    villeTransporteur: transporteur?.ville || (nomTransporteur ? "" : "#N/A"),
 
     // Bloc CHANTIER
     recepisse: recepisse || "",
@@ -151,13 +303,14 @@ function mapPeseeToRegistreRow(
     numeroVoieChantier: adresseChantierParsed.numeroVoie || "",
     voieChantier: adresseChantierParsed.voie || "",
     complementChantier: adresseChantierParsed.complement || "",
-    villeChantier: "", // À extraire si possible depuis le chantier
-    codeINSEE,
+    villeChantier: villeChantier, // Extraite depuis le chantier
+    codeINSEE: formatForExcel(codeINSEE), // Code postal de la ville du chantier
+    dpt: formatForExcel(dpt), // Code département extrait du code postal du chantier
   };
 }
 
 /**
- * Convertit une ligne du registre en tableau de 44 valeurs (ordre A → AR)
+ * Convertit une ligne du registre en tableau de 45 valeurs (ordre A → AS)
  */
 function registreRowToArray(row: RegistreRow): (string | number)[] {
   return [
@@ -216,6 +369,9 @@ function registreRowToArray(row: RegistreRow): (string | number)[] {
     row.complementChantier,
     row.villeChantier,
     row.codeINSEE,
+
+    // AS : DPT (nouvelle colonne)
+    row.dpt,
   ];
 }
 
@@ -255,17 +411,13 @@ export class RegistreSuiviDechetsExporter {
   }
 
   /**
-   * Génère le fichier Excel
+   * Génère le fichier CSV
    */
-  async generateExcel(pesees: Pesee[]): Promise<Blob> {
+  generateCSV(pesees: Pesee[]): string {
     // Trier les pesées
     const sortedPesees = sortPesees(pesees);
 
-    // Créer le workbook
-    const workbook = XLSX.utils.book_new();
-
-    // Créer la feuille de données
-    const worksheetData: (string | number)[][] = [];
+    const lines: string[] = [];
 
     // Ligne 1 : En-têtes de groupes
     const headerGroups = [
@@ -313,20 +465,23 @@ export class RegistreSuiviDechetsExporter {
       "",
       "",
       "",
+      "", // DPT (colonne 44)
     ];
-    worksheetData.push(headerGroups);
+    // Ligne 1 : valeurs vides sans guillemets pour correspondre au modèle
+    lines.push(generateCSVLine(headerGroups, false));
 
-    // Ligne 2 : Titres de colonnes
+    // Ligne 2-4 : Titres de colonnes (avec retours à la ligne dans certains en-têtes)
+    // Note: Les retours à la ligne doivent être préservés dans les guillemets
     const columnHeaders = [
       "DATE",
-      "HEURE DE PESEE",
+      "HEURE DE\nPESEE", // Retour à la ligne préservé
       "PLAQUE D'IMMATRICULATION",
       "LIBELLE PRODUIT",
       "CODE DECHET",
       "POIDS (Kg)",
       "POIDS (Kg)",
       "CODE TRAITEMENT",
-      'Déchet POP ("x" si oui)',
+      'Déchet POP\n(""x"" si oui)', // Retour à la ligne et guillemets échappés
       "CLIENT",
       "SIRET",
       "N° Voie",
@@ -356,14 +511,15 @@ export class RegistreSuiviDechetsExporter {
       "",
       "", // AE-AK vides
       "RECEPISSE",
-      "Nom CHANTIER",
+      " Nom CHANTIER", // Note: espace avant "Nom"
       "N° Voie",
       "Voie",
       "Complément adresse",
       "VILLE",
       "CODE INSEE",
+      "DPT", // Nouvelle colonne
     ];
-    worksheetData.push(columnHeaders);
+    lines.push(generateCSVLine(columnHeaders));
 
     // Lignes de données
     for (const pesee of sortedPesees) {
@@ -383,93 +539,15 @@ export class RegistreSuiviDechetsExporter {
         this.recepisse
       );
 
-      worksheetData.push(registreRowToArray(row));
+      lines.push(generateCSVLine(registreRowToArray(row)));
     }
 
-    // Créer la worksheet
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-
-    // Définir les largeurs de colonnes
-    const colWidths = [
-      { wch: 12 }, // A: DATE
-      { wch: 12 }, // B: HEURE
-      { wch: 18 }, // C: PLAQUE
-      { wch: 20 }, // D: LIBELLE PRODUIT
-      { wch: 15 }, // E: CODE DECHET
-      { wch: 12 }, // F: POIDS BRUT
-      { wch: 12 }, // G: POIDS NET
-      { wch: 15 }, // H: CODE TRAITEMENT
-      { wch: 12 }, // I: POP
-      { wch: 25 }, // J: CLIENT
-      { wch: 15 }, // K: SIRET
-      { wch: 10 }, // L: N° Voie
-      { wch: 25 }, // M: Voie
-      { wch: 20 }, // N: Complément
-      { wch: 8 }, // O: CP
-      { wch: 20 }, // P: VILLE
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 }, // Q-W
-      { wch: 25 }, // X: TRANSPORTEUR
-      { wch: 15 }, // Y: SIRET
-      { wch: 10 }, // Z: N° Voie
-      { wch: 25 }, // AA: Voie
-      { wch: 20 }, // AB: Complément
-      { wch: 8 }, // AC: CP
-      { wch: 20 }, // AD: VILLE
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 },
-      { wch: 8 }, // AE-AK
-      { wch: 15 }, // AL: RECEPISSE
-      { wch: 25 }, // AM: CHANTIER
-      { wch: 10 }, // AN: N° Voie
-      { wch: 25 }, // AO: Voie
-      { wch: 20 }, // AP: Complément
-      { wch: 20 }, // AQ: VILLE
-      { wch: 12 }, // AR: CODE INSEE
-    ];
-    worksheet["!cols"] = colWidths;
-
-    // Freeze panes à K3 (lignes 1-2 + colonnes A-J gelées)
-    worksheet["!freeze"] = {
-      xSplit: 10, // Colonne J (0-indexed, donc 10 = colonne K)
-      ySplit: 2, // Ligne 2 (0-indexed, donc 2 = ligne 3)
-      topLeftCell: "K3",
-      activePane: "bottomRight",
-      state: "frozen",
-    };
-
-    // Formatage des cellules (première ligne : couleurs par groupe)
-    // Note: xlsx ne supporte pas directement les couleurs de fond dans la version browser
-    // On peut utiliser des styles mais c'est limité. Pour un formatage complet,
-    // il faudrait utiliser une bibliothèque comme ExcelJS côté serveur.
-    // Ici, on se contente de la structure de base.
-
-    // Ajouter la worksheet au workbook
-    const sheetName = new Date().getFullYear().toString();
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-    // Générer le fichier
-    const excelBuffer = XLSX.write(workbook, {
-      type: "array",
-      bookType: "xlsx",
-    });
-
-    return new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
+    // Retourner le CSV avec BOM UTF-8 pour Excel
+    return "\ufeff" + lines.join("\n");
   }
 
   /**
-   * Génère le fichier PDF
+   * Génère le fichier PDF avec couleurs
    */
   async generatePDF(pesees: Pesee[]): Promise<Blob> {
     // Trier les pesées
@@ -485,7 +563,56 @@ export class RegistreSuiviDechetsExporter {
     // Préparer les données pour le tableau
     const tableData: string[][] = [];
 
-    // En-têtes du tableau
+    // Ligne 1 : En-têtes de groupes (45 colonnes)
+    const headerGroups = [
+      "PESEE",
+      "",
+      "",
+      "DECHET",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "CLIENT",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "TRANSPORTEUR",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "CHANTIER",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "", // DPT (colonne 44)
+    ];
+
+    // En-têtes du tableau (45 colonnes) - Ligne 2
     const headers = [
       "DATE",
       "HEURE",
@@ -531,6 +658,7 @@ export class RegistreSuiviDechetsExporter {
       "COMPL.",
       "VILLE",
       "INSEE",
+      "DPT", // Nouvelle colonne
     ];
 
     // Ajouter les données
@@ -557,41 +685,109 @@ export class RegistreSuiviDechetsExporter {
       tableData.push(rowData);
     }
 
+    // Couleurs pour les groupes (RGB)
+    const colors = {
+      pesee: [255, 249, 196], // Jaune clair (#FFF9C4)
+      dechet: [255, 224, 178], // Orange clair (#FFE0B2)
+      client: [187, 222, 251], // Bleu clair (#BBDEFB)
+      transporteur: [248, 187, 208], // Rose clair (#F8BBD0)
+      chantier: [200, 230, 201], // Vert clair (#C8E6C9)
+      header: [224, 224, 224], // Gris clair (#E0E0E0)
+    };
+
+    // Mapping des colonnes vers leurs couleurs
+    const columnColors: number[][] = [];
+    for (let i = 0; i < 45; i++) {
+      if (i >= 0 && i <= 2) {
+        // A-C : PESEE
+        columnColors[i] = colors.pesee;
+      } else if (i >= 3 && i <= 8) {
+        // D-I : DECHET
+        columnColors[i] = colors.dechet;
+      } else if (i >= 9 && i <= 15) {
+        // J-P : CLIENT
+        columnColors[i] = colors.client;
+      } else if (i >= 16 && i <= 22) {
+        // Q-W : Vides (gris clair)
+        columnColors[i] = colors.header;
+      } else if (i >= 23 && i <= 29) {
+        // X-AD : TRANSPORTEUR
+        columnColors[i] = colors.transporteur;
+      } else if (i >= 30 && i <= 36) {
+        // AE-AK : Vides (gris clair)
+        columnColors[i] = colors.header;
+      } else if (i >= 37 && i <= 43) {
+        // AL-AR : CHANTIER
+        columnColors[i] = colors.chantier;
+      } else {
+        // AS : DPT (gris clair)
+        columnColors[i] = colors.header;
+      }
+    }
+
+    // Créer les styles de colonnes avec couleurs
+    const columnStyles: {
+      [key: string]: {
+        fillColor?: [number, number, number];
+        cellWidth?: number;
+      };
+    } = {};
+    for (let i = 0; i < 45; i++) {
+      const color = columnColors[i];
+      columnStyles[i.toString()] = {
+        fillColor: [color[0], color[1], color[2]] as [number, number, number],
+        cellWidth: (i >= 16 && i <= 22) || (i >= 30 && i <= 36) ? 3 : undefined,
+      };
+    }
+
     // Générer le tableau avec autoTable
     autoTable(doc, {
-      head: [headers],
+      head: [headerGroups, headers], // Deux lignes : groupes, titres (pas de texte d'aide dans le PDF non plus)
       body: tableData,
       startY: 10,
       styles: {
-        fontSize: 6, // Petite police pour faire tenir 44 colonnes
+        fontSize: 6, // Petite police pour faire tenir 45 colonnes
         cellPadding: 1,
       },
       headStyles: {
-        fillColor: [200, 200, 200],
+        fillColor: [colors.header[0], colors.header[1], colors.header[2]] as [
+          number,
+          number,
+          number
+        ],
         textColor: [0, 0, 0],
         fontStyle: "bold",
       },
+      columnStyles,
       alternateRowStyles: {
         fillColor: [245, 245, 245],
       },
       margin: { top: 10, right: 5, left: 5, bottom: 10 },
       tableWidth: "auto",
-      columnStyles: {
-        // Réduire la largeur des colonnes vides
-        16: { cellWidth: 3 },
-        17: { cellWidth: 3 },
-        18: { cellWidth: 3 },
-        19: { cellWidth: 3 },
-        20: { cellWidth: 3 },
-        21: { cellWidth: 3 },
-        22: { cellWidth: 3 },
-        29: { cellWidth: 3 },
-        30: { cellWidth: 3 },
-        31: { cellWidth: 3 },
-        32: { cellWidth: 3 },
-        33: { cellWidth: 3 },
-        34: { cellWidth: 3 },
-        35: { cellWidth: 3 },
+      didParseCell: (data) => {
+        // Appliquer les couleurs de groupes à la première ligne du head
+        if (data.section === "head" && data.row.index === 0) {
+          // Première ligne : en-têtes de groupes avec couleurs par bloc
+          const color = columnColors[data.column.index];
+          data.cell.styles.fillColor = [color[0], color[1], color[2]] as [
+            number,
+            number,
+            number
+          ];
+          data.cell.styles.textColor = [0, 0, 0];
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.halign = "center";
+        } else if (data.section === "head" && data.row.index === 1) {
+          // Deuxième ligne : titres de colonnes avec fond gris
+          data.cell.styles.fillColor = [
+            colors.header[0],
+            colors.header[1],
+            colors.header[2],
+          ] as [number, number, number];
+          data.cell.styles.textColor = [0, 0, 0];
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.halign = "center";
+        }
       },
       didDrawPage: (data) => {
         // Ajouter la pagination
@@ -612,9 +808,12 @@ export class RegistreSuiviDechetsExporter {
   /**
    * Génère le fichier selon le format demandé
    */
-  async generate(pesees: Pesee[], format: OutputFormat): Promise<Blob> {
-    if (format === "excel") {
-      return await this.generateExcel(pesees);
+  async generate(
+    pesees: Pesee[],
+    format: OutputFormat
+  ): Promise<string | Blob> {
+    if (format === "csv") {
+      return this.generateCSV(pesees);
     } else {
       return await this.generatePDF(pesees);
     }

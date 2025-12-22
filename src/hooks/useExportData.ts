@@ -84,7 +84,7 @@ export const useExportData = () => {
       | "tous"
       | "bons_uniquement"
       | "factures_uniquement" = "tous",
-    outputFormat?: "excel" | "pdf"
+    outputFormat?: "csv" | "pdf"
   ): Promise<string | Blob> => {
     // Si c'est un export avec template Sage, utiliser la logique spéciale
     if (format === "sage-template" && template) {
@@ -96,7 +96,16 @@ export const useExportData = () => {
       db.products.toArray(),
       db.clients.toArray(),
       db.transporteurs.toArray(),
-      db.taxes ? db.taxes.toArray() : Promise.resolve([] as any[]),
+      db.taxes
+        ? db.taxes.toArray()
+        : Promise.resolve(
+            [] as Array<{
+              nom: string;
+              taux: number;
+              tauxTVA?: number;
+              active?: boolean;
+            }>
+          ),
     ]);
 
     // Créer des maps pour un accès rapide
@@ -135,6 +144,20 @@ export const useExportData = () => {
     } else if (format === "csv-txt") {
       // Format CSV mais avec extension TXT
       return generateCSVFormat(pesees, productMap, clientMap, transporteurMap);
+    } else if (format === "registre-suivi-dechets") {
+      // Format Registre suivi déchets avec 3 lignes d'en-têtes
+      const settings = await getGlobalSettings();
+      const recepisse = settings?.recepisse;
+
+      const exporter = new RegistreSuiviDechetsExporter(
+        productMap,
+        clientMap,
+        transporteurMap,
+        recepisse
+      );
+
+      const finalOutputFormat = outputFormat || "csv";
+      return await exporter.generate(pesees, finalOutputFormat);
     }
 
     // Format CSV standard (existant)
@@ -874,7 +897,7 @@ export const useExportData = () => {
       | "bons_uniquement"
       | "factures_uniquement" = "tous",
     productId?: number,
-    outputFormat?: "excel" | "pdf"
+    outputFormat?: "csv" | "pdf"
   ): Promise<void> => {
     setIsLoading(true);
     try {
@@ -942,7 +965,7 @@ export const useExportData = () => {
 
       if (format === "registre-suivi-dechets") {
         formatPrefix = "registre_suivi_dechets";
-        extension = outputFormat === "pdf" ? "pdf" : "xlsx";
+        extension = outputFormat === "pdf" ? "pdf" : "csv";
       } else if (format === "sage-articles") {
         formatPrefix = "sage_articles";
         extension = "txt";
@@ -984,9 +1007,22 @@ export const useExportData = () => {
       // Télécharger le fichier avec l'encodage approprié
       let blob: Blob;
 
-      // Format binaire (Excel/PDF)
-      if (format === "registre-suivi-dechets" && content instanceof Blob) {
+      // Format binaire (PDF uniquement pour registre-suivi-dechets)
+      if (
+        format === "registre-suivi-dechets" &&
+        outputFormat === "pdf" &&
+        content instanceof Blob
+      ) {
         blob = content;
+      } else if (
+        format === "registre-suivi-dechets" &&
+        outputFormat === "csv" &&
+        typeof content === "string"
+      ) {
+        // CSV avec BOM UTF-8 pour Excel
+        blob = new Blob([content], {
+          type: "text/csv;charset=utf-8;",
+        });
       } else if (typeof content === "string" && format.startsWith("sage-")) {
         // Encodage Windows-1252 (ANSI) pour Sage 50
         // Convertir le contenu UTF-8 en Windows-1252
@@ -1082,7 +1118,7 @@ export const useExportData = () => {
           endDate,
           totalRecords: peseesToExport.length,
           fileHash,
-          fileContent: `[Fichier binaire ${outputFormat?.toUpperCase()}]`,
+          fileContent: `[Fichier PDF binaire]`,
           exportType:
             `registre-suivi-dechets-${outputFormat}-${exportType}` as ExportLog["exportType"],
           peseeIds: peseesToExport.map((p) => p.id!),
@@ -1091,7 +1127,7 @@ export const useExportData = () => {
 
         await db.exportLogs.add(exportLog);
       } else {
-        // Pour les formats texte, on stocke le contenu
+        // Pour les formats texte (CSV et autres), on stocke le contenu
         const contentStr = typeof content === "string" ? content : "";
         const fileHash = await generateFileHash(contentStr);
 

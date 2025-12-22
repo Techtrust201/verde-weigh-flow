@@ -104,7 +104,7 @@ export default function ExportsSpace() {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(
     null
   );
-  const [outputFormat, setOutputFormat] = useState<"excel" | "pdf">("excel");
+  const [outputFormat, setOutputFormat] = useState<"csv" | "pdf">("csv");
 
   const {
     exportLogs,
@@ -593,14 +593,14 @@ export default function ExportsSpace() {
                     <Select
                       value={outputFormat}
                       onValueChange={(value) =>
-                        setOutputFormat(value as "excel" | "pdf")
+                        setOutputFormat(value as "csv" | "pdf")
                       }
                     >
                       <SelectTrigger id="output-format-select" className="mt-2">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                        <SelectItem value="csv">CSV (.csv)</SelectItem>
                         <SelectItem value="pdf">PDF (.pdf)</SelectItem>
                       </SelectContent>
                     </Select>
