@@ -511,6 +511,7 @@ export class RegistreSuiviDechetsExporter {
       "",
       "",
       "",
+      "",
       "CHANTIER",
       "",
       "",
@@ -642,6 +643,7 @@ export class RegistreSuiviDechetsExporter {
       "",
       "",
       "TRANSPORTEUR",
+      "",
       "",
       "",
       "",
@@ -822,11 +824,21 @@ export class RegistreSuiviDechetsExporter {
         if (data.section === "head" && data.row.index === 0) {
           // Première ligne : en-têtes de groupes avec couleurs par bloc
           const color = columnColors[data.column.index];
-          data.cell.styles.fillColor = [color[0], color[1], color[2]] as [
-            number,
-            number,
-            number
-          ];
+          // Vérification de sécurité
+          if (color && color.length >= 3) {
+            data.cell.styles.fillColor = [color[0], color[1], color[2]] as [
+              number,
+              number,
+              number
+            ];
+          } else {
+            // Fallback : utiliser la couleur header par défaut
+            data.cell.styles.fillColor = [
+              colors.header[0],
+              colors.header[1],
+              colors.header[2],
+            ] as [number, number, number];
+          }
           data.cell.styles.textColor = [0, 0, 0];
           data.cell.styles.fontStyle = "bold";
           data.cell.styles.halign = "center";
