@@ -602,6 +602,204 @@ export class RegistreSuiviDechetsExporter {
   }
 
   /**
+   * Génère une section de tableau PDF
+   */
+  private generateTableSection(
+    doc: jsPDF,
+    section: {
+      name: string;
+      startCol: number;
+      endCol: number;
+      groupHeaders: string[];
+      columnHeaders: string[];
+      colorMap: (colIndex: number) => number[];
+    },
+    allData: string[][],
+    startY: number,
+    colors: {
+      pesee: number[];
+      dechet: number[];
+      client: number[];
+      transporteur: number[];
+      chantier: number[];
+      header: number[];
+    }
+  ): number {
+    // Extraire les colonnes de la section
+    const sectionData = allData.map((row) =>
+      row.slice(section.startCol, section.endCol + 1)
+    );
+
+    // Créer les styles de colonnes pour cette section
+    const columnStyles: {
+      [key: string]: {
+        fillColor?: [number, number, number];
+        cellWidth?: number;
+      };
+    } = {};
+    const numCols = section.endCol - section.startCol + 1;
+    for (let i = 0; i < numCols; i++) {
+      const globalColIndex = section.startCol + i;
+      const color = section.colorMap(globalColIndex);
+      // Pour les colonnes vides (header gris clair), utiliser blanc pour éviter le débordement
+      const isVideColumn = globalColIndex >= 16 && globalColIndex <= 22; // Q-W
+      const isVideColumn2 = globalColIndex >= 31 && globalColIndex <= 36; // AF-AK
+      const isVideColumn3 = globalColIndex === 37; // AL vide
+
+      columnStyles[i.toString()] = {
+        fillColor:
+          isVideColumn || isVideColumn2 || isVideColumn3
+            ? ([255, 255, 255] as [number, number, number]) // Blanc pour les colonnes vides
+            : ([color[0], color[1], color[2]] as [number, number, number]),
+        cellWidth:
+          (globalColIndex >= 16 && globalColIndex <= 22) ||
+          (globalColIndex >= 31 && globalColIndex <= 36)
+            ? 3
+            : undefined,
+      };
+    }
+
+    // Générer le tableau pour cette section
+    autoTable(doc, {
+      head: [section.groupHeaders, section.columnHeaders],
+      body: sectionData,
+      startY: startY,
+      styles: {
+        fontSize: 8, // Police plus grande pour meilleure lisibilité
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: [colors.header[0], colors.header[1], colors.header[2]] as [
+          number,
+          number,
+          number
+        ],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+      },
+      columnStyles,
+      alternateRowStyles: {
+        fillColor: [245, 245, 245],
+      },
+      margin: { top: 10, right: 5, left: 5, bottom: 10 },
+      tableWidth: "wrap", // Limiter la largeur pour éviter le débordement
+      showHead: "everyPage", // Répéter les en-têtes sur chaque page
+      didParseCell: (data) => {
+        // Vérifier que la colonne appartient bien à cette section
+        if (data.column.index >= numCols) {
+          // Colonne hors limites de la section, ne pas appliquer de styles
+          return;
+        }
+
+        // Appliquer les couleurs de groupes à la première ligne du head
+        if (data.section === "head" && data.row.index === 0) {
+          // Première ligne : en-têtes de groupes avec couleurs par bloc
+          const globalColIndex = section.startCol + data.column.index;
+          const color = section.colorMap(globalColIndex);
+
+          // Pour les colonnes vides, utiliser blanc pour éviter le débordement
+          const isVideColumn = globalColIndex >= 16 && globalColIndex <= 22; // Q-W
+          const isVideColumn2 = globalColIndex >= 31 && globalColIndex <= 36; // AF-AK
+          const isVideColumn3 = globalColIndex === 37; // AL vide
+
+          // Vérification de sécurité
+          if (isVideColumn || isVideColumn2 || isVideColumn3) {
+            // Colonnes vides : blanc pour éviter le débordement
+            data.cell.styles.fillColor = [255, 255, 255] as [
+              number,
+              number,
+              number
+            ];
+          } else if (color && color.length >= 3) {
+            data.cell.styles.fillColor = [color[0], color[1], color[2]] as [
+              number,
+              number,
+              number
+            ];
+          } else {
+            // Fallback : utiliser la couleur header par défaut
+            data.cell.styles.fillColor = [
+              colors.header[0],
+              colors.header[1],
+              colors.header[2],
+            ] as [number, number, number];
+          }
+          data.cell.styles.textColor = [0, 0, 0];
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.halign = "center";
+        } else if (data.section === "head" && data.row.index === 1) {
+          // Deuxième ligne : titres de colonnes avec fond gris
+          const globalColIndex = section.startCol + data.column.index;
+          const isVideColumn = globalColIndex >= 16 && globalColIndex <= 22; // Q-W
+          const isVideColumn2 = globalColIndex >= 31 && globalColIndex <= 36; // AF-AK
+          const isVideColumn3 = globalColIndex === 37; // AL vide
+
+          // Pour les colonnes vides, utiliser blanc
+          if (isVideColumn || isVideColumn2 || isVideColumn3) {
+            data.cell.styles.fillColor = [255, 255, 255] as [
+              number,
+              number,
+              number
+            ];
+          } else {
+            data.cell.styles.fillColor = [
+              colors.header[0],
+              colors.header[1],
+              colors.header[2],
+            ] as [number, number, number];
+          }
+          data.cell.styles.textColor = [0, 0, 0];
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.halign = "center";
+        } else if (data.section === "body") {
+          // Pour les lignes de données, s'assurer que seules les colonnes de la section ont des couleurs
+          if (data.column.index < numCols) {
+            const globalColIndex = section.startCol + data.column.index;
+            const color = section.colorMap(globalColIndex);
+            if (color && color.length >= 3) {
+              // Appliquer la couleur de fond pour les lignes de données (alternance)
+              if (data.row.index % 2 === 0) {
+                data.cell.styles.fillColor = [color[0], color[1], color[2]] as [
+                  number,
+                  number,
+                  number
+                ];
+              } else {
+                // Lignes alternées avec couleur plus claire
+                const lighterColor = [
+                  Math.min(255, color[0] + 10),
+                  Math.min(255, color[1] + 10),
+                  Math.min(255, color[2] + 10),
+                ];
+                data.cell.styles.fillColor = lighterColor as [
+                  number,
+                  number,
+                  number
+                ];
+              }
+            }
+          }
+        }
+      },
+      didDrawPage: (data) => {
+        // Ajouter la pagination
+        const pageCount = doc.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.text(
+          `Page ${data.pageNumber} / ${pageCount}`,
+          doc.internal.pageSize.width - 30,
+          doc.internal.pageSize.height - 10
+        );
+      },
+    });
+
+    // Retourner la position Y après le tableau pour la section suivante
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const finalY = (doc as any).lastAutoTable?.finalY ?? startY + 50;
+    return finalY + 10;
+  }
+
+  /**
    * Génère le fichier PDF avec couleurs
    */
   async generatePDF(pesees: Pesee[]): Promise<Blob> {
@@ -615,7 +813,7 @@ export class RegistreSuiviDechetsExporter {
       format: "a4",
     });
 
-    // Préparer les données pour le tableau
+    // Préparer toutes les données une fois
     const tableData: string[][] = [];
 
     // Ligne 1 : En-têtes de groupes (47 colonnes)
@@ -757,118 +955,188 @@ export class RegistreSuiviDechetsExporter {
       header: [224, 224, 224], // Gris clair (#E0E0E0)
     };
 
-    // Mapping des colonnes vers leurs couleurs
-    const columnColors: number[][] = [];
-    for (let i = 0; i < 47; i++) {
-      if (i >= 0 && i <= 2) {
+    // Fonction pour mapper les couleurs selon l'index global de colonne
+    const getColorForColumn = (colIndex: number): number[] => {
+      if (colIndex >= 0 && colIndex <= 2) {
         // A-C : PESEE
-        columnColors[i] = colors.pesee;
-      } else if (i >= 3 && i <= 8) {
+        return colors.pesee;
+      } else if (colIndex >= 3 && colIndex <= 8) {
         // D-I : DECHET
-        columnColors[i] = colors.dechet;
-      } else if (i >= 9 && i <= 15) {
+        return colors.dechet;
+      } else if (colIndex >= 9 && colIndex <= 15) {
         // J-P : CLIENT
-        columnColors[i] = colors.client;
-      } else if (i >= 16 && i <= 22) {
+        return colors.client;
+      } else if (colIndex >= 16 && colIndex <= 22) {
         // Q-W : Vides (gris clair)
-        columnColors[i] = colors.header;
-      } else if (i >= 23 && i <= 30) {
+        return colors.header;
+      } else if (colIndex >= 23 && colIndex <= 30) {
         // X-AE : TRANSPORTEUR (incluant RECEPISSE)
-        columnColors[i] = colors.transporteur;
-      } else if (i >= 31 && i <= 36) {
+        return colors.transporteur;
+      } else if (colIndex >= 31 && colIndex <= 36) {
         // AF-AK : Vides (gris clair)
-        columnColors[i] = colors.header;
-      } else if (i >= 37 && i <= 46) {
+        return colors.header;
+      } else if (colIndex >= 37 && colIndex <= 46) {
         // AL-AT : CHANTIER (10 colonnes, AL vide)
-        columnColors[i] = colors.chantier;
+        return colors.chantier;
       }
-    }
+      return colors.header;
+    };
 
-    // Créer les styles de colonnes avec couleurs
-    const columnStyles: {
-      [key: string]: {
-        fillColor?: [number, number, number];
-        cellWidth?: number;
-      };
-    } = {};
-    for (let i = 0; i < 47; i++) {
-      const color = columnColors[i];
-      columnStyles[i.toString()] = {
-        fillColor: [color[0], color[1], color[2]] as [number, number, number],
-        cellWidth: (i >= 16 && i <= 22) || (i >= 31 && i <= 36) ? 3 : undefined,
-      };
-    }
-
-    // Générer le tableau avec autoTable
-    autoTable(doc, {
-      head: [headerGroups, headers], // Deux lignes : groupes, titres (pas de texte d'aide dans le PDF non plus)
-      body: tableData,
-      startY: 10,
-      styles: {
-        fontSize: 6, // Petite police pour faire tenir 47 colonnes
-        cellPadding: 1,
-      },
-      headStyles: {
-        fillColor: [colors.header[0], colors.header[1], colors.header[2]] as [
-          number,
-          number,
-          number
+    // Définir les 4 sections
+    const sections = [
+      {
+        name: "PESEE / DECHET",
+        startCol: 0, // A
+        endCol: 8, // I
+        groupHeaders: ["PESEE", "", "", "DECHET", "", "", "", "", ""],
+        columnHeaders: [
+          "DATE",
+          "HEURE",
+          "PLAQUE",
+          "PRODUIT",
+          "CODE DECHET",
+          "POIDS BRUT",
+          "POIDS NET",
+          "CODE TRAIT.",
+          "POP",
         ],
-        textColor: [0, 0, 0],
-        fontStyle: "bold",
+        colorMap: getColorForColumn,
       },
-      columnStyles,
-      alternateRowStyles: {
-        fillColor: [245, 245, 245],
+      {
+        name: "CLIENT",
+        startCol: 9, // J
+        endCol: 22, // W
+        groupHeaders: [
+          "CLIENT",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "", // J-P (7 colonnes)
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "", // Q-W (7 colonnes vides)
+        ],
+        columnHeaders: [
+          "CLIENT",
+          "SIRET",
+          "N°",
+          "VOIE",
+          "COMPL.",
+          "CP",
+          "VILLE",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "", // Q-W
+        ],
+        colorMap: getColorForColumn,
       },
-      margin: { top: 10, right: 5, left: 5, bottom: 10 },
-      tableWidth: "auto",
-      didParseCell: (data) => {
-        // Appliquer les couleurs de groupes à la première ligne du head
-        if (data.section === "head" && data.row.index === 0) {
-          // Première ligne : en-têtes de groupes avec couleurs par bloc
-          const color = columnColors[data.column.index];
-          // Vérification de sécurité
-          if (color && color.length >= 3) {
-            data.cell.styles.fillColor = [color[0], color[1], color[2]] as [
-              number,
-              number,
-              number
-            ];
-          } else {
-            // Fallback : utiliser la couleur header par défaut
-            data.cell.styles.fillColor = [
-              colors.header[0],
-              colors.header[1],
-              colors.header[2],
-            ] as [number, number, number];
-          }
-          data.cell.styles.textColor = [0, 0, 0];
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.halign = "center";
-        } else if (data.section === "head" && data.row.index === 1) {
-          // Deuxième ligne : titres de colonnes avec fond gris
-          data.cell.styles.fillColor = [
-            colors.header[0],
-            colors.header[1],
-            colors.header[2],
-          ] as [number, number, number];
-          data.cell.styles.textColor = [0, 0, 0];
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.halign = "center";
-        }
+      {
+        name: "TRANSPORTEUR",
+        startCol: 23, // X
+        endCol: 36, // AK
+        groupHeaders: [
+          "TRANSPORTEUR",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "", // X-AE (8 colonnes)
+          "",
+          "",
+          "",
+          "",
+          "",
+          "", // AF-AK (6 colonnes vides)
+        ],
+        columnHeaders: [
+          "TRANSP.",
+          "SIRET",
+          "N°",
+          "VOIE",
+          "COMPL.",
+          "CP",
+          "VILLE",
+          "RECEP.",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "", // AF-AK
+        ],
+        colorMap: getColorForColumn,
       },
-      didDrawPage: (data) => {
-        // Ajouter la pagination
-        const pageCount = doc.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.text(
-          `Page ${data.pageNumber} / ${pageCount}`,
-          doc.internal.pageSize.width - 30,
-          doc.internal.pageSize.height - 10
-        );
+      {
+        name: "CHANTIER",
+        startCol: 37, // AL
+        endCol: 46, // AT
+        groupHeaders: [
+          "",
+          "CHANTIER",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "", // AL-AT (10 colonnes, AL vide)
+        ],
+        columnHeaders: [
+          "", // AL vide
+          "CHANTIER", // AN
+          "N°", // AO
+          "VOIE", // AP
+          "COMPL.", // AQ
+          "VILLE", // AR
+          "INSEE", // AS
+          "DPT", // AT
+        ],
+        colorMap: getColorForColumn,
       },
-    });
+    ];
+
+    // Générer chaque section sur une page séparée
+    let currentY = 10;
+
+    for (let i = 0; i < sections.length; i++) {
+      const section = sections[i];
+
+      // Ajouter une nouvelle page pour chaque section (sauf la première)
+      if (i > 0) {
+        doc.addPage();
+        currentY = 10;
+      }
+
+      // Ajouter un titre de section
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(section.name, 10, currentY);
+      currentY += 8;
+
+      // Générer la section
+      currentY = this.generateTableSection(
+        doc,
+        section,
+        tableData,
+        currentY,
+        colors
+      );
+    }
 
     // Générer le blob
     return doc.output("blob");
