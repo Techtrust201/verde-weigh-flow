@@ -230,18 +230,37 @@ function mapPeseeToRegistreRow(
   // Parsing adresse client
   const adresseClientParsed = parseAddress(client?.adresse);
 
-  // Parsing adresse transporteur
+  // Parsing adresse transporteur (seulement si on a un transporteur avec données complètes)
   const adresseTransporteurParsed = parseAddress(transporteur?.adresse);
 
-  // Nom transporteur
+  // Déterminer le nom du transporteur selon la priorité (comme l'historique)
   let nomTransporteur = "";
-  if (pesee.transporteurLibre) {
-    nomTransporteur = pesee.transporteurLibre;
-  } else if (transporteur) {
+  let transporteurData: Transporteur | undefined = undefined;
+
+  // Priorité 1 : transporteurLibre (saisi manuellement)
+  if (pesee.transporteurLibre?.trim()) {
+    nomTransporteur = pesee.transporteurLibre.trim();
+    // Pas de données complètes disponibles, seulement le nom
+    transporteurData = undefined;
+  }
+  // Priorité 2 : transporteurId (transporteur existant sélectionné)
+  else if (pesee.transporteurId && transporteur) {
     nomTransporteur = `${transporteur.prenom || ""} ${
       transporteur.nom || ""
     }`.trim();
+    transporteurData = transporteur; // Utiliser toutes les données du transporteur
   }
+  // Fallback : nomEntreprise (comme l'historique)
+  // Dans ce cas, c'est le client lui-même qui transporte ses déchets
+  else {
+    nomTransporteur = pesee.nomEntreprise || "";
+    transporteurData = undefined;
+  }
+
+  // Déterminer si c'est le client lui-même qui transporte
+  // (pas de transporteurLibre, pas de transporteurId)
+  const isClientAsTransporteur =
+    !pesee.transporteurLibre?.trim() && !pesee.transporteurId && !!client;
 
   // Chantier
   const chantier = pesee.chantierLibre || pesee.chantier || "";
@@ -281,21 +300,55 @@ function mapPeseeToRegistreRow(
     villeClient: client?.ville || "",
 
     // Bloc TRANSPORTEUR
-    // Mettre "#N/A" si vraiment rien n'est disponible, sinon utiliser les vraies données
+    // Logique :
+    // - Si on a transporteurData (transporteurId sélectionné), utiliser toutes ses données
+    // - Sinon si c'est le client lui-même (isClientAsTransporteur), utiliser les données du client
+    // - Sinon (transporteurLibre seulement), utiliser le nom mais mettre "#N/A" pour les autres champs
     transporteur: nomTransporteur || "#N/A",
     siretTransporteur: formatForExcel(
-      transporteur?.siret || (nomTransporteur ? "" : "#N/A")
+      transporteurData?.siret ||
+        (isClientAsTransporteur
+          ? client?.siret || ""
+          : nomTransporteur
+          ? "#N/A"
+          : "#N/A")
     ),
-    numeroVoieTransporteur:
-      adresseTransporteurParsed.numeroVoie || (nomTransporteur ? "" : "#N/A"),
-    voieTransporteur:
-      adresseTransporteurParsed.voie || (nomTransporteur ? "" : "#N/A"),
-    complementTransporteur:
-      adresseTransporteurParsed.complement || (nomTransporteur ? "" : "#N/A"),
+    numeroVoieTransporteur: transporteurData
+      ? adresseTransporteurParsed.numeroVoie || ""
+      : isClientAsTransporteur
+      ? adresseClientParsed.numeroVoie || ""
+      : nomTransporteur
+      ? "#N/A"
+      : "#N/A",
+    voieTransporteur: transporteurData
+      ? adresseTransporteurParsed.voie || ""
+      : isClientAsTransporteur
+      ? adresseClientParsed.voie || ""
+      : nomTransporteur
+      ? "#N/A"
+      : "#N/A",
+    complementTransporteur: transporteurData
+      ? adresseTransporteurParsed.complement || ""
+      : isClientAsTransporteur
+      ? adresseClientParsed.complement || ""
+      : nomTransporteur
+      ? "#N/A"
+      : "#N/A",
     cpTransporteur: formatForExcel(
-      transporteur?.codePostal || (nomTransporteur ? "" : "#N/A")
+      transporteurData?.codePostal ||
+        (isClientAsTransporteur
+          ? client?.codePostal || ""
+          : nomTransporteur
+          ? "#N/A"
+          : "#N/A")
     ),
-    villeTransporteur: transporteur?.ville || (nomTransporteur ? "" : "#N/A"),
+    villeTransporteur:
+      transporteurData?.ville ||
+      (isClientAsTransporteur
+        ? client?.ville || ""
+        : nomTransporteur
+        ? "#N/A"
+        : "#N/A"),
 
     // Bloc CHANTIER
     recepisse: recepisse || "",
