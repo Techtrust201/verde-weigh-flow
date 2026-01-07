@@ -35,48 +35,8 @@ export const cleanupDuplicateProducts =
         };
       }
 
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location: "productCleanup.ts:21",
-            message: "cleanupDuplicateProducts started",
-            data: { timestamp: Date.now() },
-            timestamp: Date.now(),
-            sessionId: "debug-session",
-            runId: "run1",
-            hypothesisId: "D",
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       const allProducts = await db.products.toArray();
       const totalProducts = allProducts.length;
-      // #region agent log
-      fetch(
-        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location: "productCleanup.ts:24",
-            message: "Total products loaded",
-            data: {
-              totalProducts,
-              productsWithoutCode: allProducts.filter((p) => !p.codeProduct)
-                .length,
-            },
-            timestamp: Date.now(),
-            sessionId: "debug-session",
-            runId: "run1",
-            hypothesisId: "B",
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
 
       // Normaliser le code produit pour la comparaison (insensible à la casse, sans espaces superflus)
       const normalizeCode = (code: string): string => {
@@ -88,49 +48,9 @@ export const cleanupDuplicateProducts =
 
       for (const product of allProducts) {
         if (!product.codeProduct) {
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                location: "productCleanup.ts:34",
-                message: "Product skipped - no codeProduct",
-                data: { productId: product.id, hasNom: !!product.nom },
-                timestamp: Date.now(),
-                sessionId: "debug-session",
-                runId: "run1",
-                hypothesisId: "B",
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
           continue;
         }
         const normalizedCode = normalizeCode(product.codeProduct);
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              location: "productCleanup.ts:36",
-              message: "Normalizing product code",
-              data: {
-                original: product.codeProduct,
-                normalized: normalizedCode,
-                productId: product.id,
-              },
-              timestamp: Date.now(),
-              sessionId: "debug-session",
-              runId: "run1",
-              hypothesisId: "A",
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
 
         if (!productsByNormalizedCode.has(normalizedCode)) {
           productsByNormalizedCode.set(normalizedCode, []);
@@ -153,29 +73,6 @@ export const cleanupDuplicateProducts =
         products,
       ] of productsByNormalizedCode.entries()) {
         if (products.length > 1) {
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                location: "productCleanup.ts:57",
-                message: "Duplicate group found",
-                data: {
-                  normalizedCode,
-                  count: products.length,
-                  productIds: products.map((p) => p.id),
-                  codeProducts: products.map((p) => p.codeProduct),
-                },
-                timestamp: Date.now(),
-                sessionId: "debug-session",
-                runId: "run1",
-                hypothesisId: "A",
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
           duplicatesFound += products.length - 1;
 
           // Trier par updatedAt décroissant (le plus récent en premier)
@@ -219,28 +116,6 @@ export const cleanupDuplicateProducts =
 
       // Utiliser une transaction Dexie pour garantir l'atomicité de l'opération
       // Si une erreur survient, toutes les modifications sont annulées
-      // #region agent log
-      const transactionStartTime = Date.now();
-      fetch(
-        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location: "productCleanup.ts:232",
-            message: "Transaction started",
-            data: {
-              duplicatesToProcess: duplicateInfos.length,
-              peseeTransfersCount: peseeTransfers.size,
-            },
-            timestamp: Date.now(),
-            sessionId: "debug-session",
-            runId: "run1",
-            hypothesisId: "D",
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       await db
         .transaction("rw", db.products, db.pesees, async () => {
           // ÉTAPE 1 : Vérifier que tous les produits conservés existent toujours
@@ -422,29 +297,6 @@ export const cleanupDuplicateProducts =
             // Mettre à jour le produit conservé avec les données fusionnées
             // Utiliser put() avec merge explicite pour garantir la préservation de tous les champs
             // Pattern cohérent avec ClientsSpace.tsx et PeseeSpace.tsx
-            // #region agent log
-            fetch(
-              "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  location: "productCleanup.ts:220",
-                  message: "Before db.put - checking preserved fields",
-                  data: {
-                    keptProductId: keptProduct.id,
-                    updatesKeys: Object.keys(updates),
-                    hasIsFavoriteBefore: keptProductFull.isFavorite,
-                    hasDescriptionBefore: !!keptProductFull.description,
-                  },
-                  timestamp: Date.now(),
-                  sessionId: "debug-session",
-                  runId: "run1",
-                  hypothesisId: "C",
-                }),
-              }
-            ).catch(() => {});
-            // #endregion
             const mergedProduct = {
               ...keptProductFull, // Toutes les données existantes (tous les champs du produit)
               ...updates, // Les données fusionnées (isFavorite, description, Track Déchet, etc.)
@@ -452,29 +304,6 @@ export const cleanupDuplicateProducts =
               updatedAt: new Date(),
             } as Product;
             await db.products.put(mergedProduct);
-            // #region agent log
-            const afterUpdate = await db.products.get(keptProduct.id);
-            fetch(
-              "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  location: "productCleanup.ts:222",
-                  message: "After db.put - verifying preserved fields",
-                  data: {
-                    keptProductId: keptProduct.id,
-                    hasIsFavoriteAfter: afterUpdate?.isFavorite,
-                    hasDescriptionAfter: !!afterUpdate?.description,
-                  },
-                  timestamp: Date.now(),
-                  sessionId: "debug-session",
-                  runId: "run1",
-                  hypothesisId: "C",
-                }),
-              }
-            ).catch(() => {});
-            // #endregion
           }
 
           // ÉTAPE 3 : Transférer toutes les pesées AVANT de supprimer les produits
@@ -541,49 +370,8 @@ export const cleanupDuplicateProducts =
           }
         })
         .catch((error) => {
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                location: "productCleanup.ts:315",
-                message: "Transaction failed",
-                data: { error: error.message, stack: error.stack },
-                timestamp: Date.now(),
-                sessionId: "debug-session",
-                runId: "run1",
-                hypothesisId: "C",
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
           throw error;
         });
-      // #region agent log
-      const transactionDuration = Date.now() - transactionStartTime;
-      fetch(
-        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location: "productCleanup.ts:317",
-            message: "Transaction completed",
-            data: {
-              duration: transactionDuration,
-              totalPeseesTransferred,
-              duplicatesRemoved: removedProducts.length,
-            },
-            timestamp: Date.now(),
-            sessionId: "debug-session",
-            runId: "run1",
-            hypothesisId: "D",
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
 
       return {
         totalProducts,
@@ -604,7 +392,3 @@ export const cleanupDuplicateProducts =
       throw new Error(`Échec du nettoyage des doublons : ${errorMessage}`);
     }
   };
-
-
-
-
