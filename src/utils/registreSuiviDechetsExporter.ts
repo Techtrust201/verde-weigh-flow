@@ -195,7 +195,7 @@ function generateCSVLine(
   values: (string | number | null | undefined)[],
   quoteEmpty: boolean = true
 ): string {
-  return values.map((val) => escapeCSVValue(val, quoteEmpty)).join(",");
+  return values.map((val) => escapeCSVValue(val, quoteEmpty)).join(";");
 }
 
 /**
