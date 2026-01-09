@@ -1795,7 +1795,7 @@ export default function PeseeSpace({
         </div>
       </div>
 
-      <div className="h-[88px] bg-transparent"></div>
+      <div className="h-[1rem] bg-transparent"></div>
 
       <Tabs
         value={showRecentTab ? "recentes" : activeTabId}
