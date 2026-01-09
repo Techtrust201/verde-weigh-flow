@@ -575,14 +575,6 @@ export default function ClientsSpace() {
     if (!validateForm()) return;
 
     try {
-      const clientData = {
-        ...formData,
-        telephone: formData.telephone || "",
-        plaques: formData.plaques || [],
-        chantiers: formData.chantiers || [],
-        tarifsPreferentiels: formData.tarifsPreferentiels || {},
-      };
-
       if (selectedClient) {
         // Récupérer le client complet depuis la DB pour garantir toutes les données
         const fullClient = await db.clients.get(selectedClient.id!);
@@ -595,23 +587,39 @@ export default function ClientsSpace() {
           return;
         }
 
-        // Mettre à jour avec put pour garantir la persistance des tableaux et objets complexes
-        await db.clients.put({
+        // CORRECTION: Utiliser ?? et fallback sur fullClient pour préserver les données existantes
+        const clientData = {
           ...fullClient,
-          ...clientData,
+          ...formData,
+          telephone: formData.telephone ?? fullClient.telephone ?? "",
+          // Préserver les plaques existantes si non définies dans le formulaire
+          plaques: formData.plaques ?? fullClient.plaques ?? [],
+          // Préserver les chantiers existants si non définis dans le formulaire
+          chantiers: formData.chantiers ?? fullClient.chantiers ?? [],
+          // Préserver les tarifs préférentiels existants si non définis dans le formulaire
+          tarifsPreferentiels: formData.tarifsPreferentiels ?? fullClient.tarifsPreferentiels ?? {},
           id: selectedClient.id,
           updatedAt: new Date(),
-        } as Client);
+        };
+
+        // Mettre à jour avec put pour garantir la persistance des tableaux et objets complexes
+        await db.clients.put(clientData as Client);
         toast({
           title: "Succès",
           description: "Client modifié avec succès.",
         });
       } else {
-        await db.clients.add({
-          ...clientData,
+        // CORRECTION: Utiliser ?? au lieu de || pour la création de nouveau client
+        const newClientData = {
+          ...formData,
+          telephone: formData.telephone ?? "",
+          plaques: formData.plaques ?? [],
+          chantiers: formData.chantiers ?? [],
+          tarifsPreferentiels: formData.tarifsPreferentiels ?? {},
           createdAt: new Date(),
           updatedAt: new Date(),
-        } as Client);
+        };
+        await db.clients.add(newClientData as Client);
         toast({
           title: "Succès",
           description: "Client créé avec succès.",

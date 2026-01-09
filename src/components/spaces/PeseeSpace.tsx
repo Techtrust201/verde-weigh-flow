@@ -518,14 +518,15 @@ export default function PeseeSpace({
         }
       }
 
+      // CORRECTION: Utiliser ?? au lieu de || pour éviter d'écraser les tableaux vides
       const clientData = {
         ...newClientForm,
         raisonSociale: newClientForm.raisonSociale,
-        telephone: newClientForm.telephone || "",
-        plaques: newClientForm.plaques || [],
-        chantiers: newClientForm.chantiers || [],
-        transporteurId: newClientForm.transporteurId || 0,
-        tarifsPreferentiels: newClientForm.tarifsPreferentiels || {},
+        telephone: newClientForm.telephone ?? "",
+        plaques: newClientForm.plaques ?? [],
+        chantiers: newClientForm.chantiers ?? [],
+        transporteurId: newClientForm.transporteurId ?? 0,
+        tarifsPreferentiels: newClientForm.tarifsPreferentiels ?? {},
         createdAt: new Date(),
         updatedAt: new Date(),
       } as Client;
@@ -611,15 +612,24 @@ export default function PeseeSpace({
         return;
       }
 
+      // CORRECTION: Utiliser ?? et fallback sur fullClient pour préserver les données existantes
+      // Si newClientForm.plaques est undefined, on garde les plaques existantes du client
       const clientData = {
         ...fullClient,
         ...newClientForm,
         raisonSociale: newClientForm.raisonSociale,
-        telephone: newClientForm.telephone || "",
-        plaques: newClientForm.plaques || [],
-        chantiers: newClientForm.chantiers || [],
-        transporteurId: newClientForm.transporteurId || 0,
-        tarifsPreferentiels: newClientForm.tarifsPreferentiels || {},
+        telephone: newClientForm.telephone ?? fullClient.telephone ?? "",
+        // Préserver les plaques existantes si non définies dans le formulaire
+        plaques: newClientForm.plaques ?? fullClient.plaques ?? [],
+        // Préserver les chantiers existants si non définis dans le formulaire
+        chantiers: newClientForm.chantiers ?? fullClient.chantiers ?? [],
+        transporteurId:
+          newClientForm.transporteurId ?? fullClient.transporteurId ?? 0,
+        // Préserver les tarifs préférentiels existants si non définis dans le formulaire
+        tarifsPreferentiels:
+          newClientForm.tarifsPreferentiels ??
+          fullClient.tarifsPreferentiels ??
+          {},
         id: newClientForm.id,
         updatedAt: new Date(),
       } as Client;
@@ -1819,6 +1829,7 @@ export default function PeseeSpace({
                     <PeseeFormSection
                       currentData={tab.formData}
                       clients={clients}
+                      products={products}
                       transporteurs={transporteurs}
                       updateCurrentTab={updateCurrentTabWithValidation}
                       onAddClient={prepareNewClientForm}

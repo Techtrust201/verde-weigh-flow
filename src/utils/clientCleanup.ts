@@ -20,7 +20,7 @@ export interface DuplicateCleanupResult {
 export const cleanupDuplicateClients =
   async (): Promise<DuplicateCleanupResult> => {
     try {
-      // Hypothèse D : Vérification rapide avant nettoyage complet
+      // Vérification rapide avant nettoyage complet
       // Si moins de 2 clients, pas de doublons possibles
       const quickCheck = await db.clients.count();
       if (quickCheck < 2) {
@@ -48,52 +48,9 @@ export const cleanupDuplicateClients =
 
       for (const client of allClients) {
         if (!client.raisonSociale) {
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                location: "clientCleanup.ts:34",
-                message: "Client skipped - no raisonSociale",
-                data: {
-                  clientId: client.id,
-                  hasCodeClient: !!client.codeClient,
-                },
-                timestamp: Date.now(),
-                sessionId: "debug-session",
-                runId: "run1",
-                hypothesisId: "B",
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
           continue;
         }
         const normalizedName = normalizeName(client.raisonSociale);
-        // #region agent log
-        fetch(
-          "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              location: "clientCleanup.ts:36",
-              message: "Normalizing client name",
-              data: {
-                original: client.raisonSociale,
-                normalized: normalizedName,
-                clientId: client.id,
-              },
-              timestamp: Date.now(),
-              sessionId: "debug-session",
-              runId: "run1",
-              hypothesisId: "A",
-            }),
-          }
-        ).catch(() => {});
-        // #endregion
 
         if (!clientsByNormalizedName.has(normalizedName)) {
           clientsByNormalizedName.set(normalizedName, []);
@@ -116,7 +73,7 @@ export const cleanupDuplicateClients =
         clients,
       ] of clientsByNormalizedName.entries()) {
         if (clients.length > 1) {
-          // Hypothèse A : Vérifier si ce sont vraiment des doublons avec multi-critères
+          // Vérifier si ce sont vraiment des doublons avec multi-critères
           // Si deux clients ont le même nom mais des codeClient ou siret différents,
           // ce ne sont PAS des doublons
           const realDuplicates: Client[][] = [];
@@ -163,31 +120,6 @@ export const cleanupDuplicateClients =
 
           // Traiter seulement les vrais doublons
           for (const group of realDuplicates) {
-            // #region agent log
-            fetch(
-              "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  location: "clientCleanup.ts:54",
-                  message: "Real duplicate group found (multi-criteria)",
-                  data: {
-                    normalizedName,
-                    count: group.length,
-                    clientIds: group.map((c) => c.id),
-                    raisonSociales: group.map((c) => c.raisonSociale),
-                    codeClients: group.map((c) => c.codeClient),
-                    sirets: group.map((c) => c.siret),
-                  },
-                  timestamp: Date.now(),
-                  sessionId: "debug-session",
-                  runId: "run1",
-                  hypothesisId: "A",
-                }),
-              }
-            ).catch(() => {});
-            // #endregion
             duplicatesFound += group.length - 1;
 
             // Trier par updatedAt décroissant (le plus récent en premier)
@@ -234,28 +166,6 @@ export const cleanupDuplicateClients =
 
       // Utiliser une transaction Dexie pour garantir l'atomicité de l'opération
       // Si une erreur survient, toutes les modifications sont annulées
-      // #region agent log
-      const transactionStartTime = Date.now();
-      fetch(
-        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location: "clientCleanup.ts:237",
-            message: "Transaction started",
-            data: {
-              duplicatesToProcess: duplicateInfos.length,
-              peseeTransfersCount: peseeTransfers.size,
-            },
-            timestamp: Date.now(),
-            sessionId: "debug-session",
-            runId: "run1",
-            hypothesisId: "D",
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
       await db
         .transaction("rw", db.clients, db.pesees, async () => {
           // ÉTAPE 1 : Vérifier que tous les clients conservés existent toujours
@@ -486,31 +396,6 @@ export const cleanupDuplicateClients =
 
             // Mettre à jour le client conservé avec les données fusionnées
             // Utiliser put() avec merge explicite pour garantir la préservation de tous les champs
-            // Pattern cohérent avec ClientsSpace.tsx et PeseeSpace.tsx
-            // #region agent log
-            fetch(
-              "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  location: "clientCleanup.ts:191",
-                  message: "Before db.put - checking preserved fields",
-                  data: {
-                    keptClientId: keptClient.id,
-                    updatesKeys: Object.keys(updates),
-                    hasPlaquesBefore: !!keptClientFull.plaques,
-                    hasChantiersBefore: !!keptClientFull.chantiers,
-                    hasTarifsBefore: !!keptClientFull.tarifsPreferentiels,
-                  },
-                  timestamp: Date.now(),
-                  sessionId: "debug-session",
-                  runId: "run1",
-                  hypothesisId: "C",
-                }),
-              }
-            ).catch(() => {});
-            // #endregion
             const mergedClient = {
               ...keptClientFull, // Toutes les données existantes (tous les champs du client)
               ...updates, // Les données fusionnées (plaques, chantiers, tarifs, etc.)
@@ -518,32 +403,6 @@ export const cleanupDuplicateClients =
               updatedAt: new Date(),
             } as Client;
             await db.clients.put(mergedClient);
-            // #region agent log
-            const afterUpdate = await db.clients.get(keptClient.id);
-            fetch(
-              "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  location: "clientCleanup.ts:193",
-                  message: "After db.put - verifying preserved fields",
-                  data: {
-                    keptClientId: keptClient.id,
-                    hasPlaquesAfter: !!afterUpdate?.plaques,
-                    plaquesCountAfter: afterUpdate?.plaques?.length,
-                    hasChantiersAfter: !!afterUpdate?.chantiers,
-                    chantiersCountAfter: afterUpdate?.chantiers?.length,
-                    hasTarifsAfter: !!afterUpdate?.tarifsPreferentiels,
-                  },
-                  timestamp: Date.now(),
-                  sessionId: "debug-session",
-                  runId: "run1",
-                  hypothesisId: "C",
-                }),
-              }
-            ).catch(() => {});
-            // #endregion
           }
 
           // ÉTAPE 3 : Transférer toutes les pesées AVANT de supprimer les clients
@@ -604,55 +463,11 @@ export const cleanupDuplicateClients =
             }
           }
 
-          // ÉTAPE 6 : Supprimer les clients seulement si tout s'est bien passé
+          // ÉTAPE 5 : Supprimer les clients seulement si tout s'est bien passé
           if (idsToDelete.length > 0) {
             await db.clients.bulkDelete(idsToDelete);
           }
-        })
-        .catch((error) => {
-          // #region agent log
-          fetch(
-            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                location: "clientCleanup.ts:256",
-                message: "Transaction failed",
-                data: { error: error.message, stack: error.stack },
-                timestamp: Date.now(),
-                sessionId: "debug-session",
-                runId: "run1",
-                hypothesisId: "C",
-              }),
-            }
-          ).catch(() => {});
-          // #endregion
-          throw error;
         });
-      // #region agent log
-      const transactionDuration = Date.now() - transactionStartTime;
-      fetch(
-        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location: "clientCleanup.ts:258",
-            message: "Transaction completed",
-            data: {
-              duration: transactionDuration,
-              totalPeseesTransferred,
-              duplicatesRemoved: removedClients.length,
-            },
-            timestamp: Date.now(),
-            sessionId: "debug-session",
-            runId: "run1",
-            hypothesisId: "D",
-          }),
-        }
-      ).catch(() => {});
-      // #endregion
 
       return {
         totalClients,
@@ -664,7 +479,6 @@ export const cleanupDuplicateClients =
         peseesTransferred: totalPeseesTransferred,
       };
     } catch (error) {
-      // Hypothèse D : Gestion d'erreurs avec messages clairs
       console.error("Erreur lors du nettoyage des doublons clients:", error);
       const errorMessage =
         error instanceof Error
