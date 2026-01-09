@@ -361,12 +361,12 @@ export const ProductWeightSection = ({
                       <span className="text-lg font-black text-green-600">
                         {formatWeight(
                           Math.abs(
-                          (parseFloat(
-                            currentData.poidsEntree?.replace(",", ".")
-                          ) || 0) -
                             (parseFloat(
-                              currentData.poidsSortie?.replace(",", ".")
-                            ) || 0)
+                              currentData.poidsEntree?.replace(",", ".")
+                            ) || 0) -
+                              (parseFloat(
+                                currentData.poidsSortie?.replace(",", ".")
+                              ) || 0)
                           )
                         )}{" "}
                         tonnes
@@ -433,17 +433,6 @@ export const ProductWeightSection = ({
                         </div>
                       )}
                   </div>
-
-                  {hasPrefPricing && (
-                    <div className="mt-3 text-center">
-                      <Badge
-                        variant="outline"
-                        className="text-green-700 border-green-400 bg-green-50 font-semibold px-3 py-1 text-xs"
-                      >
-                        ⭐ Tarif préférentiel exclusif à ce client
-                      </Badge>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             ) : (
