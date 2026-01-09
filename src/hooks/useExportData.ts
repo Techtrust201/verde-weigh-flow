@@ -147,7 +147,7 @@ export const useExportData = () => {
     } else if (format === "registre-suivi-dechets") {
       // Format Registre suivi déchets avec 3 lignes d'en-têtes
       const settings = await getGlobalSettings();
-      const recepisse = settings?.recepisse;
+      const recepisse = settings?.numeroRecepisse;
 
       const exporter = new RegistreSuiviDechetsExporter(
         productMap,
