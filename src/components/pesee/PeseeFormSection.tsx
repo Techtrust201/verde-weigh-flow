@@ -18,10 +18,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { UserPlus, RotateCcw, Check, ChevronsUpDown, Plus } from "lucide-react";
-import { Client, Transporteur, PaymentMethod, Product, db } from "@/lib/database";
+import { Client, Transporteur, PaymentMethod, db } from "@/lib/database";
 import { PeseeTab } from "@/hooks/usePeseeTabs";
 import ClientForm from "@/components/forms/ClientForm";
-import PreferentialPricingSection from "@/components/forms/PreferentialPricingSection";
 import {
   Command,
   CommandEmpty,
@@ -41,7 +40,6 @@ import { cn } from "@/lib/utils";
 interface PeseeFormSectionProps {
   currentData: PeseeTab["formData"] | undefined;
   clients: Client[];
-  products: Product[];
   transporteurs: Transporteur[];
   updateCurrentTab: (updates: Partial<PeseeTab["formData"]>) => void;
   onAddClient: () => void;
@@ -79,7 +77,6 @@ interface PeseeFormSectionProps {
 export const PeseeFormSection = ({
   currentData,
   clients,
-  products,
   transporteurs,
   updateCurrentTab,
   onAddClient,
@@ -1447,12 +1444,6 @@ export const PeseeFormSection = ({
               formData={newClientForm}
               onFormDataChange={setNewClientForm}
               transporteurs={transporteurs}
-            />
-            {/* Section tarifs préférentiels - maintenant accessible depuis l'écran pesée */}
-            <PreferentialPricingSection
-              formData={newClientForm}
-              onFormDataChange={setNewClientForm}
-              products={products}
             />
             <div className="flex justify-end space-x-2">
               <Button

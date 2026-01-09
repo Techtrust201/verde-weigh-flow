@@ -602,8 +602,72 @@ export default function SageClientImportDialog() {
         return; // Attendre la correction avant de continuer
       }
 
-      // Nettoyer les doublons avant l'import pour fusionner les données existantes
-      await cleanupDuplicateClients();
+      // #region agent log
+      const cleanupStartTime = Date.now();
+      fetch(
+        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "SageClientImportDialog.tsx:584",
+            message: "Starting cleanup before import",
+            data: { clientsToImport: importResult.clients.length },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "D",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+      // Nettoyer les doublons existants avant l'import
+      // Hypothèse D : Gérer les erreurs de nettoyage
+      let cleanupResult;
+      try {
+        cleanupResult = await cleanupDuplicateClients();
+      } catch (error) {
+        toast({
+          title: "Erreur de nettoyage",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Impossible de nettoyer les doublons",
+          variant: "destructive",
+        });
+        setIsImporting(false);
+        return; // Ne pas continuer l'import si le nettoyage échoue
+      }
+      // #region agent log
+      const cleanupDuration = Date.now() - cleanupStartTime;
+      fetch(
+        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "SageClientImportDialog.tsx:586",
+            message: "Cleanup completed",
+            data: {
+              duration: cleanupDuration,
+              duplicatesRemoved: cleanupResult.duplicatesRemoved,
+            },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "D",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+
+      if (cleanupResult.duplicatesRemoved > 0) {
+        toast({
+          title: "Nettoyage des doublons",
+          description: `${cleanupResult.duplicatesRemoved} client(s) en double supprimé(s). ${cleanupResult.keptClients.length} client(s) conservé(s).`,
+          variant: "default",
+        });
+      }
 
       let imported = 0;
       let updated = 0;
@@ -655,6 +719,31 @@ export default function SageClientImportDialog() {
           // createUpdateFromParsed ne touche pas aux plaques, chantiers, etc.
           // qui ne sont pas dans le fichier Sage, donc ils seront préservés
           const updates = createUpdateFromParsed(parsedClient);
+          // #region agent log
+          fetch(
+            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                location: "SageClientImportDialog.tsx:641",
+                message: "Before update - checking preserved fields",
+                data: {
+                  clientId: existingClient.id,
+                  updatesKeys: Object.keys(updates),
+                  hasPlaquesBefore: !!fullClient.plaques,
+                  plaquesBefore: fullClient.plaques,
+                  hasChantiersBefore: !!fullClient.chantiers,
+                  chantiersBefore: fullClient.chantiers,
+                },
+                timestamp: Date.now(),
+                sessionId: "debug-session",
+                runId: "run1",
+                hypothesisId: "C",
+              }),
+            }
+          ).catch(() => {});
+          // #endregion
 
           // Utiliser put() avec merge explicite pour garantir la préservation de tous les champs
           // Pattern cohérent avec ClientsSpace.tsx et PeseeSpace.tsx
@@ -665,6 +754,39 @@ export default function SageClientImportDialog() {
             updatedAt: new Date(),
           } as Client;
           await db.clients.put(mergedClient);
+          // #region agent log
+          const afterUpdate = await db.clients.get(existingClient.id);
+          fetch(
+            "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                location: "SageClientImportDialog.tsx:648",
+                message: "After update - verifying preserved fields",
+                data: {
+                  clientId: existingClient.id,
+                  hasPlaquesAfter: !!afterUpdate?.plaques,
+                  plaquesAfter: afterUpdate?.plaques,
+                  hasChantiersAfter: !!afterUpdate?.chantiers,
+                  chantiersAfter: afterUpdate?.chantiers,
+                  fieldsPreserved: JSON.stringify({
+                    plaques:
+                      afterUpdate?.plaques?.length ===
+                      fullClient.plaques?.length,
+                    chantiers:
+                      afterUpdate?.chantiers?.length ===
+                      fullClient.chantiers?.length,
+                  }),
+                },
+                timestamp: Date.now(),
+                sessionId: "debug-session",
+                runId: "run1",
+                hypothesisId: "C",
+              }),
+            }
+          ).catch(() => {});
+          // #endregion
           updated++;
           continue;
         }

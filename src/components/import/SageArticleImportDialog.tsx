@@ -346,8 +346,72 @@ export default function SageArticleImportDialog() {
         return; // Attendre la correction avant de continuer
       }
 
-      // Nettoyer les doublons avant l'import pour fusionner les données existantes
-      await cleanupDuplicateProducts();
+      // #region agent log
+      const cleanupStartTime = Date.now();
+      fetch(
+        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "SageArticleImportDialog.tsx:328",
+            message: "Starting cleanup before import",
+            data: { articlesToImport: importResult.articles.length },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "D",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+      // Nettoyer les doublons existants avant l'import
+      // Hypothèse D : Gérer les erreurs de nettoyage
+      let cleanupResult;
+      try {
+        cleanupResult = await cleanupDuplicateProducts();
+      } catch (error) {
+        toast({
+          title: "Erreur de nettoyage",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Impossible de nettoyer les doublons",
+          variant: "destructive",
+        });
+        setIsImporting(false);
+        return; // Ne pas continuer l'import si le nettoyage échoue
+      }
+      // #region agent log
+      const cleanupDuration = Date.now() - cleanupStartTime;
+      fetch(
+        "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "SageArticleImportDialog.tsx:330",
+            message: "Cleanup completed",
+            data: {
+              duration: cleanupDuration,
+              duplicatesRemoved: cleanupResult.duplicatesRemoved,
+            },
+            timestamp: Date.now(),
+            sessionId: "debug-session",
+            runId: "run1",
+            hypothesisId: "D",
+          }),
+        }
+      ).catch(() => {});
+      // #endregion
+
+      if (cleanupResult.duplicatesRemoved > 0) {
+        toast({
+          title: "Nettoyage des doublons",
+          description: `${cleanupResult.duplicatesRemoved} produit(s) en double supprimé(s). ${cleanupResult.keptProducts.length} produit(s) conservé(s).`,
+          variant: "default",
+        });
+      }
 
       let imported = 0;
       let updated = 0;
@@ -401,6 +465,31 @@ export default function SageArticleImportDialog() {
             // - codeDechets
             // - trackDechetEnabled
             // - Tous les autres champs Track Déchet
+            // #region agent log
+            fetch(
+              "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  location: "SageArticleImportDialog.tsx:357",
+                  message: "Before update - checking preserved fields",
+                  data: {
+                    productId: existingProduct.id,
+                    updatesKeys: Object.keys(updates),
+                    hasIsFavoriteBefore: fullProduct.isFavorite,
+                    hasDescriptionBefore: !!fullProduct.description,
+                    hasTrackDechetBefore: !!fullProduct.trackDechetEnabled,
+                  },
+                  timestamp: Date.now(),
+                  sessionId: "debug-session",
+                  runId: "run1",
+                  hypothesisId: "C",
+                }),
+              }
+            ).catch(() => {});
+            // #endregion
+
             const mergedProduct = {
               ...fullProduct, // Toutes les données existantes (isFavorite, description, Track Déchet, etc.)
               ...updates, // Les nouvelles données du fichier Sage
@@ -408,6 +497,36 @@ export default function SageArticleImportDialog() {
               updatedAt: new Date(),
             } as Product;
             await db.products.put(mergedProduct);
+            // #region agent log
+            const afterUpdate = await db.products.get(existingProduct.id!);
+            fetch(
+              "http://127.0.0.1:7242/ingest/25cea5cc-6f39-48d6-9ef1-0985c521626a",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  location: "SageArticleImportDialog.tsx:359",
+                  message: "After update - verifying preserved fields",
+                  data: {
+                    productId: existingProduct.id,
+                    hasIsFavoriteAfter: afterUpdate?.isFavorite,
+                    hasDescriptionAfter: !!afterUpdate?.description,
+                    hasTrackDechetAfter: !!afterUpdate?.trackDechetEnabled,
+                    fieldsPreserved: JSON.stringify({
+                      isFavorite:
+                        afterUpdate?.isFavorite === fullProduct.isFavorite,
+                      description:
+                        afterUpdate?.description === fullProduct.description,
+                    }),
+                  },
+                  timestamp: Date.now(),
+                  sessionId: "debug-session",
+                  runId: "run1",
+                  hypothesisId: "C",
+                }),
+              }
+            ).catch(() => {});
+            // #endregion
             updated++;
           }
         } else {
