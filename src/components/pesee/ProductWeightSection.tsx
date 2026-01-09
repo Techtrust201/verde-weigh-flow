@@ -212,7 +212,7 @@ export const ProductWeightSection = ({
             Produit et Poids
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="grid grid-cols-1 gap-4">
             <div>
               <Label
@@ -259,7 +259,7 @@ export const ProductWeightSection = ({
                 </p>
               )}
               {hasPrefPricing && (
-                <div className="mt-1 flex items-center gap-1">
+                <div className=" flex items-center gap-1">
                   <Info className="h-3 w-3 text-blue-500" />
                   <span className="text-xs text-blue-600">
                     Tarif préférentiel appliqué pour {client?.raisonSociale}
@@ -269,7 +269,11 @@ export const ProductWeightSection = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div
+            className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${
+              hasPrefPricing ? "mb-2" : "my-2"
+            }`}
+          >
             <div>
               <Label
                 htmlFor="poidsEntree"
