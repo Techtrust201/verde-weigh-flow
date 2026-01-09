@@ -1417,7 +1417,7 @@ export default function PeseeSpace({
       closeTab(tabId);
     }
   };
-  return <div className="space-y-4">
+  return <div className="space-y-4 pt-14">
       <div className="fixed top-0 right-0 bg-white z-10 shadow-lg transition-all duration-300" style={{
       left: "var(--sidebar-width, 4rem)",
       marginLeft: "auto"
