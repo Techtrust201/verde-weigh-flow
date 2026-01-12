@@ -1,6 +1,6 @@
 /**
  * Exporteur pour le format "Registre suivi déchets"
- * Génère des fichiers CSV ou PDF avec exactement 45 colonnes (44 + DPT)
+ * Génère des fichiers CSV ou PDF avec exactement 44 colonnes (43 + DPT)
  */
 
 import jsPDF from "jspdf";
@@ -18,44 +18,43 @@ export interface RegistreRow {
   plaque: string; // C
   libelleProduit: string; // D
   codeDechet: string; // E
-  poidsBrut: string; // F (vide ou poids brut en kg)
-  poidsNet: string; // G (poids net en kg)
-  codeTraitement: string; // H
-  dechetPOP: string; // I ("x" si oui, sinon vide)
+  poidsNet: string; // F (poids net en kg)
+  codeTraitement: string; // G
+  dechetPOP: string; // H ("x" si oui, sinon vide)
 
   // Bloc CLIENT
-  client: string; // J
-  siretClient: string; // K
-  numeroVoieClient: string; // L
-  voieClient: string; // M
-  complementClient: string; // N
-  cpClient: string; // O
-  villeClient: string; // P
+  client: string; // I
+  siretClient: string; // J
+  numeroVoieClient: string; // K
+  voieClient: string; // L
+  complementClient: string; // M
+  cpClient: string; // N
+  villeClient: string; // O
 
-  // Colonnes vides Q-W
+  // Colonnes vides P-V
   // (seront gérées dans le mapping)
 
   // Bloc TRANSPORTEUR
-  transporteur: string; // X
-  siretTransporteur: string; // Y
-  numeroVoieTransporteur: string; // Z
-  voieTransporteur: string; // AA
-  complementTransporteur: string; // AB
-  cpTransporteur: string; // AC
-  villeTransporteur: string; // AD
-  recepisse: string; // AE
+  transporteur: string; // W
+  siretTransporteur: string; // X
+  numeroVoieTransporteur: string; // Y
+  voieTransporteur: string; // Z
+  complementTransporteur: string; // AA
+  cpTransporteur: string; // AB
+  villeTransporteur: string; // AC
+  recepisse: string; // AD
 
-  // Colonnes vides AF-AK
+  // Colonnes vides AE-AJ
   // (seront gérées dans le mapping)
 
   // Bloc CHANTIER
-  nomChantier: string; // AN
-  numeroVoieChantier: string; // AO
-  voieChantier: string; // AP
-  complementChantier: string; // AQ
-  villeChantier: string; // AR
-  codeINSEE: string; // AS
-  dpt: string; // AT
+  nomChantier: string; // AM
+  numeroVoieChantier: string; // AN
+  voieChantier: string; // AO
+  complementChantier: string; // AP
+  villeChantier: string; // AQ
+  codeINSEE: string; // AR
+  dpt: string; // AS
 }
 
 /**
@@ -223,9 +222,6 @@ function mapPeseeToRegistreRow(
 
   // Conversion poids : tonnes -> kg
   const poidsNetKg = pesee.net ? Math.round(pesee.net * 1000).toString() : "";
-  const poidsBrutKg = pesee.poidsEntree
-    ? Math.round(pesee.poidsEntree * 1000).toString()
-    : "";
 
   // Parsing adresse client
   const adresseClientParsed = parseAddress(client?.adresse);
@@ -285,7 +281,6 @@ function mapPeseeToRegistreRow(
     plaque: pesee.plaque || "",
     libelleProduit: product?.nom || "",
     codeDechet: product?.codeDechets || "",
-    poidsBrut: poidsBrutKg,
     poidsNet: poidsNetKg,
     codeTraitement: product?.codeTraitement || "",
     dechetPOP: product?.isPOP === true ? "x" : "",
@@ -363,22 +358,21 @@ function mapPeseeToRegistreRow(
 }
 
 /**
- * Convertit une ligne du registre en tableau de 45 valeurs (ordre A → AS)
+ * Convertit une ligne du registre en tableau de 44 valeurs (ordre A → AS)
  */
 function registreRowToArray(row: RegistreRow): (string | number)[] {
   return [
-    // A-I : PESEE / DECHET
+    // A-H : PESEE / DECHET
     row.date,
     row.heure,
     row.plaque,
     row.libelleProduit,
     row.codeDechet,
-    row.poidsBrut || "", // F : peut être vide
     row.poidsNet,
     row.codeTraitement,
     row.dechetPOP,
 
-    // J-P : CLIENT
+    // I-O : CLIENT
     row.client,
     row.siretClient,
     row.numeroVoieClient,
@@ -387,7 +381,7 @@ function registreRowToArray(row: RegistreRow): (string | number)[] {
     row.cpClient,
     row.villeClient,
 
-    // Q-W : Colonnes vides
+    // P-V : Colonnes vides
     "",
     "",
     "",
@@ -396,7 +390,7 @@ function registreRowToArray(row: RegistreRow): (string | number)[] {
     "",
     "",
 
-    // X-AE : TRANSPORTEUR
+    // W-AD : TRANSPORTEUR
     row.transporteur,
     row.siretTransporteur,
     row.numeroVoieTransporteur,
@@ -406,7 +400,7 @@ function registreRowToArray(row: RegistreRow): (string | number)[] {
     row.villeTransporteur,
     row.recepisse,
 
-    // AF-AK : Colonnes vides
+    // AE-AJ : Colonnes vides
     "",
     "",
     "",
@@ -414,15 +408,15 @@ function registreRowToArray(row: RegistreRow): (string | number)[] {
     "",
     "",
 
-    // AL-AT : CHANTIER
-    "", // AL vide (sous "CHANTIER" de la ligne 1)
-    row.nomChantier, // AN
-    row.numeroVoieChantier, // AO
-    row.voieChantier, // AP
-    row.complementChantier, // AQ
-    row.villeChantier, // AR
-    row.codeINSEE, // AS
-    row.dpt, // AT
+    // AK-AS : CHANTIER
+    "", // AK vide (sous "CHANTIER" de la ligne 1)
+    row.nomChantier, // AM
+    row.numeroVoieChantier, // AN
+    row.voieChantier, // AO
+    row.complementChantier, // AP
+    row.villeChantier, // AQ
+    row.codeINSEE, // AR
+    row.dpt, // AS
   ];
 }
 
@@ -480,7 +474,6 @@ export class RegistreSuiviDechetsExporter {
       "",
       "",
       "",
-      "",
       "CLIENT",
       "",
       "",
@@ -533,7 +526,6 @@ export class RegistreSuiviDechetsExporter {
       "PLAQUE D'IMMATRICULATION",
       "LIBELLE PRODUIT",
       "CODE DECHET",
-      "POIDS (Kg)",
       "POIDS (Kg)",
       "CODE TRAITEMENT",
       'Déchet POP\n(""x"" si oui)', // Retour à la ligne et guillemets échappés
@@ -642,9 +634,9 @@ export class RegistreSuiviDechetsExporter {
       const globalColIndex = section.startCol + i;
       const color = section.colorMap(globalColIndex);
       // Pour les colonnes vides (header gris clair), utiliser blanc pour éviter le débordement
-      const isVideColumn = globalColIndex >= 16 && globalColIndex <= 22; // Q-W
-      const isVideColumn2 = globalColIndex >= 31 && globalColIndex <= 36; // AF-AK
-      const isVideColumn3 = globalColIndex === 37; // AL vide
+      const isVideColumn = globalColIndex >= 15 && globalColIndex <= 21; // P-V
+      const isVideColumn2 = globalColIndex >= 30 && globalColIndex <= 35; // AE-AJ
+      const isVideColumn3 = globalColIndex === 36; // AK vide
 
       columnStyles[i.toString()] = {
         fillColor:
@@ -652,8 +644,8 @@ export class RegistreSuiviDechetsExporter {
             ? ([255, 255, 255] as [number, number, number]) // Blanc pour les colonnes vides
             : ([color[0], color[1], color[2]] as [number, number, number]),
         cellWidth:
-          (globalColIndex >= 16 && globalColIndex <= 22) ||
-          (globalColIndex >= 31 && globalColIndex <= 36)
+          (globalColIndex >= 15 && globalColIndex <= 21) ||
+          (globalColIndex >= 30 && globalColIndex <= 35)
             ? 3
             : undefined,
       };
@@ -698,9 +690,9 @@ export class RegistreSuiviDechetsExporter {
           const color = section.colorMap(globalColIndex);
 
           // Pour les colonnes vides, utiliser blanc pour éviter le débordement
-          const isVideColumn = globalColIndex >= 16 && globalColIndex <= 22; // Q-W
-          const isVideColumn2 = globalColIndex >= 31 && globalColIndex <= 36; // AF-AK
-          const isVideColumn3 = globalColIndex === 37; // AL vide
+          const isVideColumn = globalColIndex >= 15 && globalColIndex <= 21; // P-V
+          const isVideColumn2 = globalColIndex >= 30 && globalColIndex <= 35; // AE-AJ
+          const isVideColumn3 = globalColIndex === 36; // AK vide
 
           // Vérification de sécurité
           if (isVideColumn || isVideColumn2 || isVideColumn3) {
@@ -730,9 +722,9 @@ export class RegistreSuiviDechetsExporter {
         } else if (data.section === "head" && data.row.index === 1) {
           // Deuxième ligne : titres de colonnes avec fond gris
           const globalColIndex = section.startCol + data.column.index;
-          const isVideColumn = globalColIndex >= 16 && globalColIndex <= 22; // Q-W
-          const isVideColumn2 = globalColIndex >= 31 && globalColIndex <= 36; // AF-AK
-          const isVideColumn3 = globalColIndex === 37; // AL vide
+          const isVideColumn = globalColIndex >= 15 && globalColIndex <= 21; // P-V
+          const isVideColumn2 = globalColIndex >= 30 && globalColIndex <= 35; // AE-AJ
+          const isVideColumn3 = globalColIndex === 36; // AK vide
 
           // Pour les colonnes vides, utiliser blanc
           if (isVideColumn || isVideColumn2 || isVideColumn3) {
@@ -816,13 +808,12 @@ export class RegistreSuiviDechetsExporter {
     // Préparer toutes les données une fois
     const tableData: string[][] = [];
 
-    // Ligne 1 : En-têtes de groupes (47 colonnes)
+    // Ligne 1 : En-têtes de groupes (44 colonnes)
     const headerGroups = [
       "PESEE",
       "",
       "",
       "DECHET",
-      "",
       "",
       "",
       "",
@@ -869,17 +860,16 @@ export class RegistreSuiviDechetsExporter {
       "",
       "",
       "",
-      "", // AL-AT : CHANTIER (10 colonnes)
+      "", // AK-AS : CHANTIER (10 colonnes)
     ];
 
-    // En-têtes du tableau (47 colonnes) - Ligne 2
+    // En-têtes du tableau (44 colonnes) - Ligne 2
     const headers = [
       "DATE",
       "HEURE",
       "PLAQUE",
       "PRODUIT",
       "CODE DECHET",
-      "POIDS BRUT",
       "POIDS NET",
       "CODE TRAIT.",
       "POP",
@@ -960,23 +950,23 @@ export class RegistreSuiviDechetsExporter {
       if (colIndex >= 0 && colIndex <= 2) {
         // A-C : PESEE
         return colors.pesee;
-      } else if (colIndex >= 3 && colIndex <= 8) {
-        // D-I : DECHET
+      } else if (colIndex >= 3 && colIndex <= 7) {
+        // D-H : DECHET
         return colors.dechet;
-      } else if (colIndex >= 9 && colIndex <= 15) {
-        // J-P : CLIENT
+      } else if (colIndex >= 8 && colIndex <= 14) {
+        // I-O : CLIENT
         return colors.client;
-      } else if (colIndex >= 16 && colIndex <= 22) {
-        // Q-W : Vides (gris clair)
+      } else if (colIndex >= 15 && colIndex <= 21) {
+        // P-V : Vides (gris clair)
         return colors.header;
-      } else if (colIndex >= 23 && colIndex <= 30) {
-        // X-AE : TRANSPORTEUR (incluant RECEPISSE)
+      } else if (colIndex >= 22 && colIndex <= 29) {
+        // W-AD : TRANSPORTEUR (incluant RECEPISSE)
         return colors.transporteur;
-      } else if (colIndex >= 31 && colIndex <= 36) {
-        // AF-AK : Vides (gris clair)
+      } else if (colIndex >= 30 && colIndex <= 35) {
+        // AE-AJ : Vides (gris clair)
         return colors.header;
-      } else if (colIndex >= 37 && colIndex <= 46) {
-        // AL-AT : CHANTIER (10 colonnes, AL vide)
+      } else if (colIndex >= 36 && colIndex <= 45) {
+        // AK-AS : CHANTIER (10 colonnes, AK vide)
         return colors.chantier;
       }
       return colors.header;
@@ -987,15 +977,14 @@ export class RegistreSuiviDechetsExporter {
       {
         name: "PESEE / DECHET",
         startCol: 0, // A
-        endCol: 8, // I
-        groupHeaders: ["PESEE", "", "", "DECHET", "", "", "", "", ""],
+        endCol: 7, // H
+        groupHeaders: ["PESEE", "", "", "DECHET", "", "", "", ""],
         columnHeaders: [
           "DATE",
           "HEURE",
           "PLAQUE",
           "PRODUIT",
           "CODE DECHET",
-          "POIDS BRUT",
           "POIDS NET",
           "CODE TRAIT.",
           "POP",
@@ -1004,8 +993,8 @@ export class RegistreSuiviDechetsExporter {
       },
       {
         name: "CLIENT",
-        startCol: 9, // J
-        endCol: 22, // W
+        startCol: 8, // I
+        endCol: 21, // V
         groupHeaders: [
           "CLIENT",
           "",
@@ -1014,14 +1003,13 @@ export class RegistreSuiviDechetsExporter {
           "",
           "",
           "",
-          "", // J-P (7 colonnes)
+          "", // I-O (7 colonnes)
           "",
           "",
           "",
           "",
           "",
-          "",
-          "", // Q-W (7 colonnes vides)
+          "", // P-V (7 colonnes vides)
         ],
         columnHeaders: [
           "CLIENT",
@@ -1037,14 +1025,14 @@ export class RegistreSuiviDechetsExporter {
           "",
           "",
           "",
-          "", // Q-W
+          "", // P-V
         ],
         colorMap: getColorForColumn,
       },
       {
         name: "TRANSPORTEUR",
-        startCol: 23, // X
-        endCol: 36, // AK
+        startCol: 22, // W
+        endCol: 35, // AJ
         groupHeaders: [
           "TRANSPORTEUR",
           "",
@@ -1054,13 +1042,12 @@ export class RegistreSuiviDechetsExporter {
           "",
           "",
           "",
-          "", // X-AE (8 colonnes)
+          "", // W-AD (8 colonnes)
           "",
           "",
           "",
           "",
-          "",
-          "", // AF-AK (6 colonnes vides)
+          "", // AE-AJ (6 colonnes vides)
         ],
         columnHeaders: [
           "TRANSP.",
@@ -1076,14 +1063,14 @@ export class RegistreSuiviDechetsExporter {
           "",
           "",
           "",
-          "", // AF-AK
+          "", // AE-AJ
         ],
         colorMap: getColorForColumn,
       },
       {
         name: "CHANTIER",
-        startCol: 37, // AL
-        endCol: 46, // AT
+        startCol: 36, // AK
+        endCol: 45, // AS
         groupHeaders: [
           "",
           "CHANTIER",
@@ -1094,17 +1081,17 @@ export class RegistreSuiviDechetsExporter {
           "",
           "",
           "",
-          "", // AL-AT (10 colonnes, AL vide)
+          "", // AK-AS (10 colonnes, AK vide)
         ],
         columnHeaders: [
-          "", // AL vide
-          "CHANTIER", // AN
-          "N°", // AO
-          "VOIE", // AP
-          "COMPL.", // AQ
-          "VILLE", // AR
-          "INSEE", // AS
-          "DPT", // AT
+          "", // AK vide
+          "CHANTIER", // AM
+          "N°", // AN
+          "VOIE", // AO
+          "COMPL.", // AP
+          "VILLE", // AQ
+          "INSEE", // AR
+          "DPT", // AS
         ],
         colorMap: getColorForColumn,
       },
